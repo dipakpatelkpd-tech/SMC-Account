@@ -425,7 +425,7 @@ export function PrintRoot({ report, layout: draft, editorCss, onChecked }: Print
           single global `@page` would print all seven landscape forms portrait,
           with their tables cropped down the right-hand side.
           */}
-          <style>{`@page { size: legal ${landscape ? "landscape" : "portrait"}; margin: ${narrow ? "5mm" : "10mm"}; }`}</style>
+          <style>{`@page { size: ${landscape ? "345mm 215mm" : "215mm 345mm"}; margin: ${narrow ? "5mm" : "10mm"}; }`}</style>
           {/* The school's layout, then - on the Reports screen - the editor's marks. */}
           <style>{layoutCss(report, layoutValue.layout, `#${LAYOUT_ROOT_ID}`)}</style>
           {editorCss && <style>{editorCss}</style>}

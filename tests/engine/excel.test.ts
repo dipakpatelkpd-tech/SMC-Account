@@ -102,13 +102,45 @@ describe("one report at a time", () => {
     );
   });
 
-  it("writes the cash book with a page number on every row", async () => {
+  it("writes the cash book as the printed form, one Excel page per printed page", async () => {
     const workbook = await roundTrip("rojmel");
     const sheet = workbook.worksheets[0]!;
-    expect(sheet.rowCount).toBeGreaterThan(2);
+    const rojmel = await accounts.getRojmel();
 
-    for (let row = 3; row <= sheet.rowCount; row += 1) {
-      expect(typeof sheet.getRow(row).getCell(1).value).toBe("number");
+    // Every page opens with the Cash Book band carrying its page number.
+    const bands: string[] = [];
+    sheet.eachRow((row) => {
+      const value = row.getCell(1).value;
+      if (typeof value === "string" && value.startsWith("આવક")) bands.push(String(row.getCell(14).value));
+    });
+    expect(bands).toEqual(rojmel.pages.map((page) => `પાના.નંબર   ${page.pageNo}`));
+
+    // The two halves side by side: the first block's opening balance on the
+    // left, its payment on the right, amounts as numbers.
+    const first = rojmel.blocks[0]!;
+    let found = false;
+    sheet.eachRow((row) => {
+      if (row.getCell(2).value === "શ્રી ઉઘડતી સિલક" && !found) {
+        found = true;
+        expect(row.getCell(7).value).toBe(first.openingBankPaise / 100);
+        expect(row.getCell(9).value).toBe(first.paymentLines[0]!.descriptionGu);
+      }
+    });
+    expect(found).toBe(true);
+
+    // It prints landscape, one page wide, inside Indian Legal.
+    expect(sheet.pageSetup.orientation).toBe("landscape");
+    expect(sheet.pageSetup.fitToWidth).toBe(1);
+    expect(sheet.pageSetup.paperSize).toBe(5);
+    const margins = sheet.pageSetup.margins!;
+    expect((margins.left + margins.right) * 25.4).toBeGreaterThanOrEqual(355.6 - 345);
+  });
+
+  it("gives every sheet a print setup", async () => {
+    const workbook = await roundTrip("all");
+    for (const sheet of workbook.worksheets) {
+      expect(sheet.pageSetup.fitToWidth, sheet.name).toBe(1);
+      expect(sheet.pageSetup.paperSize, sheet.name).toBe(5);
     }
   });
 });

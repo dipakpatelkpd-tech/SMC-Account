@@ -59,7 +59,7 @@ export async function exportReportPdf(request: PdfRequest): Promise<string> {
 
   const window = new BrowserWindow({
     show: false,
-    // Comfortably larger than a Legal sheet (1268 x 740 px landscape), so the
+    // Comfortably larger than a Legal sheet (1228 x 737 px landscape), so the
     // offscreen window never reflows the layout differently from the preview.
     width: setup.landscape ? 1500 : 1000,
     height: setup.landscape ? 1000 : 1500,
@@ -86,10 +86,11 @@ export async function exportReportPdf(request: PdfRequest): Promise<string> {
 
     const pdf = await window.webContents.printToPDF({
       landscape: setup.landscape,
-      // Legal, 8.5 x 14in - the paper the school prints these forms on.
+      // Indian Legal, 215 x 345mm (in inches here) - the paper the school
+      // prints these forms on; US Legal is 10mm longer and loses the edge.
       // preferCSSPageSize below means the stylesheet's @page wins anyway, but
       // stating it here keeps the two from disagreeing silently.
-      pageSize: "Legal",
+      pageSize: { width: 215 / 25.4, height: 345 / 25.4 },
       printBackground: true,
       // The stylesheet owns the margins through @page, so Chromium must not
       // add its own on top.

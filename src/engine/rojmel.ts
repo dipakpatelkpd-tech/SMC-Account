@@ -1,8 +1,9 @@
 /**
  * રોજમેળ - the cash book (SPEC 6.1).
  *
- * The rojmel is a sequence of BLOCKS. A block covers one cash-book date, or a
- * range of dates on which nothing happened. Each block has two sides - આવક
+ * The rojmel is a sequence of BLOCKS. A block covers one voucher on one
+ * cash-book date - two vouchers on the same date are two blocks, one after the
+ * other - or a range of dates on which nothing happened. Each block has two sides - આવક
  * (receipts, left) and જાવક (payments, right) - and closes with three footer
  * rows that must agree:
  *
@@ -19,6 +20,7 @@
  * every entry, so `pageResolver()` here is what fills in those references.
  */
 import { add, paise, sum, type Paise, ZERO } from "../lib/money.js";
+import { withNa } from "../lib/gujarati.js";
 import { addDays, endOfMonth, formatDate, formatDateShort } from "../lib/dates.js";
 import { billNet, chequeAllocation, chequeAmount } from "./allocation.js";
 import { openingBank, openingCash } from "./balances.js";
@@ -48,6 +50,11 @@ export interface RojmelLine {
 }
 
 export interface RojmelBlock {
+  /**
+   * Which block this is, for layout keys: the date, or for the second and later
+   * vouchers of one date the date and its place ("2025-06-09#2").
+   */
+  id: string;
   /** The date, or the first date of a nil range. */
   fromDate: string;
   /** The last date of a nil range; equal to fromDate for a normal block. */
@@ -172,16 +179,24 @@ export function buildRojmel(book: YearBook, options: RojmelOptions = {}): Rojmel
 
   for (let index = 0; index < activeDates.length; index += 1) {
     const date = activeDates[index]!;
-    emit(
-      activeBlock(
-        book,
-        date,
-        receiptsByDate.get(date) ?? [],
-        chequesByDate.get(date) ?? [],
-        cash,
-        bank,
-      ),
-    );
+    // One block per voucher: a date with two vouchers prints two blocks, the
+    // second opening with the first one's બંધ સિલક. The date's receipts go in
+    // its first block.
+    const vouchers = voucherGroups(chequesByDate.get(date) ?? []);
+    const parts = vouchers.length === 0 ? [[]] : vouchers;
+    parts.forEach((cheques, part) => {
+      emit(
+        activeBlock(
+          book,
+          date,
+          part === 0 ? (receiptsByDate.get(date) ?? []) : [],
+          cheques,
+          cash,
+          bank,
+          part === 0 ? date : `${date}#${part + 1}`,
+        ),
+      );
+    });
     emitTailGap(date, activeDates[index + 1]);
   }
 
@@ -229,6 +244,7 @@ function nilBlock(from: string, to: string, cash: Paise, bank: Paise): RojmelBlo
   };
 
   return finishBlock({
+    id: from,
     fromDate: from,
     toDate: to,
     isNil: true,
@@ -246,6 +262,7 @@ function activeBlock(
   cheques: BookCheque[],
   cash: Paise,
   bank: Paise,
+  id: string,
 ): RojmelBlock {
   const nameByCode = new Map(book.heads.map((head) => [head.code, head.nameGu]));
 
@@ -343,7 +360,7 @@ function activeBlock(
       receiptLines.push({
         side: "receipt",
         dateText: "",
-        descriptionGu: "મુખ્ય શિક્ષકે નાણાં ઉપાડી હાથ પર લીધા",
+        descriptionGu: CASH_IN_HAND_GU,
         referenceText: "",
         chequeText: "",
         cashPaise: amount,
@@ -371,7 +388,7 @@ function activeBlock(
       paymentLines.push({
         side: "payment",
         dateText: "",
-        descriptionGu: `${cheque.payeeGu}ને ${cheque.purposeGu}ના ચુકવ્યા વા.મુજબ`,
+        descriptionGu: `${cheque.payeeGu}ને ${withNa(cheque.purposeGu)} ચુકવ્યા વા.મુજબ`,
         referenceText: "",
         chequeText: "",
         cashPaise: ZERO,
@@ -428,6 +445,7 @@ function activeBlock(
   }
 
   return finishBlock({
+    id,
     fromDate: date,
     toDate: date,
     isNil: false,
@@ -442,6 +460,7 @@ function activeBlock(
 function finishBlock(
   partial: Pick<
     RojmelBlock,
+    | "id"
     | "fromDate"
     | "toDate"
     | "isNil"
@@ -460,7 +479,7 @@ function finishBlock(
   const closingCashPaise = paise(receiptTotalCashPaise - spentCashPaise);
   const closingBankPaise = paise(receiptTotalBankPaise - spentBankPaise);
 
-  const bodyRows = Math.max(partial.receiptLines.length, partial.paymentLines.length);
+  const bodyRows = Math.max(receiptSideRows(partial.receiptLines).length, partial.paymentLines.length);
 
   return {
     ...partial,
@@ -476,6 +495,42 @@ function finishBlock(
     receiptTotalTotalPaise: add(receiptTotalCashPaise, receiptTotalBankPaise),
     rowCount: Math.max(ROWS_PER_BLOCK_MINIMUM, bodyRows + FOOTER_ROWS),
   };
+}
+
+/**
+ * The આવક side of a block, row by row, before padding: the opening balance, a
+ * blank row, the receipts, and a blank row after them - the client's book never
+ * writes a line straight under a receipt - then the bank-to-hand transfer,
+ * which the form prints last (null is a blank row).
+ */
+export function receiptSideRows(lines: readonly RojmelLine[]): (RojmelLine | null)[] {
+  const [opening, ...rest] = lines;
+  if (!opening) return [];
+  const cashInHand = rest.filter(isCashInHand);
+  const receipts = rest.filter((line) => !isCashInHand(line));
+  return [opening, ...(receipts.length > 0 ? [null, ...receipts, null] : []), ...cashInHand];
+}
+
+/** The bank-to-hand transfer line, which the form prints last on the left. */
+export function isCashInHand(line: RojmelLine): boolean {
+  return line.descriptionGu === CASH_IN_HAND_GU;
+}
+
+const CASH_IN_HAND_GU = "મુખ્ય શિક્ષકે નાણાં ઉપાડી હાથ પર લીધા";
+
+/**
+ * A date's cheques, one group per voucher, in cheque-number order. A cheque
+ * with no voucher number is a voucher of its own.
+ */
+function voucherGroups(cheques: readonly BookCheque[]): BookCheque[][] {
+  const groups = new Map<string, BookCheque[]>();
+  for (const cheque of [...cheques].sort((a, b) => a.chequeNo - b.chequeNo)) {
+    const key = cheque.voucherNo === null ? `cheque:${cheque.chequeNo}` : `voucher:${cheque.voucherNo}`;
+    const group = groups.get(key);
+    if (group) group.push(cheque);
+    else groups.set(key, [cheque]);
+  }
+  return [...groups.values()];
 }
 
 // ---------------------------------------------------------------- pagination

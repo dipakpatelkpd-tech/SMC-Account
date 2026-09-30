@@ -189,7 +189,7 @@ describe("in Excel", () => {
   it("finds a rojmel highlight on the side and row it was made on", async () => {
     const rojmel = await accounts.getRojmel();
     const block = rojmel.blocks.find((each) => !each.isNil && each.paymentLines.length > 0)!;
-    const key = ROW_KEYS.rojmelRow(block.fromDate, 0);
+    const key = ROW_KEYS.rojmelRow(block.id, 0);
     saved(
       await accounts.saveReportLayout(
         "rojmel",
@@ -200,10 +200,11 @@ describe("in Excel", () => {
     const sheet = (await roundTrip("rojmel")).worksheets[0]!;
     const filled: string[] = [];
     sheet.eachRow((row) => {
-      const detail = row.getCell(3);
-      if (fillOf(detail)) filled.push(`${row.getCell(4).value}|${detail.value}`);
+      // Column 9 is the જાવક side's વિગત. The footers' own colour is not the school's.
+      const detail = row.getCell(9);
+      if (fillOf(detail) === "FFBBDEFB") filled.push(String(detail.value));
     });
     // Exactly one cell: the payment side's first line of that block.
-    expect(filled).toEqual([`ઉધાર|${block.paymentLines[0]!.descriptionGu}`]);
+    expect(filled).toEqual([block.paymentLines[0]!.descriptionGu]);
   });
 });

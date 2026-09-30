@@ -25,3 +25,13 @@ export function toLatinDigits(text: string): string {
 export function inDigits(text: string, style: DigitStyle): string {
   return style === "gujarati" ? toGujaratiDigits(text) : text;
 }
+
+/**
+ * "વાલી સંમેલન સરભરા ખર્ચ" -> "વાલી સંમેલન સરભરા ખર્ચના": what was paid for, as
+ * it reads before "ચુકવ્યા" ("... ખર્ચના ચુકવ્યા વા.મુજબ"). Text that already
+ * ends in ના is left alone.
+ */
+export function withNa(text: string): string {
+  const trimmed = text.trim();
+  return trimmed.endsWith("ના") ? trimmed : `${trimmed}ના`;
+}

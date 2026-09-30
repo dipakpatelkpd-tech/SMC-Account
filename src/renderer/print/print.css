@@ -13,15 +13,16 @@
  */
 
 /*
- * PAPER: Legal, 215.9 x 355.6mm (8.5 x 14in) - the size the school actually
- * prints on. Every form uses it, portrait or landscape.
+ * PAPER: Indian Legal, 215 x 345mm - the size the school actually prints on.
+ * Every form uses it, portrait or landscape. (US Legal is 215.9 x 355.6mm: a
+ * form laid out for it loses its last 10mm on Indian paper.)
  *
- * Legal is both wider and taller than A4. Landscape Legal gives 335.6mm of
- * width against A4's 297, which is 21% more room for the rojmel's sixteen
+ * Legal is both wider and taller than A4. Landscape Legal gives 325mm of
+ * width against A4's 297, which is more room for the rojmel's fifteen
  * columns, and the extra length fits more rows per page.
  */
 @page {
-  size: legal portrait;
+  size: 215mm 345mm;
   /* The originals have a narrow margin; anything wider pushes the wide
      landscape tables off the sheet. */
   margin: 10mm;
@@ -53,16 +54,16 @@
 /*
  * One sheet. On screen it looks like paper; in print it IS the page.
  *
- * The dimensions are the Legal sheet less its two 10mm margins, so what is
- * measured on screen is exactly the printable area:
+ * The dimensions are the Indian Legal sheet less its two 10mm margins, so what
+ * is measured on screen is exactly the printable area:
  *
- *   portrait    195.9 x 335.6mm   (740 x 1268 px at 96dpi)
- *   landscape   335.6 x 195.9mm   (1268 x 740 px)
+ *   portrait    195 x 325mm   (737 x 1228 px at 96dpi)
+ *   landscape   325 x 195mm   (1228 x 737 px)
  */
 .sheet {
   box-sizing: border-box;
-  width: 195.9mm;
-  min-height: 335.6mm;
+  width: 195mm;
+  min-height: 325mm;
   margin: 0 auto 8mm;
   padding: 0;
   background: #fff;
@@ -70,25 +71,25 @@
 }
 
 .sheet.landscape {
-  width: 335.6mm;
-  min-height: 195.9mm;
+  width: 325mm;
+  min-height: 195mm;
 }
 
 /*
  * Forms printed with 5mm margins (PrintRoot, NARROW_MARGIN_REPORTS): the
  * client's workbook prints these edge to edge to fit its columns at full size.
  *
- *   portrait    205.9 x 345.6mm
- *   landscape   345.6 x 205.9mm
+ *   portrait    205 x 335mm
+ *   landscape   335 x 205mm
  */
 .print-root.narrow .sheet {
-  width: 205.9mm;
-  min-height: 345.6mm;
+  width: 205mm;
+  min-height: 335mm;
 }
 
 .print-root.narrow .sheet.landscape {
-  width: 345.6mm;
-  min-height: 205.9mm;
+  width: 335mm;
+  min-height: 205mm;
 }
 
 /* Screen-only chrome: a grey surround so the sheet reads as paper. */
@@ -389,16 +390,27 @@ table.form.rojmel tr.footer-row td {
   font-weight: 700;
 }
 
-table.form.rojmel tr.footer-row.spent td {
+/* Only the words and the amounts of a footer are coloured - not the whole row,
+   as in the client's own book. */
+table.form.rojmel tr.footer-row.spent td:is(.label, .figure) {
   background: #fdeee4;
 }
 
-table.form.rojmel tr.footer-row.closing td {
+table.form.rojmel tr.footer-row.closing td:is(.label, .figure) {
   background: #fdf6e3;
 }
 
-table.form.rojmel tr.footer-row.grand td {
+table.form.rojmel tr.footer-row.grand td:is(.label, .figure) {
   background: #eaf3ea;
+}
+
+/* "1/3 11/07/24": the voucher number is bold, its date is not. */
+table.form.rojmel td.ref {
+  font-weight: 400;
+}
+
+table.form.rojmel td.ref .voucher-no {
+  font-weight: 700;
 }
 
 /* A blank band between blocks, as on the printed book. */

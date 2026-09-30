@@ -11,8 +11,10 @@ import { formatAmount } from "../../lib/money.js";
  * રોજમેળ - one printed page of the cash book (SPEC 6.1).
  *
  * Legal landscape, two sides. The left half is આવક (receipts), the right half
- * જાવક (payments), sharing a date column each. Blocks are stacked down the page
- * and padded with blank rows so the footers sit where the eye expects them.
+ * જાવક (payments). Only the આવક side has a date column: on the જાવક side the
+ * date is printed with the voucher number. Blocks - one per voucher - are
+ * stacked down the page and padded with blank rows so the footers sit where
+ * the eye expects them.
  *
  * The column widths (REPORT_COLUMNS.rojmel) follow the client's ROJMED sheet: the payment side gets the
  * wider description and a voucher column wide enough for "1/21 15/3/25" on one
@@ -77,8 +79,7 @@ export function RojmelSheet({
             <th data-col="r.bank" className="col-money">બેન્ક</th>
             <th data-col="r.total" className="col-money">કુલ રકમ</th>
 
-            <th data-col="p.date" className="col-date gutter">તારીખ</th>
-            <th data-col="p.detail" className="col-detail">જાવક ની વિગત</th>
+            <th data-col="p.detail" className="col-detail gutter">જાવક ની વિગત</th>
             <th data-col="p.ref" className="col-ref">વાઉચર નંબર અને તારીખ</th>
             <th data-col="p.cheque" className="col-ref">ચેક નં તારીખ</th>
             <th data-col="p.class" className="col-class">વર્ગીકરણ રજી.નો પાન નં</th>
@@ -89,7 +90,7 @@ export function RojmelSheet({
         </thead>
         <tbody>
           {page.blocks.map((block) => (
-            <Block key={`${block.fromDate}-${block.toDate}`} block={block} />
+            <Block key={block.id} block={block} />
           ))}
         </tbody>
       </table>
@@ -100,7 +101,7 @@ export function RojmelSheet({
 }
 
 function Block({ block }: { block: RojmelBlock }): JSX.Element {
-  const footer = (which: "spent" | "closing" | "grand"): string => ROW_KEYS.rojmelFooter(block.fromDate, which);
+  const footer = (which: "spent" | "closing" | "grand"): string => ROW_KEYS.rojmelFooter(block.id, which);
 
   return (
     <>
@@ -117,8 +118,7 @@ function Block({ block }: { block: RojmelBlock }): JSX.Element {
       {/* શ્રી ખર્ચખાતે - what left the block, per column. */}
       <tr className="footer-row spent" data-row={footer("spent")}>
         <Blank side="r" />
-        <td data-col="p.date" className="gutter" />
-        <td data-col="p.detail" className="label">શ્રી ખર્ચખાતે</td>
+        <td data-col="p.detail" className="gutter label">શ્રી ખર્ચખાતે</td>
         <td data-col="p.ref" />
         <td data-col="p.cheque" />
         <td data-col="p.class" />
@@ -139,8 +139,7 @@ function Block({ block }: { block: RojmelBlock }): JSX.Element {
         <td data-col="r.bank" className="figure">{formatAmount(block.receiptTotalBankPaise)}</td>
         <td data-col="r.total" className="figure">{formatAmount(block.receiptTotalTotalPaise)}</td>
 
-        <td data-col="p.date" className="gutter" />
-        <td data-col="p.detail" className="label">શ્રી બંધ સિલક</td>
+        <td data-col="p.detail" className="gutter label">શ્રી બંધ સિલક</td>
         <td data-col="p.ref" />
         <td data-col="p.cheque" />
         <td data-col="p.class" />
@@ -153,8 +152,7 @@ function Block({ block }: { block: RojmelBlock }): JSX.Element {
       {/* શ્રી કુલ - must equal the receipt totals on the left. */}
       <tr className="footer-row grand" data-row={footer("grand")}>
         <Blank side="r" />
-        <td data-col="p.date" className="gutter" />
-        <td data-col="p.detail" className="label">શ્રી કુલ</td>
+        <td data-col="p.detail" className="gutter label">શ્રી કુલ</td>
         <td data-col="p.ref" />
         <td data-col="p.cheque" />
         <td data-col="p.class" />
@@ -173,7 +171,7 @@ function Block({ block }: { block: RojmelBlock }): JSX.Element {
       <GapRow rowKey={footer("grand")} />
 
       <tr className="block-gap">
-        <td colSpan={16} />
+        <td colSpan={15} />
       </tr>
     </>
   );
@@ -184,19 +182,21 @@ function Block({ block }: { block: RojmelBlock }): JSX.Element {
  * side ("p"). Cells are named `r.detail`, `p.cash` and so on (REPORT_COLUMNS).
  */
 function Half({ side, line }: { side: "r" | "p"; line: RojmelLine | null }): JSX.Element {
-  const gutter = side === "p" ? "gutter " : "";
   if (!line) return <Blank side={side} />;
+  const gutter = side === "p" ? " gutter" : "";
 
   return (
     <>
-      <td data-col={`${side}.date`} className={`${gutter}col-date`}>
-        {line.dateText}
-      </td>
-      <td data-col={`${side}.detail`} className={line.headingOnly ? "detail heading" : "detail"}>
+      {side === "r" && (
+        <td data-col="r.date" className="col-date">
+          {line.dateText}
+        </td>
+      )}
+      <td data-col={`${side}.detail`} className={(line.headingOnly ? "detail heading" : "detail") + gutter}>
         {line.descriptionGu}
       </td>
       <td data-col={`${side}.ref`} className="ref">
-        {line.referenceText}
+        {side === "p" ? <VoucherRef text={line.referenceText} /> : line.referenceText}
       </td>
       <td data-col={`${side}.cheque`} className="ref">
         {line.chequeText}
@@ -215,12 +215,27 @@ function Half({ side, line }: { side: "r" | "p"; line: RojmelLine | null }): JSX
   );
 }
 
-/** Eight empty cells - one side of a row that prints nothing. */
+/**
+ * "1/3 11/07/24": the voucher number stands out, the date beside it does not -
+ * so a sub-voucher (1/1, 1/2 ...) is found at a glance.
+ */
+function VoucherRef({ text }: { text: string }): JSX.Element {
+  const space = text.indexOf(" ");
+  if (space <= 0) return <strong className="voucher-no">{text}</strong>;
+  return (
+    <>
+      <strong className="voucher-no">{text.slice(0, space)}</strong>
+      {text.slice(space)}
+    </>
+  );
+}
+
+/** The empty cells of one side of a row that prints nothing. */
 function Blank({ side }: { side: "r" | "p" }): JSX.Element {
   return (
     <>
-      <td data-col={`${side}.date`} className={side === "p" ? "gutter" : undefined} />
-      <td data-col={`${side}.detail`} />
+      {side === "r" && <td data-col="r.date" />}
+      <td data-col={`${side}.detail`} className={side === "p" ? "gutter" : undefined} />
       <td data-col={`${side}.ref`} />
       <td data-col={`${side}.cheque`} />
       <td data-col={`${side}.class`} />
