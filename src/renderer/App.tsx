@@ -17,6 +17,7 @@ import { Login } from "./screens/Login.js";
 import { Schools } from "./screens/Schools.js";
 import { BackupBadge } from "./components/BackupBadge.js";
 import { Suggestions } from "./components/Suggestions.js";
+import { flushSuggestions, startSuggestionSync } from "./suggestions/sync.js";
 import { LanguageProvider, useStrings } from "./i18n/index.js";
 import { PrintRoot, printableReportFromHash } from "./print/PrintRoot.js";
 import type { JSX } from "react";
@@ -249,6 +250,11 @@ function Shell({
     void refresh();
   }, [refresh]);
 
+  // The suggestions live in this school's books: merge them with the ones the
+  // app holds now, and keep saving while the school is open.
+  const ready = setupState !== null && !setupState.needsSetup;
+  useEffect(() => (ready ? startSuggestionSync() : undefined), [ready]);
+
   if (error !== null) {
     return (
       <div className="state error">
@@ -280,6 +286,7 @@ function Shell({
             className="ghost small"
             type="button"
             onClick={async () => {
+              await flushSuggestions();
               await api.closeSchool();
               onSchoolClosed();
             }}

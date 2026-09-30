@@ -135,7 +135,7 @@ export function Login({ cloud, onSignedIn }: { cloud: CloudInfoDto; onSignedIn: 
             <label htmlFor="auth-email">{t.authEmail}</label>
             <input
               id="auth-email"
-              data-suggest="auth.email"
+              data-no-suggest
               type="email"
               autoComplete="username"
               className="num-input"

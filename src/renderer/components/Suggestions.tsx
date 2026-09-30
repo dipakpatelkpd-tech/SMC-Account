@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import { createPortal } from "react-dom";
 import { useStrings } from "../i18n/index.js";
-import { SuggestionStore, normalise } from "../suggestions/store.js";
+import { normalise } from "../suggestions/store.js";
+import { suggestionStore as store } from "../suggestions/sync.js";
 
 /**
  * Suggestions for every text box in the app, from what was typed there before.
@@ -17,7 +18,8 @@ import { SuggestionStore, normalise } from "../suggestions/store.js";
  *
  * Values are remembered when a form is saved - every field in it at once - or,
  * for a field outside a form, when it is left after a change, and whenever a
- * suggestion is chosen.
+ * suggestion is chosen. They are kept in the school's books, not on the PC
+ * (suggestions/sync.ts), so they go with the pen drive.
  *
  *   ↑ ↓            move through the list (↓ also opens it)
  *   Tab            fill in the top suggestion - or the one moved to - once
@@ -49,14 +51,6 @@ export function suggestKey(element: EventTarget | null): string | null {
   return `${screen}:${id}`;
 }
 
-function localStore(): Storage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Set a React-controlled field's value the way typing would, so the screen's
  * own onChange sees it.
@@ -84,7 +78,6 @@ interface Open {
 
 export function Suggestions(): JSX.Element | null {
   const t = useStrings();
-  const store = useMemo(() => new SuggestionStore(localStore()), []);
   const [open, setOpen] = useState<Open | null>(null);
   const current = useRef(open);
   current.current = open;
@@ -216,7 +209,7 @@ export function Suggestions(): JSX.Element | null {
       window.removeEventListener("scroll", onMove, true);
       window.removeEventListener("resize", onMove);
     };
-  }, [store]);
+  }, []);
 
   if (!open || open.items.length === 0 || !open.field.isConnected) return null;
 

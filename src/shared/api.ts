@@ -34,6 +34,7 @@ import type { Issue } from "../engine/validation.js";
 import type { ChequeType } from "../lib/types.js";
 import type { LegacyImportPlan } from "./legacy.js";
 import type { ReportLayout } from "./report-layout.js";
+import type { SuggestionRow } from "./suggestions.js";
 
 // ------------------------------------------------------------------ reading
 
@@ -589,6 +590,18 @@ export interface BooksApi {
   /** Save it. Saving an empty layout puts the report back to its default. */
   saveReportLayout(report: PrintableReportId, layout: ReportLayout): Promise<ApiResult<ReportLayout>>;
 
+  // suggestions
+  /**
+   * Merge the suggestions the app holds with the ones saved in this school's
+   * books, save the result there, and return it. Called when a school opens
+   * and after suggestions change; the pen drive carries them to other PCs.
+   *
+   * Not in MUTATING_METHODS on purpose: a suggestion is a convenience, not a
+   * change to the accounts, and a backup owed after every typed word would be
+   * a backup on every keystroke.
+   */
+  syncSuggestions(rows: SuggestionRow[]): Promise<SuggestionRow[]>;
+
   // reports
   getRojmel(): Promise<Rojmel>;
   getChequeRegister(): Promise<ChequeRegisterRow[]>;
@@ -715,6 +728,7 @@ export const API_METHODS = [
   "exportExcel",
   "getReportLayout",
   "saveReportLayout",
+  "syncSuggestions",
   "getRojmel",
   "getChequeRegister",
   "getBillRegister",

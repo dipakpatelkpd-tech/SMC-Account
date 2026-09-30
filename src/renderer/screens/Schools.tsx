@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { JSX } from "react";
 import { api } from "../api.js";
+import { endSuggestionSession } from "../suggestions/sync.js";
 import type {
   CloudBackupDto,
   CloudInfoDto,
@@ -161,6 +162,7 @@ export function Schools({
   }
 
   async function signOut(): Promise<void> {
+    await endSuggestionSession();
     await api.signOut();
     onOpened();
   }

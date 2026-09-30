@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { JSX } from "react";
 import { api } from "../api.js";
+import { endSuggestionSession } from "../suggestions/sync.js";
 import type { CloudBackupDto, DashboardDto, OpenSchoolDto, UserDto } from "../../shared/api.js";
 import type { Issue } from "../../engine/validation.js";
 import { LANGUAGES, useLanguage, useStrings, type Language } from "../i18n/index.js";
@@ -179,6 +180,7 @@ function AccountAndBackup({
   const signOut = () =>
     work(async () => {
       if (!window.confirm(t.signOutHint)) return;
+      await endSuggestionSession();
       await api.signOut();
       onSignedOut();
     });

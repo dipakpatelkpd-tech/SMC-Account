@@ -56,6 +56,7 @@ import {
   type ReportLayout,
 } from "../shared/report-layout.js";
 import { PRINTABLE_REPORTS } from "../shared/api.js";
+import { fingerprint, fold, mergeRows, validRows, type SuggestionRow } from "../shared/suggestions.js";
 import type {
   ApiResult,
   BooksApi,
@@ -1368,6 +1369,41 @@ export class AccountsService implements BooksApi {
       update: { layoutJson },
     });
     return { ok: true, data: parsed.data };
+  }
+
+  // ----------------------------------------------------------- suggestions
+
+  /**
+   * The saved suggestions merged with `incoming` (src/shared/suggestions.ts),
+   * saved back and returned. Rows that are not valid are dropped rather than
+   * refused: suggestions must never be the reason something fails. Nothing is
+   * written when the merge changes nothing - the books are on a pen drive.
+   */
+  async syncSuggestions(incoming: SuggestionRow[]): Promise<SuggestionRow[]> {
+    const saved: SuggestionRow[] = (await this.prisma.suggestion.findMany()).map((row) => ({
+      field: row.field,
+      value: row.value,
+      count: row.useCount,
+      last: Date.parse(row.lastUsedAt) || 0,
+      ...(row.removedAt ? { removed: Date.parse(row.removedAt) || 0 } : {}),
+    }));
+    const merged = mergeRows(saved, validRows(incoming), Date.now());
+    if (fingerprint(merged) === fingerprint(saved)) return merged;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.suggestion.deleteMany();
+      await tx.suggestion.createMany({
+        data: merged.map((row) => ({
+          field: row.field,
+          valueKey: fold(row.value),
+          value: row.value,
+          useCount: row.count,
+          lastUsedAt: new Date(row.last).toISOString(),
+          removedAt: row.removed === undefined ? null : new Date(row.removed).toISOString(),
+        })),
+      });
+    });
+    return merged;
   }
 
   // --------------------------------------------------------------- reports
