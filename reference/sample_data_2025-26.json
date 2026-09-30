@@ -1,0 +1,1142 @@
+{
+  "_about": "Clean, corrected transaction data for FY 2025-26 of the sample school, rebuilt from the client's Excel and PDFs. Use it as seed/test data. Amounts are rupees. Dates are ISO (YYYY-MM-DD); print them as DD/MM/YYYY. Where the client's files disagree, the cash book (rojmel) was taken as truth - see docs/SPEC.md section 9.",
+  "school": {
+    "name_gu": "બેટાવાડાના મુવાડા પ્રા. શાળા",
+    "smc_label": "SMCE બેટાવાડાના મુવાડા પ્રા.શાળા",
+    "dise_code": "24160201802",
+    "cluster_gu": "બારિયાના મુવાડા",
+    "taluka_gu": "કપડવંજ",
+    "district_gu": "ખેડા",
+    "programme_gu": "સમગ્ર શિક્ષા ખેડા – SMCE / સર્વ શિક્ષા અભિયાન – ખેડા",
+    "bank_name": "Bank of Baroda (BOB)",
+    "bank_branch_gu": "અંતિસર",
+    "bank_account_no": "11590100004295",
+    "member_secretary_gu": "પટેલ દિપકકુમાર વિઠ્ઠલભાઈ",
+    "member_secretary_short_gu": "સભ્ય સચિવ દિપકકુમાર.વી.પટેલ"
+  },
+  "financial_year": {
+    "label": "2025-26",
+    "start": "2025-04-01",
+    "end": "2026-03-31"
+  },
+  "grant_heads": [
+    {
+      "code": "INTEREST",
+      "name_gu": "વ્યાજ/વટાવ",
+      "report_order": 1
+    },
+    {
+      "code": "SWACHHATA",
+      "name_gu": "શાળા સ્વચ્છતા ગ્રાન્ટ",
+      "report_order": 2
+    },
+    {
+      "code": "VALI_SAMMELAN",
+      "name_gu": "વાલીસંમેલન ગ્રાન્ટ",
+      "report_order": 3
+    },
+    {
+      "code": "BALMELO",
+      "name_gu": "બાળમેળો ગ્રાન્ટ",
+      "report_order": 4
+    },
+    {
+      "code": "INTERNET",
+      "name_gu": "ઈન્ટરનેટ ગ્રાન્ટ",
+      "report_order": 5
+    },
+    {
+      "code": "PRAGNA",
+      "name_gu": "પ્રજ્ઞા ગ્રાન્ટ",
+      "report_order": 6
+    },
+    {
+      "code": "FIRST_AID",
+      "name_gu": "ફસ્ટ એઈડ બોક્સ ગ્રાન્ટ",
+      "report_order": 7
+    },
+    {
+      "code": "PRAVESHOTSAV",
+      "name_gu": "પ્રવેશોત્સવ ગ્રાન્ટ",
+      "report_order": 8
+    },
+    {
+      "code": "CIVIL",
+      "name_gu": "સિવિલ ગ્રાન્ટ",
+      "report_order": 9
+    }
+  ],
+  "opening_balances": {
+    "date": "2025-04-01",
+    "cash": 0,
+    "by_head": {
+      "INTEREST": {
+        "bank": 2399,
+        "cash": 0
+      },
+      "SWACHHATA": {
+        "bank": 9000,
+        "cash": 0
+      },
+      "VALI_SAMMELAN": {
+        "bank": 500,
+        "cash": 0
+      },
+      "BALMELO": {
+        "bank": 0,
+        "cash": 0
+      },
+      "INTERNET": {
+        "bank": 1,
+        "cash": 0
+      },
+      "PRAGNA": {
+        "bank": 0,
+        "cash": 0
+      },
+      "FIRST_AID": {
+        "bank": 500,
+        "cash": 0
+      },
+      "PRAVESHOTSAV": {
+        "bank": 500,
+        "cash": 0
+      },
+      "CIVIL": {
+        "bank": 98,
+        "cash": 0
+      }
+    }
+  },
+  "receipts": [
+    {
+      "id": "R1",
+      "date": "2025-05-04",
+      "grant_head": "INTEREST",
+      "amount": 45,
+      "received_from": "BOB અંતિસર વ્યાજ",
+      "mode_gu": "બેન્ક દ્વારા",
+      "bank_gu": "BOB અંતિસર",
+      "credited_date": "2025-05-04"
+    },
+    {
+      "id": "R2",
+      "date": "2025-06-24",
+      "grant_head": "PRAVESHOTSAV",
+      "amount": 1500,
+      "received_from": "SSA",
+      "mode_gu": "ઓનલાઈન",
+      "bank_gu": "BOB અંતિસર",
+      "credited_date": "2025-06-24"
+    },
+    {
+      "id": "R3",
+      "date": "2025-06-24",
+      "grant_head": "FIRST_AID",
+      "amount": 500,
+      "received_from": "SSA",
+      "mode_gu": "ઓનલાઈન",
+      "bank_gu": "BOB અંતિસર",
+      "credited_date": "2025-06-24"
+    },
+    {
+      "id": "R4",
+      "date": "2025-06-24",
+      "grant_head": "SWACHHATA",
+      "amount": 3000,
+      "received_from": "SSA",
+      "mode_gu": "ઓનલાઈન",
+      "bank_gu": "BOB અંતિસર",
+      "credited_date": "2025-06-24"
+    },
+    {
+      "id": "R5",
+      "date": "2025-07-16",
+      "grant_head": "BALMELO",
+      "amount": 1100,
+      "received_from": "SSA",
+      "mode_gu": "ઓનલાઈન",
+      "bank_gu": "BOB અંતિસર",
+      "credited_date": "2025-07-16"
+    },
+    {
+      "id": "R6",
+      "date": "2025-07-24",
+      "grant_head": "VALI_SAMMELAN",
+      "amount": 1000,
+      "received_from": "SSA",
+      "mode_gu": "ઓનલાઈન",
+      "bank_gu": "BOB અંતિસર",
+      "credited_date": "2025-07-24"
+    },
+    {
+      "id": "R7",
+      "date": "2025-08-05",
+      "grant_head": "INTEREST",
+      "amount": 52,
+      "received_from": "BOB અંતિસર વ્યાજ",
+      "mode_gu": "બેન્ક દ્વારા",
+      "bank_gu": "BOB અંતિસર",
+      "credited_date": "2025-08-05"
+    },
+    {
+      "id": "R8",
+      "date": "2025-08-13",
+      "grant_head": "PRAGNA",
+      "amount": 1200,
+      "received_from": "SSA",
+      "mode_gu": "ઓનલાઈન",
+      "bank_gu": "BOB અંતિસર",
+      "credited_date": "2025-08-13"
+    },
+    {
+      "id": "R9",
+      "date": "2025-11-02",
+      "grant_head": "INTEREST",
+      "amount": 29,
+      "received_from": "BOB અંતિસર વ્યાજ",
+      "mode_gu": "બેન્ક દ્વારા",
+      "bank_gu": "BOB અંતિસર",
+      "credited_date": "2025-11-02"
+    },
+    {
+      "id": "R10",
+      "date": "2026-01-30",
+      "grant_head": "CIVIL",
+      "amount": 17963,
+      "received_from": "SSA",
+      "mode_gu": "ઓનલાઈન",
+      "bank_gu": "BOB ચિખલોડ",
+      "credited_date": "2026-01-30"
+    },
+    {
+      "id": "R11",
+      "date": "2026-02-06",
+      "grant_head": "INTEREST",
+      "amount": 28,
+      "received_from": "BOB અંતિસર વ્યાજ",
+      "mode_gu": "બેન્ક દ્વારા",
+      "bank_gu": "BOB અંતિસર",
+      "credited_date": "2026-02-06"
+    },
+    {
+      "id": "R12",
+      "date": "2026-03-18",
+      "grant_head": "SWACHHATA",
+      "amount": 3000,
+      "received_from": "SSA",
+      "mode_gu": "ઓનલાઈન",
+      "bank_gu": "BOB અંતિસર",
+      "credited_date": "2026-03-18"
+    }
+  ],
+  "bills": [
+    {
+      "id": "B1",
+      "voucher_no": 1,
+      "bill_no": "1/1",
+      "bill_date": "2024-06-25",
+      "description_gu": "પ્રવેશોત્સવ કીટ",
+      "vendor_gu": "શ્રી વિદ્યાર્થી ટ્રેડર્સ",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "PRAVESHOTSAV"
+    },
+    {
+      "id": "B2",
+      "voucher_no": 1,
+      "bill_no": "1/2",
+      "bill_date": "2024-07-08",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B3",
+      "voucher_no": 1,
+      "bill_no": "1/3",
+      "bill_date": "2024-07-11",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "BM સુપર બજાર",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B4",
+      "voucher_no": 1,
+      "bill_no": "1/4",
+      "bill_date": "2024-08-07",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "બોમ્બે સાવરણીવાલા",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B5",
+      "voucher_no": 1,
+      "bill_no": "1/5",
+      "bill_date": "2024-08-10",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B6",
+      "voucher_no": 1,
+      "bill_no": "1/6",
+      "bill_date": "2024-09-10",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "ક્રિષ્ના નોવેલ્ટી સ્ટોર",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B7",
+      "voucher_no": 1,
+      "bill_no": "1/7",
+      "bill_date": "2024-09-12",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B8",
+      "voucher_no": 1,
+      "bill_no": "1/8",
+      "bill_date": "2024-10-06",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "ક્રિષ્ના નોવેલ્ટી સ્ટોર",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B9",
+      "voucher_no": 1,
+      "bill_no": "1/9",
+      "bill_date": "2024-10-11",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B10",
+      "voucher_no": 1,
+      "bill_no": "1/10",
+      "bill_date": "2024-11-03",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "ન્યુ ગોપાલ કટલરી સ્ટોર્સ",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B11",
+      "voucher_no": 1,
+      "bill_no": "1/11",
+      "bill_date": "2024-11-07",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B12",
+      "voucher_no": 1,
+      "bill_no": "1/12",
+      "bill_date": "2024-12-09",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "ન્યુ ગોપાલ કટલરી સ્ટોર્સ",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B13",
+      "voucher_no": 1,
+      "bill_no": "1/13",
+      "bill_date": "2024-12-10",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B14",
+      "voucher_no": 1,
+      "bill_no": "1/14",
+      "bill_date": "2025-01-05",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "ન્યુ ગોપાલ કટલરી સ્ટોર્સ",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B15",
+      "voucher_no": 1,
+      "bill_no": "1/15",
+      "bill_date": "2025-01-05",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B16",
+      "voucher_no": 1,
+      "bill_no": "1/16",
+      "bill_date": "2025-01-17",
+      "description_gu": "ફસ્ટ એઈડ બોક્સ કીટ",
+      "vendor_gu": "બાયો મેડિક્સ હેલ્થકેર",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "FIRST_AID"
+    },
+    {
+      "id": "B17",
+      "voucher_no": 1,
+      "bill_no": "1/17",
+      "bill_date": "2025-01-26",
+      "description_gu": "વાલીસંમેલન સરભરા ખર્ચ",
+      "vendor_gu": "શોભનાબેન દિપસિંહ સોલંકી",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "VALI_SAMMELAN"
+    },
+    {
+      "id": "B18",
+      "voucher_no": 1,
+      "bill_no": "1/18",
+      "bill_date": "2025-02-06",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "હરિ ઓમ જનરલ સ્ટોર્સ",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B19",
+      "voucher_no": 1,
+      "bill_no": "1/19",
+      "bill_date": "2025-02-10",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B20",
+      "voucher_no": 1,
+      "bill_no": "1/20",
+      "bill_date": "2025-03-12",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "હરિ ઓમ જનરલ સ્ટોર્સ",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B21",
+      "voucher_no": 1,
+      "bill_no": "1/21",
+      "bill_date": "2025-03-15",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B22",
+      "voucher_no": 2,
+      "bill_no": "2/1",
+      "bill_date": "2025-04-12",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "ક્રિષા કટલરી",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B23",
+      "voucher_no": 2,
+      "bill_no": "2/2",
+      "bill_date": "2025-04-16",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B24",
+      "voucher_no": 2,
+      "bill_no": "2/3",
+      "bill_date": "2025-05-03",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "ક્રિષા કટલરી",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B25",
+      "voucher_no": 2,
+      "bill_no": "2/4",
+      "bill_date": "2025-05-03",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B26",
+      "voucher_no": 2,
+      "bill_no": "2/5",
+      "bill_date": "2025-06-12",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "ક્રિષા કટલરી",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B27",
+      "voucher_no": 2,
+      "bill_no": "2/6",
+      "bill_date": "2025-06-14",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B28",
+      "voucher_no": 2,
+      "bill_no": "2/7",
+      "bill_date": "2025-06-25",
+      "description_gu": "પ્રવેશોત્સવ મટરીયલ્સ",
+      "vendor_gu": "શ્રી વિદ્યાર્થી ટ્રેડર્સ",
+      "amount": 1500,
+      "deduction": 0,
+      "net_amount": 1500,
+      "grant_head": "PRAVESHOTSAV"
+    },
+    {
+      "id": "B29",
+      "voucher_no": 2,
+      "bill_no": "2/8",
+      "bill_date": "2025-07-01",
+      "description_gu": "ફસ્ટ એઈડ બોક્સ કીટ",
+      "vendor_gu": "બાયો મેડિક્સ હેલ્થકેર",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "FIRST_AID"
+    },
+    {
+      "id": "B30",
+      "voucher_no": 3,
+      "bill_no": "3/1",
+      "bill_date": "2025-07-15",
+      "description_gu": "બાળમેળો મટરીયલ્સ",
+      "vendor_gu": "શ્રી વિદ્યાર્થી ટ્રેડર્સ",
+      "amount": 1100,
+      "deduction": 0,
+      "net_amount": 1100,
+      "grant_head": "BALMELO"
+    },
+    {
+      "id": "B31",
+      "voucher_no": 4,
+      "bill_no": "4/1",
+      "bill_date": "2025-08-15",
+      "description_gu": "વાલીસંમેલન સરભરા ખર્ચ",
+      "vendor_gu": "અજીતસિંહ નટવરસિંહ સોલંકી",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "VALI_SAMMELAN"
+    },
+    {
+      "id": "B32",
+      "voucher_no": 4,
+      "bill_no": "4/2",
+      "bill_date": "2025-10-10",
+      "description_gu": "પ્રજ્ઞા મટરીયલ્સ",
+      "vendor_gu": "શ્રી વિદ્યાર્થી ટ્રેડર્સ",
+      "amount": 1200,
+      "deduction": 0,
+      "net_amount": 1200,
+      "grant_head": "PRAGNA"
+    },
+    {
+      "id": "B33",
+      "voucher_no": 6,
+      "bill_no": null,
+      "bill_date": "2026-02-26",
+      "description_gu": "કલરકામ મજૂરી",
+      "vendor_gu": "નટવરસિંહ હિમ્મતસિંહ રાઠોડ",
+      "amount": 6000,
+      "deduction": 0,
+      "net_amount": 6000,
+      "grant_head": "CIVIL"
+    },
+    {
+      "id": "B34",
+      "voucher_no": 7,
+      "bill_no": null,
+      "bill_date": "2026-03-01",
+      "description_gu": "કલર, પ્રાઈમર, રોલર",
+      "vendor_gu": "તિરૂપતિ ટ્રેડિંગ કંપની",
+      "amount": 11963,
+      "deduction": 0,
+      "net_amount": 11963,
+      "grant_head": "CIVIL"
+    },
+    {
+      "id": "B35",
+      "voucher_no": 8,
+      "bill_no": "8/1",
+      "bill_date": "2025-07-06",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "ક્રિષા કટલરી",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B36",
+      "voucher_no": 8,
+      "bill_no": "8/2",
+      "bill_date": "2025-07-10",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B37",
+      "voucher_no": 8,
+      "bill_no": "8/3",
+      "bill_date": "2025-08-10",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "ક્રિષા કટલરી",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B38",
+      "voucher_no": 8,
+      "bill_no": "8/4",
+      "bill_date": "2025-08-14",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B39",
+      "voucher_no": 8,
+      "bill_no": "8/5",
+      "bill_date": "2025-09-03",
+      "description_gu": "સ્વચ્છતા સામાન",
+      "vendor_gu": "મહાલક્ષ્મી કિરાણા સ્ટોર્સ",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B40",
+      "voucher_no": 8,
+      "bill_no": "8/6",
+      "bill_date": "2025-09-10",
+      "description_gu": "સફાઈકામ મજૂરી",
+      "vendor_gu": "હસમુખભાઈ મંગળભાઈ હરિજન",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "SWACHHATA"
+    },
+    {
+      "id": "B41",
+      "voucher_no": 8,
+      "bill_no": "8/7",
+      "bill_date": "2026-01-26",
+      "description_gu": "વાલીસંમેલન સરભરા ખર્ચ",
+      "vendor_gu": "અજીતસિંહ નટવરસિંહ સોલંકી",
+      "amount": 500,
+      "deduction": 0,
+      "net_amount": 500,
+      "grant_head": "VALI_SAMMELAN"
+    }
+  ],
+  "cheques": [
+    {
+      "cheque_no": 103,
+      "voucher_no": 1,
+      "cheque_date": "2025-06-09",
+      "cashbook_date": "2025-06-09",
+      "cashed_date": "2025-06-09",
+      "payee_gu": "સભ્ય સચિવ દિપકકુમાર.વી.પટેલ",
+      "type": "reimbursement",
+      "purpose_gu": "શાળા સ્વચ્છતા મટરીયલ્સ અને સફાઈકામ, ફસ્ટ એઈડ બોક્સ કીટ, વાલીસંમેલન સરભરા ખર્ચ, પ્રવેશોત્સવ કીટ",
+      "amount": 10500,
+      "bill_ids": [
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5",
+        "B6",
+        "B7",
+        "B8",
+        "B9",
+        "B10",
+        "B11",
+        "B12",
+        "B13",
+        "B14",
+        "B15",
+        "B16",
+        "B17",
+        "B18",
+        "B19",
+        "B20",
+        "B21"
+      ],
+      "allocation": [
+        {
+          "grant_head": "PRAVESHOTSAV",
+          "amount": 500
+        },
+        {
+          "grant_head": "SWACHHATA",
+          "amount": 9000
+        },
+        {
+          "grant_head": "FIRST_AID",
+          "amount": 500
+        },
+        {
+          "grant_head": "VALI_SAMMELAN",
+          "amount": 500
+        }
+      ]
+    },
+    {
+      "cheque_no": 104,
+      "voucher_no": 2,
+      "cheque_date": "2025-07-02",
+      "cashbook_date": "2025-07-02",
+      "cashed_date": "2025-07-02",
+      "payee_gu": "સભ્ય સચિવ દિપકકુમાર.વી.પટેલ",
+      "type": "reimbursement",
+      "purpose_gu": "શાળા સ્વચ્છતા મટરીયલ્સ અને સફાઈકામ, ફસ્ટ એઈડ બોક્સ કીટ, પ્રવેશોત્સવ કીટ",
+      "amount": 5000,
+      "bill_ids": [
+        "B22",
+        "B23",
+        "B24",
+        "B25",
+        "B26",
+        "B27",
+        "B28",
+        "B29"
+      ],
+      "allocation": [
+        {
+          "grant_head": "SWACHHATA",
+          "amount": 3000
+        },
+        {
+          "grant_head": "PRAVESHOTSAV",
+          "amount": 1500
+        },
+        {
+          "grant_head": "FIRST_AID",
+          "amount": 500
+        }
+      ]
+    },
+    {
+      "cheque_no": 105,
+      "voucher_no": 3,
+      "cheque_date": "2025-07-29",
+      "cashbook_date": "2025-07-29",
+      "cashed_date": "2025-07-29",
+      "payee_gu": "સભ્ય સચિવ દિપકકુમાર.વી.પટેલ",
+      "type": "reimbursement",
+      "purpose_gu": "બાળમેળો મટરીયલ્સ",
+      "amount": 1100,
+      "bill_ids": [
+        "B30"
+      ],
+      "allocation": [
+        {
+          "grant_head": "BALMELO",
+          "amount": 1100
+        }
+      ]
+    },
+    {
+      "cheque_no": 106,
+      "voucher_no": 4,
+      "cheque_date": "2025-12-20",
+      "cashbook_date": "2025-12-20",
+      "cashed_date": "2025-12-20",
+      "payee_gu": "સભ્ય સચિવ દિપકકુમાર.વી.પટેલ",
+      "type": "reimbursement",
+      "purpose_gu": "પ્રજ્ઞા મટરીયલ્સ, વાલીસંમેલન સરભરા ખર્ચ",
+      "amount": 1700,
+      "bill_ids": [
+        "B31",
+        "B32"
+      ],
+      "allocation": [
+        {
+          "grant_head": "VALI_SAMMELAN",
+          "amount": 500
+        },
+        {
+          "grant_head": "PRAGNA",
+          "amount": 1200
+        }
+      ]
+    },
+    {
+      "cheque_no": 107,
+      "voucher_no": 5,
+      "cheque_date": "2026-02-25",
+      "cashbook_date": "2026-02-26",
+      "cashed_date": "2026-02-26",
+      "payee_gu": "સી.આર.સી કો.ઓર્ડિનેટર",
+      "type": "grant_return",
+      "purpose_gu": "બચત ગ્રાન્ટ પરત",
+      "amount": 2498,
+      "bill_ids": [],
+      "allocation": [
+        {
+          "grant_head": "INTEREST",
+          "amount": 2399
+        },
+        {
+          "grant_head": "CIVIL",
+          "amount": 98
+        },
+        {
+          "grant_head": "INTERNET",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "cheque_no": 108,
+      "voucher_no": 6,
+      "cheque_date": "2026-02-26",
+      "cashbook_date": "2026-03-03",
+      "cashed_date": "2026-03-03",
+      "payee_gu": "નટવરસિંહ હિમ્મતસિંહ રાઠોડ",
+      "type": "direct",
+      "purpose_gu": "કલરકામ મજૂરી",
+      "amount": 6000,
+      "bill_ids": [
+        "B33"
+      ],
+      "allocation": [
+        {
+          "grant_head": "CIVIL",
+          "amount": 6000
+        }
+      ]
+    },
+    {
+      "cheque_no": 109,
+      "voucher_no": 7,
+      "cheque_date": "2026-02-26",
+      "cashbook_date": "2026-03-03",
+      "cashed_date": "2026-03-03",
+      "payee_gu": "તિરૂપતિ ટ્રેડિંગ કંપની",
+      "type": "direct",
+      "purpose_gu": "કલર, પ્રાઈમર, રોલર",
+      "amount": 11963,
+      "bill_ids": [
+        "B34"
+      ],
+      "allocation": [
+        {
+          "grant_head": "CIVIL",
+          "amount": 11963
+        }
+      ]
+    },
+    {
+      "cheque_no": 110,
+      "voucher_no": 8,
+      "cheque_date": "2026-03-23",
+      "cashbook_date": "2026-03-23",
+      "cashed_date": "2026-03-23",
+      "payee_gu": "સભ્ય સચિવ દિપકકુમાર.વી.પટેલ",
+      "type": "reimbursement",
+      "purpose_gu": "શાળા સ્વચ્છતા મટરીયલ્સ અને સફાઈકામ મજૂરી, વાલીસંમેલન સરભરા ખર્ચ",
+      "amount": 3500,
+      "bill_ids": [
+        "B35",
+        "B36",
+        "B37",
+        "B38",
+        "B39",
+        "B40",
+        "B41"
+      ],
+      "allocation": [
+        {
+          "grant_head": "SWACHHATA",
+          "amount": 3000
+        },
+        {
+          "grant_head": "VALI_SAMMELAN",
+          "amount": 500
+        }
+      ]
+    }
+  ],
+  "year_end_bank_reconciliation": {
+    "cheques_issued_not_cashed": 0,
+    "credits_in_bank_not_in_cashbook": 0,
+    "deposits_not_yet_credited": 0,
+    "bank_charges_not_in_cashbook": 0,
+    "passbook_balance_on_31_03_2026": 154
+  },
+  "expected_results": {
+    "annexure_10_rows": [
+      {
+        "grant_head": "INTEREST",
+        "opening": 2399,
+        "received": 154,
+        "total": 2553,
+        "spent": 0,
+        "returned": 2399,
+        "total_out": 2399,
+        "closing": 154
+      },
+      {
+        "grant_head": "SWACHHATA",
+        "opening": 9000,
+        "received": 6000,
+        "total": 15000,
+        "spent": 15000,
+        "returned": 0,
+        "total_out": 15000,
+        "closing": 0
+      },
+      {
+        "grant_head": "VALI_SAMMELAN",
+        "opening": 500,
+        "received": 1000,
+        "total": 1500,
+        "spent": 1500,
+        "returned": 0,
+        "total_out": 1500,
+        "closing": 0
+      },
+      {
+        "grant_head": "BALMELO",
+        "opening": 0,
+        "received": 1100,
+        "total": 1100,
+        "spent": 1100,
+        "returned": 0,
+        "total_out": 1100,
+        "closing": 0
+      },
+      {
+        "grant_head": "INTERNET",
+        "opening": 1,
+        "received": 0,
+        "total": 1,
+        "spent": 0,
+        "returned": 1,
+        "total_out": 1,
+        "closing": 0
+      },
+      {
+        "grant_head": "PRAGNA",
+        "opening": 0,
+        "received": 1200,
+        "total": 1200,
+        "spent": 1200,
+        "returned": 0,
+        "total_out": 1200,
+        "closing": 0
+      },
+      {
+        "grant_head": "FIRST_AID",
+        "opening": 500,
+        "received": 500,
+        "total": 1000,
+        "spent": 1000,
+        "returned": 0,
+        "total_out": 1000,
+        "closing": 0
+      },
+      {
+        "grant_head": "PRAVESHOTSAV",
+        "opening": 500,
+        "received": 1500,
+        "total": 2000,
+        "spent": 2000,
+        "returned": 0,
+        "total_out": 2000,
+        "closing": 0
+      },
+      {
+        "grant_head": "CIVIL",
+        "opening": 98,
+        "received": 17963,
+        "total": 18061,
+        "spent": 17963,
+        "returned": 98,
+        "total_out": 18061,
+        "closing": 0
+      }
+    ],
+    "annexure_10_totals": {
+      "opening": 12998,
+      "received": 29417,
+      "total": 42415,
+      "spent": 39763,
+      "returned": 2498,
+      "total_out": 42261,
+      "closing": 154
+    },
+    "closing_balance_after_each_cashbook_date": {
+      "2025-05-04": {
+        "bank": 13043,
+        "cash": 0
+      },
+      "2025-06-09": {
+        "bank": 2543,
+        "cash": 0
+      },
+      "2025-06-24": {
+        "bank": 7543,
+        "cash": 0
+      },
+      "2025-07-02": {
+        "bank": 2543,
+        "cash": 0
+      },
+      "2025-07-16": {
+        "bank": 3643,
+        "cash": 0
+      },
+      "2025-07-24": {
+        "bank": 4643,
+        "cash": 0
+      },
+      "2025-07-29": {
+        "bank": 3543,
+        "cash": 0
+      },
+      "2025-08-05": {
+        "bank": 3595,
+        "cash": 0
+      },
+      "2025-08-13": {
+        "bank": 4795,
+        "cash": 0
+      },
+      "2025-11-02": {
+        "bank": 4824,
+        "cash": 0
+      },
+      "2025-12-20": {
+        "bank": 3124,
+        "cash": 0
+      },
+      "2026-01-30": {
+        "bank": 21087,
+        "cash": 0
+      },
+      "2026-02-06": {
+        "bank": 21115,
+        "cash": 0
+      },
+      "2026-02-26": {
+        "bank": 18617,
+        "cash": 0
+      },
+      "2026-03-03": {
+        "bank": 654,
+        "cash": 0
+      },
+      "2026-03-18": {
+        "bank": 3654,
+        "cash": 0
+      },
+      "2026-03-23": {
+        "bank": 154,
+        "cash": 0
+      }
+    },
+    "year_end": {
+      "bank": 154,
+      "cash": 0,
+      "total": 154
+    }
+  }
+}

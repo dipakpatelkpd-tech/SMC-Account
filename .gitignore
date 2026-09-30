@@ -8,10 +8,11 @@ node_modules/
 # ==========================================
 # Build & Distribution Outputs
 # ==========================================
+# Large compiled binaries and installers (cannot be pushed to GitHub)
+release/
 out/
 dist/
 build/
-release/
 .next/
 .preview/
 
@@ -24,49 +25,27 @@ release/
 .native-cache/
 
 # ==========================================
-# Local Development & Simulation Data
+# Local Development & Temporary Scratch Data
 # ==========================================
-# Development PCs, simulated pen drive and fake cloud (npm run dev)
+# Development PCs, simulated pen drive and fake cloud (runtime cache)
 .dev-data/
 .scratch/
 *.backup
 .package.json.backup
 
 # ==========================================
-# Database & SQLite files
+# Database Lock & Journal Files
+# Note: prisma/dev.db and database files are tracked and pushed.
+# Only transient runtime lock/wal files are ignored.
 # ==========================================
-*.db
 *.db-journal
 *.db-shm
 *.db-wal
-*.sqlite
-*.sqlite3
 *.sqlite3-journal
-prisma/*.db
-prisma/*.db-journal
-prisma/*.db-shm
-prisma/*.db-wal
 
 # ==========================================
-# Environment Variables & Secrets
+# AI & Assistant Local Configuration
 # ==========================================
-.env
-.env*.local
-.env.production
-.env.development
-.env.test
-
-# ==========================================
-# Reference & Sample Documents (Sensitive client financial data)
-# ==========================================
-reference/
-sample/
-
-# ==========================================
-# AI & Assistant Configs
-# ==========================================
-.claude/
-CLAUDE.md
 
 # ==========================================
 # Logs & Diagnostic Files
