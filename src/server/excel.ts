@@ -57,9 +57,10 @@ import type {
 import { formatDate } from "../lib/dates.js";
 import {
   EXCEL_TITLE_PART,
-  LANDSCAPE_REPORTS,
   NO_FILL,
   PAPER_MM,
+  paperOf,
+  resolvePage,
   columnWidths,
   PT_PER_MM,
   REPORT_DEFAULTS,
@@ -73,8 +74,9 @@ import {
   widthScale,
   type CellStyle,
   type ReportLayout,
+  type ResolvedPage,
 } from "../shared/report-layout.js";
-import { rojmelBlockRows } from "../shared/rojmel-rows.js";
+import { GRANT_CREDIT_FILL, isGrantCredit, rojmelBlockRows } from "../shared/rojmel-rows.js";
 import type { RojmelBlock, RojmelLine } from "../engine/rojmel.js";
 
 /** Rupees, as a number. Paise are integers; Excel gets the decimal. */
@@ -141,8 +143,9 @@ function argb(hex: string): string {
 const MM_PER_INCH = 25.4;
 
 /**
- * How a sheet prints: Legal paper in its form's orientation, one page wide,
- * the heading rows repeated on every page.
+ * How a sheet prints: the report's paper and orientation (its page setup, as
+ * the school saved it), one page wide - or at the school's zoom - with the
+ * heading rows repeated on every page.
  *
  * An .xlsx can only name a paper size, not give one, and there is no "Indian
  * Legal" among Excel's names - so the sheet asks for Legal (215.9 x 355.6mm)
@@ -150,26 +153,34 @@ const MM_PER_INCH = 25.4;
  * of the long side gets the extra 10.6mm as margin. Printed on either paper,
  * nothing is cut.
  */
-function printSetup(worksheet: ExcelJS.Worksheet, landscape: boolean, repeatRows?: string): void {
-  const edge = 5 / MM_PER_INCH;
-  const spare = (355.6 - PAPER_MM.long) / MM_PER_INCH;
+function printSetup(worksheet: ExcelJS.Worksheet, page: ResolvedPage, repeatRows?: string): void {
+  const edge = page.marginMm / MM_PER_INCH;
+  const spare = page.paper === "legal-in" ? (355.6 - PAPER_MM.long) / MM_PER_INCH : 0;
+  const zoomed = page.scale !== 1;
   worksheet.pageSetup = {
     ...worksheet.pageSetup,
-    paperSize: 5 as ExcelJS.PaperSize, // Legal
-    orientation: landscape ? "landscape" : "portrait",
-    fitToPage: true,
-    fitToWidth: 1,
-    fitToHeight: 0,
+    paperSize: paperOf(page.paper).excel as ExcelJS.PaperSize,
+    orientation: page.landscape ? "landscape" : "portrait",
+    // A zoom the school chose is used as it is; otherwise one page wide.
+    fitToPage: !zoomed,
+    ...(zoomed ? { scale: Math.round(page.scale * 100) } : { fitToWidth: 1, fitToHeight: 0 }),
     margins: {
       left: edge,
-      right: landscape ? edge + spare : edge,
+      right: page.landscape ? edge + spare : edge,
       top: edge,
-      bottom: landscape ? edge : edge + spare,
+      bottom: page.landscape ? edge : edge + spare,
       header: 0,
       footer: 0,
     },
     ...(repeatRows ? { printTitlesRow: repeatRows } : {}),
   };
+}
+
+/** The ruled lines round a cell, in a colour a school chose or black. */
+function ruledIn(colour: string | undefined): Partial<ExcelJS.Borders> {
+  if (!colour) return THIN;
+  const line = { style: "thin" as const, color: { argb: argb(colour) } };
+  return { top: line, left: line, bottom: line, right: line };
 }
 
 const THIN: Partial<ExcelJS.Borders> = {
@@ -200,8 +211,9 @@ function sheet(
   const excelSize = (pt: number): number => Math.round(((pt * REPORT_FONT_SIZE) / defaultPt) * 2) / 2;
   const fontName = fontFamily(layout.font);
   const size = layout.sizePt === undefined ? REPORT_FONT_SIZE : excelSize(layout.sizePt);
-  const font = { name: fontName, size };
-  const headFont = { name: fontName, size, bold: true };
+  const colour: Partial<ExcelJS.Font> = layout.colour ? { color: { argb: argb(layout.colour) } } : {};
+  const font = { name: fontName, size, ...colour };
+  const headFont = { name: fontName, size, bold: true, ...colour };
 
   // Excel forbids : \ / ? * [ ] in a sheet name and truncates at 31 characters.
   const safeName = name.replace(/[:\\/?*[\]]/g, " ").slice(0, 31);
@@ -259,7 +271,8 @@ function sheet(
     if (row.cellCount === 0) continue;
     for (let col = 1; col <= columns.length; col += 1) {
       const target = row.getCell(col);
-      target.border = THIN;
+      target.border = ruledIn(layout.lineColour);
+      if (layout.colour) target.font = { ...target.font, color: { argb: argb(layout.colour) } };
       const value = target.value;
       const figure = typeof value === "number" || (typeof value === "string" && latinText.test(value));
       // Unless the school chose a face for the whole report.
@@ -269,20 +282,7 @@ function sheet(
     }
   }
   /** One cell as the school's layout has it. Blank (NO_FILL) is Excel's default. */
-  const apply = (cell: ExcelJS.Cell, style: CellStyle): void => {
-    if (style.fill && style.fill !== NO_FILL) {
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: argb(style.fill) } };
-    }
-    if (style.bold !== undefined || style.font || style.sizePt !== undefined) {
-      cell.font = {
-        ...cell.font,
-        ...(style.font ? { name: fontFamily(style.font) } : {}),
-        ...(style.sizePt !== undefined ? { size: excelSize(style.sizePt) } : {}),
-        ...(style.bold !== undefined ? { bold: style.bold } : {}),
-      };
-    }
-    if (style.align) cell.alignment = { ...cell.alignment, horizontal: style.align };
-  };
+  const apply = (cell: ExcelJS.Cell, style: CellStyle): void => applyStyle(cell, style, excelSize);
 
   if (look) {
     // The title row is the form's title part.
@@ -310,8 +310,10 @@ function sheet(
     }
   }
 
-  const landscape = look ? LANDSCAPE_REPORTS.has(look.report) : columns.length > 5;
-  printSetup(worksheet, landscape, "1:2");
+  const page = look
+    ? resolvePage(look.report, layout.page)
+    : resolvePage(columns.length > 5 ? "chequeRegister" : "annexure9", undefined);
+  printSetup(worksheet, page, "1:2");
 
   return worksheet;
 }
@@ -362,12 +364,19 @@ function rojmelSheet(
   const excelSize = (pt: number): number => Math.round(((pt * REPORT_FONT_SIZE) / defaultPt) * 2) / 2;
   const fontName = fontFamily(layout.font);
   const size = layout.sizePt === undefined ? REPORT_FONT_SIZE : excelSize(layout.sizePt);
-  const font: Partial<ExcelJS.Font> = { name: fontName, size };
+  // The text colour the school chose for the whole report, if any.
+  const colour: Partial<ExcelJS.Font> = layout.colour ? { color: { argb: argb(layout.colour) } } : {};
+  const font: Partial<ExcelJS.Font> = { name: fontName, size, ...colour };
   const bold: Partial<ExcelJS.Font> = { ...font, bold: true };
   // Figures, dates and numbers in Calibri, as the client's ROJMED sheet has
   // them: a Gujarati face's Latin digits are not on every PC. A face the
   // school chose for the whole report is used for them too.
-  const latin: Partial<ExcelJS.Font> = { name: layout.font === undefined ? "Calibri" : fontName, size };
+  const latin: Partial<ExcelJS.Font> = {
+    name: layout.font === undefined ? "Calibri" : fontName,
+    size,
+    ...colour,
+  };
+  const ruling = ruledIn(layout.lineColour);
   const latinBold: Partial<ExcelJS.Font> = { ...latin, bold: true };
   const last = ROJMEL_HEADINGS.length;
   const colOf = new Map(ROJMEL_HEADINGS.map(([id], index) => [id, index + 1]));
@@ -392,12 +401,12 @@ function rojmelSheet(
   const ruled = (row: ExcelJS.Row): void => {
     for (let col = 1; col <= last; col += 1) {
       const target = row.getCell(col);
-      target.border = THIN;
+      target.border = ruling;
       if (!target.font) target.font = font;
     }
     // The heavy rule down the middle, between આવક and જાવક.
     const middle = cell(row, "p.detail");
-    middle.border = { ...THIN, left: { style: "medium" } };
+    middle.border = { ...ruling, left: { ...ruling.left, style: "medium" } };
   };
   const text = (target: ExcelJS.Cell, value: string, shrink = true): void => {
     target.value = value;
@@ -433,6 +442,16 @@ function rojmelSheet(
       money(cell(row, `${side}.cash`), line.cashPaise);
       money(cell(row, `${side}.bank`), line.bankPaise);
       money(cell(row, `${side}.total`), line.totalPaise);
+    }
+    // A grant received, coloured from its words to its amounts, as printed.
+    if (isGrantCredit(line) && !layout.plain) {
+      for (const column of ["detail", "ref", "cheque", "class", "cash", "bank", "total"]) {
+        cell(row, `${side}.${column}`).fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: argb(GRANT_CREDIT_FILL) },
+        };
+      }
     }
   };
 
@@ -482,7 +501,7 @@ function rojmelSheet(
       target.font = bold;
       target.alignment = { horizontal: "center", vertical: "middle" };
       target.fill = { type: "pattern", pattern: "solid", fgColor: { argb: argbFill } };
-      target.border = THIN;
+      target.border = ruling;
     };
     bandCell(1, colOf.get("r.total")!, "આવક            ( Cash Book )", "FFEEF2EA");
     bandCell(colOf.get("p.detail")!, colOf.get("p.cash")!, "( કેશ બુક )            જાવક", "FFEEF2EA");
@@ -550,7 +569,7 @@ function rojmelSheet(
     }
   }
 
-  printSetup(worksheet, true);
+  printSetup(worksheet, resolvePage("rojmel", layout.page));
 }
 
 /** One cell as a school's layout has it. Blank (NO_FILL) is Excel's default. */
@@ -558,15 +577,31 @@ function applyStyle(cell: ExcelJS.Cell, style: CellStyle, excelSize: (pt: number
   if (style.fill && style.fill !== NO_FILL) {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: argb(style.fill) } };
   }
-  if (style.bold !== undefined || style.font || style.sizePt !== undefined) {
+  if (style.bold !== undefined || style.font || style.sizePt !== undefined || style.colour) {
     cell.font = {
       ...cell.font,
       ...(style.font ? { name: fontFamily(style.font) } : {}),
       ...(style.sizePt !== undefined ? { size: excelSize(style.sizePt) } : {}),
       ...(style.bold !== undefined ? { bold: style.bold } : {}),
+      ...(style.colour ? { color: { argb: argb(style.colour) } } : {}),
     };
   }
   if (style.align) cell.alignment = { ...cell.alignment, horizontal: style.align };
+  if (style.lineColour) {
+    // Keep each edge's own weight (the rojmel's heavy middle rule), in the new colour.
+    const colour = { argb: argb(style.lineColour) };
+    const edge = (side: Partial<ExcelJS.Border> | undefined): Partial<ExcelJS.Border> => ({
+      style: side?.style ?? "thin",
+      color: colour,
+    });
+    const border = cell.border ?? {};
+    cell.border = {
+      top: edge(border.top),
+      left: edge(border.left),
+      bottom: edge(border.bottom),
+      right: edge(border.right),
+    };
+  }
 }
 
 function ledgerSheets(

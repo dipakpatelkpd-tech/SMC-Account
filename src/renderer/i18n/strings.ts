@@ -264,6 +264,33 @@ export interface Strings {
   layoutAlignRight: string;
   layoutPlain: string;
   layoutRojmelNote: string;
+  layoutTextColour: string;
+  layoutLineColour: string;
+  layoutColourDefault: string;
+  layoutColourHelp: string;
+  printOpen: string;
+  printTitle: (report: string) => string;
+  printPaper: string;
+  printOrientation: string;
+  printPortrait: string;
+  printLandscape: string;
+  printScale: string;
+  printFit: string;
+  printMargin: string;
+  printDefaultIs: (text: string) => string;
+  printReset: string;
+  printSave: string;
+  printSaving: string;
+  printSaved: string;
+  printNow: string;
+  printing: string;
+  printSent: string;
+  printClose: string;
+  printSheets: (count: number) => string;
+  printUnsavedNote: string;
+  printDiscardConfirm: string;
+  printPaperSizeMm: (width: number, height: number) => string;
+  printRememberNote: string;
   layoutExcelNote: string;
   layoutUnsavedExport: string;
   mm: string;
@@ -736,6 +763,33 @@ export const gu: Strings = {
   layoutPlain: "પત્રકના પોતાના રંગ વગર છાપો (બધું કોરું)",
   layoutCellsOverflow: (count) =>
     `${count} ખાનાંમાં લખાણ કોલમ કરતાં પહોળું છે અને બાજુના ખાનામાં જાય છે. તે કોલમ પહોળી કરો.`,
+  layoutTextColour: "અક્ષરનો રંગ",
+  layoutLineColour: "લાઈનનો રંગ (ખાનાંની કિનારી)",
+  layoutColourDefault: "મૂળ પ્રમાણે (કાળો)",
+  layoutColourHelp: "↺ = મૂળ રંગ. આ ફેરફાર PDF, પ્રિન્ટ અને Excel ત્રણેયમાં આવશે.",
+  printOpen: "પ્રિન્ટ",
+  printTitle: (report) => `પ્રિન્ટ – ${report}`,
+  printPaper: "કાગળની સાઈઝ",
+  printOrientation: "કાગળ કઈ રીતે",
+  printPortrait: "ઊભો (Portrait)",
+  printLandscape: "આડો (Landscape)",
+  printScale: "ઝૂમ (%)",
+  printFit: "પાનામાં સમાવો",
+  printMargin: "કિનારી / માર્જિન (મિમી)",
+  printDefaultIs: (text) => `મૂળ: ${text}`,
+  printReset: "મૂળ પ્રમાણે કરો",
+  printSave: "આ સેટિંગ યાદ રાખો",
+  printSaving: "સાચવી રહ્યા છીએ…",
+  printSaved: "સેટિંગ સાચવ્યું. આ પત્રક હવેથી આ રીતે જ છપાશે.",
+  printNow: "પ્રિન્ટ કરો",
+  printing: "છાપી રહ્યા છીએ…",
+  printSent: "પ્રિન્ટર પર મોકલ્યું.",
+  printClose: "બંધ કરો",
+  printSheets: (count) => `કુલ ${count} પાના`,
+  printUnsavedNote: "PDF, પ્રિન્ટ કે Excel બનાવતાં પહેલાં આ સેટિંગ સાચવો — તે સાચવેલ સેટિંગથી જ બને છે.",
+  printDiscardConfirm: "પ્રિન્ટ સેટિંગના ફેરફાર સાચવ્યા નથી. તેને રદ કરવા છે?",
+  printPaperSizeMm: (width, height) => `${width} × ${height} મિમી`,
+  printRememberNote: "દરેક પત્રકનું સેટિંગ અલગ યાદ રહે છે, અને પેન ડ્રાઈવ સાથે બીજા કમ્પ્યુટર પર પણ જાય છે.",
   layoutRojmelNote:
     "રોજમેળના દરેક પાનામાં ૨૬ લાઈન જ આવે છે (ખાતાવહીમાં પાના નંબર છપાય છે), એટલે મોટા અક્ષર કે વધારે જગ્યાથી પાનું કાગળની બહાર જઈ શકે.",
   layoutExcelNote:
@@ -1219,6 +1273,33 @@ export const en: Strings = {
   layoutPlain: "Print without the form's own colours (all blank)",
   layoutCellsOverflow: (count) =>
     `${count} ${count === 1 ? "cell holds" : "cells hold"} text wider than its column, running into the next cell. Widen that column.`,
+  layoutTextColour: "Text colour",
+  layoutLineColour: "Line colour (cell borders)",
+  layoutColourDefault: "Default (black)",
+  layoutColourHelp: "↺ = the default colour. The change goes into the PDF, the print and Excel.",
+  printOpen: "Print",
+  printTitle: (report) => `Print – ${report}`,
+  printPaper: "Paper size",
+  printOrientation: "Orientation",
+  printPortrait: "Portrait",
+  printLandscape: "Landscape",
+  printScale: "Zoom (%)",
+  printFit: "Fit to page",
+  printMargin: "Margins (mm)",
+  printDefaultIs: (text) => `Default: ${text}`,
+  printReset: "Back to default",
+  printSave: "Remember these settings",
+  printSaving: "Saving…",
+  printSaved: "Settings saved. This report will print this way from now on.",
+  printNow: "Print",
+  printing: "Printing…",
+  printSent: "Sent to the printer.",
+  printClose: "Close",
+  printSheets: (count) => `${count} ${count === 1 ? "page" : "pages"}`,
+  printUnsavedNote: "Save these settings before making a PDF, printing or saving Excel — those use the saved settings.",
+  printDiscardConfirm: "The print settings have not been saved. Discard the changes?",
+  printPaperSizeMm: (width, height) => `${width} × ${height} mm`,
+  printRememberNote: "Each report remembers its own settings, and they travel to other PCs on the pen drive.",
   layoutRojmelNote:
     "Every cash-book page holds exactly 26 rows (the ledger prints its page numbers), so larger text or more space can push a page past the paper's edge.",
   layoutExcelNote:

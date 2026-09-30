@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import type { CSSProperties, JSX } from "react";
 import type { RojmelBlock, RojmelLine, RojmelPage as RojmelPageData } from "../../engine/rojmel.js";
 import { ROW_KEYS } from "../../shared/report-layout.js";
-import { rojmelBlockRows } from "../../shared/rojmel-rows.js";
+import { isGrantCredit, rojmelBlockRows } from "../../shared/rojmel-rows.js";
 import { GapRow, LayoutColGroup, useReportLayout } from "./layout-context.js";
 import type { SchoolDto } from "../../shared/api.js";
 import { formatAmount } from "../../lib/money.js";
@@ -184,6 +184,9 @@ function Block({ block }: { block: RojmelBlock }): JSX.Element {
 function Half({ side, line }: { side: "r" | "p"; line: RojmelLine | null }): JSX.Element {
   if (!line) return <Blank side={side} />;
   const gutter = side === "p" ? " gutter" : "";
+  // A grant (or interest) received is coloured from its words to its amounts,
+  // so the money coming in stands out on the page; nothing else is.
+  const credit = isGrantCredit(line) ? " grant-credit" : "";
 
   return (
     <>
@@ -192,23 +195,26 @@ function Half({ side, line }: { side: "r" | "p"; line: RojmelLine | null }): JSX
           {line.dateText}
         </td>
       )}
-      <td data-col={`${side}.detail`} className={(line.headingOnly ? "detail heading" : "detail") + gutter}>
+      <td
+        data-col={`${side}.detail`}
+        className={(line.headingOnly ? "detail heading" : "detail") + gutter + credit}
+      >
         {line.descriptionGu}
       </td>
-      <td data-col={`${side}.ref`} className="ref">
+      <td data-col={`${side}.ref`} className={"ref" + credit}>
         {side === "p" ? <VoucherRef text={line.referenceText} /> : line.referenceText}
       </td>
-      <td data-col={`${side}.cheque`} className="ref">
+      <td data-col={`${side}.cheque`} className={"ref" + credit}>
         {line.chequeText}
       </td>
-      <td data-col={`${side}.class`} />
-      <td data-col={`${side}.cash`} className="figure">
+      <td data-col={`${side}.class`} className={credit.trim() || undefined} />
+      <td data-col={`${side}.cash`} className={"figure" + credit}>
         {line.headingOnly ? "" : formatAmount(line.cashPaise)}
       </td>
-      <td data-col={`${side}.bank`} className="figure">
+      <td data-col={`${side}.bank`} className={"figure" + credit}>
         {line.headingOnly ? "" : formatAmount(line.bankPaise)}
       </td>
-      <td data-col={`${side}.total`} className="figure">
+      <td data-col={`${side}.total`} className={"figure" + credit}>
         {line.headingOnly ? "" : formatAmount(line.totalPaise)}
       </td>
     </>

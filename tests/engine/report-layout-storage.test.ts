@@ -208,3 +208,40 @@ describe("in Excel", () => {
     expect(filled).toEqual([block.paymentLines[0]!.descriptionGu]);
   });
 });
+
+describe("colours and page setup in the workbook", () => {
+  it("colours every grant received in the rojmel, from its words to its amounts", async () => {
+    saved(await accounts.saveReportLayout("rojmel", emptyLayout()));
+    const receipts = await accounts.listReceipts();
+    const sheet = (await roundTrip("rojmel")).worksheets[0]!;
+    const coloured: string[] = [];
+    sheet.eachRow((row) => {
+      // Column 2 is the આવક side's વિગત, 8 its કુલ રકમ.
+      if (fillOf(row.getCell(2)) === "FFE3EEFA") {
+        expect(fillOf(row.getCell(8))).toBe("FFE3EEFA");
+        // Not the date, nor the payment side.
+        expect(fillOf(row.getCell(1))).toBeNull();
+        coloured.push(String(row.getCell(2).value));
+      }
+    });
+    expect(coloured).toHaveLength(receipts.length);
+    // The opening balance is not a grant received.
+    expect(coloured).not.toContain("શ્રી ઉઘડતી સિલક");
+  });
+
+  it("carries the text and line colours, the paper and the zoom", async () => {
+    const layout: ReportLayout = withStyle(
+      { ...emptyLayout(), lineColour: "#9e9e9e", page: { paper: "a4", orientation: "portrait", scalePct: 80 } },
+      { kind: "col", col: "amount" },
+      { colour: "#b71c1c" },
+    );
+    saved(await accounts.saveReportLayout("chequeRegister", layout));
+    const sheet = (await roundTrip("chequeRegister")).worksheets[0]!;
+    const cell = sheet.getRow(3).getCell(6);
+    expect(cell.font?.color?.argb).toBe("FFB71C1C");
+    expect(cell.border?.top?.color?.argb).toBe("FF9E9E9E");
+    expect(sheet.getRow(3).getCell(2).border?.left?.color?.argb).toBe("FF9E9E9E");
+    expect(sheet.pageSetup).toMatchObject({ paperSize: 9, orientation: "portrait", scale: 80, fitToPage: false });
+    saved(await accounts.saveReportLayout("chequeRegister", emptyLayout()));
+  });
+});

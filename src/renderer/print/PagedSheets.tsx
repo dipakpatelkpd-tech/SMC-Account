@@ -87,6 +87,17 @@ export function usePrintLayoutGate(): { gate: Gate; pending: () => number; settl
 
 // ---------------------------------------------------------------- packing
 
+/**
+ * How much a sheet is zoomed (the page setup's zoom, print.css ".sheet"). A
+ * measured box - getBoundingClientRect - comes back zoomed, while the sheet's
+ * CSS sizes do not, so measurements are divided by this before they are
+ * compared with the sheet's height.
+ */
+export function sheetZoom(sheet: HTMLElement): number {
+  const width = sheet.offsetWidth;
+  return width > 0 ? sheet.getBoundingClientRect().width / width : 1;
+}
+
 export interface Measured {
   /** From the top of the sheet to the top of the table. */
   headPx: number;
@@ -155,8 +166,10 @@ export function PagedSheets(props: PagedSheetsProps): JSX.Element {
       // paper, the orientation and this report's margins (print.css, ".sheet").
       const sheetPx = parseFloat(getComputedStyle(root).minHeight);
       const top = root.getBoundingClientRect().top;
+      // Boxes are measured zoomed; the sheet's height is not (sheetZoom).
+      const zoom = sheetZoom(root);
       const heightOf = (element: Element | null): number =>
-        element ? element.getBoundingClientRect().height : 0;
+        element ? element.getBoundingClientRect().height / zoom : 0;
       // A row's height includes the blank band printed after it, if any: the
       // two always go onto the same sheet.
       const withGap = (row: Element): number => {
@@ -169,7 +182,7 @@ export function PagedSheets(props: PagedSheetsProps): JSX.Element {
         key: measureKey,
         sheets: packRows(
           {
-            headPx: table ? table.getBoundingClientRect().top - top : 0,
+            headPx: table ? (table.getBoundingClientRect().top - top) / zoom : 0,
             theadPx: heightOf(table?.querySelector(":scope > thead") ?? null),
             rowPx: [...(table?.querySelectorAll(":scope > tbody > tr[data-paged-row]") ?? [])].map(withGap),
             lastRowsPx: [

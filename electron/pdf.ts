@@ -21,25 +21,7 @@ import { BrowserWindow } from "electron";
 import path from "node:path";
 import { writeFile } from "node:fs/promises";
 
-/** Page setup per report, following SPEC section 6. */
-export interface PageSetup {
-  landscape: boolean;
-}
-
-const PAGE_SETUP: Record<string, PageSetup> = {
-  // Annexure 9 and 10 are portrait; the rojmel, ledger and registers are not.
-  annexure10: { landscape: false },
-  rojmel: { landscape: true },
-  // The three registers and પત્રક-D are wide tables; the voucher is a portrait
-  // sheet per voucher.
-  grantRegister: { landscape: true },
-  chequeRegister: { landscape: true },
-  billRegister: { landscape: true },
-  patrakD: { landscape: true },
-  vouchers: { landscape: false },
-  khatavahi: { landscape: true },
-  annexure9: { landscape: false },
-};
+import type { ResolvedPage } from "../src/shared/report-layout.js";
 
 export interface PdfRequest {
   report: string;
@@ -49,20 +31,91 @@ export interface PdfRequest {
   rendererUrl: string | null;
   rendererFile: string | null;
   preloadPath: string;
+  /** Paper, orientation and margins, from the report's page setup (resolvePage). */
+  page: ResolvedPage;
 }
 
 /** How long to wait for the report to say it has rendered. */
 const READY_TIMEOUT_MS = 15_000;
 
 export async function exportReportPdf(request: PdfRequest): Promise<string> {
-  const setup = PAGE_SETUP[request.report] ?? { landscape: false };
+  const window = await renderReport(request);
+  try {
+    const { page } = request;
+    const pdf = await window.webContents.printToPDF({
+      landscape: page.landscape,
+      // The paper as it stands upright, in inches. preferCSSPageSize below
+      // means the stylesheet's @page wins anyway (PrintRoot writes it from
+      // the same page setup), but stating it here keeps the two from
+      // disagreeing silently.
+      pageSize: paperInches(page),
+      printBackground: true,
+      // The stylesheet owns the margins through @page, so Chromium must not
+      // add its own on top.
+      margins: { marginType: "none" },
+      preferCSSPageSize: true,
+    });
 
+    await writeFile(request.outputPath, pdf);
+    return request.outputPath;
+  } finally {
+    window.destroy();
+  }
+}
+
+export type PrintRequest = Omit<PdfRequest, "outputPath">;
+
+/**
+ * Print a report on a printer: the same hidden window as the PDF, then the
+ * system's print dialog, where the printer, the copies and the pages are chosen.
+ * Resolves true when it was sent to the printer, false when the dialog was
+ * cancelled.
+ */
+export async function printReport(request: PrintRequest): Promise<boolean> {
+  const window = await renderReport(request);
+  try {
+    const { page } = request;
+    return await new Promise<boolean>((resolve, reject) => {
+      window.webContents.print(
+        {
+          silent: false,
+          printBackground: true,
+          landscape: page.landscape,
+          // In microns. The stylesheet's @page says the same.
+          pageSize: {
+            width: Math.round(Math.min(page.paperWidthMm, page.paperHeightMm) * 1000),
+            height: Math.round(Math.max(page.paperWidthMm, page.paperHeightMm) * 1000),
+          },
+          margins: { marginType: "none" },
+        },
+        (success, failureReason) => {
+          // Cancelling the dialog is not a failure.
+          if (success || /cancel/i.test(failureReason)) resolve(success);
+          else reject(new Error(`printing failed: ${failureReason}`));
+        },
+      );
+    });
+  } finally {
+    window.destroy();
+  }
+}
+
+/** The paper as it stands upright, in inches. */
+function paperInches(page: ResolvedPage): { width: number; height: number } {
+  return {
+    width: Math.min(page.paperWidthMm, page.paperHeightMm) / 25.4,
+    height: Math.max(page.paperWidthMm, page.paperHeightMm) / 25.4,
+  };
+}
+
+/** Load the report's print route in a hidden window and wait until it has rendered. */
+async function renderReport(request: PrintRequest): Promise<BrowserWindow> {
   const window = new BrowserWindow({
     show: false,
-    // Comfortably larger than a Legal sheet (1228 x 737 px landscape), so the
-    // offscreen window never reflows the layout differently from the preview.
-    width: setup.landscape ? 1500 : 1000,
-    height: setup.landscape ? 1000 : 1500,
+    // Comfortably larger than the sheet, so the hidden window never reflows the
+    // layout differently from the preview.
+    width: request.page.landscape ? 1600 : 1100,
+    height: request.page.landscape ? 1100 : 1600,
     webPreferences: {
       preload: request.preloadPath,
       contextIsolation: true,
@@ -83,25 +136,10 @@ export async function exportReportPdf(request: PdfRequest): Promise<string> {
     }
 
     await waitForPrintReady(window);
-
-    const pdf = await window.webContents.printToPDF({
-      landscape: setup.landscape,
-      // Indian Legal, 215 x 345mm (in inches here) - the paper the school
-      // prints these forms on; US Legal is 10mm longer and loses the edge.
-      // preferCSSPageSize below means the stylesheet's @page wins anyway, but
-      // stating it here keeps the two from disagreeing silently.
-      pageSize: { width: 215 / 25.4, height: 345 / 25.4 },
-      printBackground: true,
-      // The stylesheet owns the margins through @page, so Chromium must not
-      // add its own on top.
-      margins: { marginType: "none" },
-      preferCSSPageSize: true,
-    });
-
-    await writeFile(request.outputPath, pdf);
-    return request.outputPath;
-  } finally {
+    return window;
+  } catch (error) {
     window.destroy();
+    throw error;
   }
 }
 
@@ -144,8 +182,3 @@ export function defaultPdfName(report: string, yearLabel: string): string {
   return `${names[report] ?? report}-${yearLabel}.pdf`;
 }
 
-export function reportPageSetup(report: string): PageSetup {
-  return PAGE_SETUP[report] ?? { landscape: false };
-}
-
-export { PAGE_SETUP };

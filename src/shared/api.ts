@@ -585,6 +585,11 @@ export interface BooksApi {
    */
   exportPdf(report: PrintableReportId): Promise<ApiResult<string | null>>;
   /**
+   * Print a report on a printer, through the system's print dialog, with the
+   * report's saved page setup. True when it was sent, false when cancelled.
+   */
+  printReport(report: PrintableReportId): Promise<ApiResult<boolean>>;
+  /**
    * Save a report - or the whole year, with "all" - as an Excel workbook.
    * Returns the path written, or null when the user cancelled the save dialog.
    */
@@ -731,6 +736,7 @@ export const API_METHODS = [
   "getReconciliation",
   "saveReconciliation",
   "exportPdf",
+  "printReport",
   "exportExcel",
   "getReportLayout",
   "saveReportLayout",

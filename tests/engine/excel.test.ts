@@ -138,10 +138,14 @@ describe("one report at a time", () => {
 
   it("gives every sheet a print setup", async () => {
     const workbook = await roundTrip("all");
+    // The voucher and પત્રક-D print on A4 (9); everything else on Legal (5).
+    const a4 = new Set(["વાઉચર", "પત્રક D"]);
     for (const sheet of workbook.worksheets) {
       expect(sheet.pageSetup.fitToWidth, sheet.name).toBe(1);
-      expect(sheet.pageSetup.paperSize, sheet.name).toBe(5);
+      expect(sheet.pageSetup.paperSize, sheet.name).toBe(a4.has(sheet.name) ? 9 : 5);
     }
+    expect(workbook.getWorksheet("પત્રક D")?.pageSetup.orientation).toBe("landscape");
+    expect(workbook.getWorksheet("વાઉચર")?.pageSetup.orientation).toBe("portrait");
   });
 });
 

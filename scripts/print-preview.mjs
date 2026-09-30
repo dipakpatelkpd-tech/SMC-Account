@@ -103,6 +103,7 @@ html = html.replace(
     `getReportLayout:(r)=>Promise.resolve(structuredClone(layouts[r])),` +
     `saveReportLayout:(r,l)=>{layouts[r]=structuredClone(l);return Promise.resolve({ok:true,data:structuredClone(l)})},` +
     `exportPdf:()=>Promise.resolve({ok:true,data:null}),` +
+    `printReport:()=>Promise.resolve({ok:true,data:false}),` +
     `exportExcel:()=>Promise.resolve({ok:true,data:null})` +
     `};</script></head>`,
 );
