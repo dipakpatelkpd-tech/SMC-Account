@@ -1,0 +1,899 @@
+/*
+ * The whole interface is in Gujarati, so the type stack leads with a Gujarati
+ * face. Noto Sans Gujarati ships with most Linux distributions; Shruti is the
+ * one Windows has had since XP, which matters because Windows is the target.
+ * The fallback chain ends in a generic so a missing font degrades rather than
+ * rendering boxes.
+ *
+ * Numbers are deliberately tabular: a column of amounts that does not line up
+ * is unreadable in an account book.
+ */
+
+:root {
+  --ink: #1a1a1a;
+  --ink-soft: #55575c;
+  --line: #d8d8dc;
+  --line-strong: #b4b4bb;
+  --paper: #ffffff;
+  --canvas: #f4f4f6;
+  --accent: #7b1d1d;
+  --accent-soft: #fdf2f2;
+  --credit: #14532d;
+  --debit: #991b1b;
+  --warn-bg: #fff8e6;
+  --warn-line: #e0b200;
+  --error-bg: #fdecec;
+  --error-line: #c62828;
+
+  --gujarati: "Noto Sans Gujarati", "Shruti", "Nirmala UI", "Lohit Gujarati", sans-serif;
+  --numeric: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--gujarati);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Amounts, dates and any other figure. */
+.num {
+  font-family: var(--numeric);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ layout */
+
+.app {
+  display: grid;
+  grid-template-columns: 232px 1fr;
+  height: 100%;
+}
+
+.sidebar {
+  background: var(--paper);
+  border-right: 1px solid var(--line);
+  padding: 18px 0;
+  overflow-y: auto;
+}
+
+.sidebar h1 {
+  font-size: 15px;
+  margin: 0 18px 4px;
+  line-height: 1.3;
+}
+
+.sidebar .year {
+  margin: 0 18px 18px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.nav-group {
+  margin-top: 14px;
+}
+
+.nav-group h2 {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 18px 6px;
+  font-weight: 600;
+}
+
+.nav-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 7px 18px;
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  background: var(--canvas);
+}
+
+.nav-item[aria-current="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.nav-item .count {
+  font-family: var(--numeric);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.main {
+  overflow-y: auto;
+  padding: 26px 30px 60px;
+}
+
+.page-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.page-head h2 {
+  margin: 0;
+  font-size: 21px;
+}
+
+.page-head p {
+  margin: 2px 0 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------------- cards */
+
+.card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+}
+
+.card > h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.tile {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 13px 15px;
+}
+
+.tile .label {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.tile .value {
+  font-family: var(--numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 23px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ------------------------------------------------------------------ tables */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+thead th {
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-weight: 600;
+  border-bottom: 1px solid var(--line-strong);
+  white-space: nowrap;
+}
+
+tbody tr:hover {
+  background: var(--canvas);
+}
+
+tbody tr.total-row {
+  font-weight: 700;
+  background: var(--canvas);
+}
+
+tbody tr.total-row td {
+  border-top: 1px solid var(--line-strong);
+}
+
+td.credit {
+  color: var(--credit);
+}
+
+td.debit {
+  color: var(--debit);
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+
+/* ------------------------------------------------------------------ issues */
+
+.issue {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 9px 12px;
+  border-radius: 6px;
+  margin-bottom: 7px;
+  font-size: 14px;
+}
+
+.issue.warning {
+  background: var(--warn-bg);
+  border-left: 3px solid var(--warn-line);
+}
+
+.issue.error {
+  background: var(--error-bg);
+  border-left: 3px solid var(--error-line);
+}
+
+.issue .detail {
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-family: var(--numeric);
+}
+
+/* ------------------------------------------------------------------- forms */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.field label {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  font-family: var(--gujarati);
+  padding: 7px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  background: var(--paper);
+  color: inherit;
+}
+
+input[type="date"],
+input[inputmode="decimal"],
+input.num-input {
+  font-family: var(--numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0 14px;
+}
+
+button.primary,
+button.ghost,
+button.danger {
+  font: inherit;
+  font-family: var(--gujarati);
+  padding: 7px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+button.primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+button.ghost {
+  background: var(--paper);
+  border-color: var(--line-strong);
+  color: inherit;
+}
+
+button.danger {
+  background: var(--paper);
+  border-color: var(--error-line);
+  color: var(--error-line);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* ------------------------------------------------------------------ states */
+
+.state {
+  padding: 40px;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.state.error {
+  color: var(--error-line);
+}
+
+/* Report tab strip: printable forms, then the figure views. */
+.tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.tab-bar .tab-group {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 4px 0 8px;
+}
+
+.tab-bar .tab-group:first-child {
+  margin-left: 0;
+}
+
+/* ------------------------------------------------------------------- setup */
+
+/* First run fills the window: there is no sidebar yet, because there is no
+   school for it to describe. */
+.setup {
+  height: 100%;
+  overflow-y: auto;
+  background: var(--canvas);
+  padding: 28px 20px 60px;
+}
+
+.setup-form {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.setup-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.setup-head h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.setup-head p {
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+  max-width: 52ch;
+}
+
+.setup-language {
+  display: flex;
+  gap: 6px;
+}
+
+.setup-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.setup-actions button.primary {
+  padding: 10px 26px;
+  font-size: 16px;
+}
+
+/* ------------------------------------------------------ account & schools */
+
+/* Emails, paths and timestamps: Latin text that should read as data. */
+.num-inline {
+  font-family: var(--numeric);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+button.link {
+  font: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+button.small {
+  padding: 3px 10px;
+  font-size: 13px;
+}
+
+.auth {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+  background: var(--canvas);
+}
+
+.auth-card {
+  width: min(440px, 100%);
+  padding: 26px 28px 22px;
+}
+
+.auth-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.auth-head h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.auth-card .field input {
+  width: 100%;
+}
+
+.auth-code {
+  font-size: 22px;
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+.auth-actions {
+  margin: 8px 0 12px;
+}
+
+.auth-actions button.primary {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+}
+
+.auth-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.auth-note {
+  font-size: 13px;
+  margin: 16px 0 0;
+}
+
+.auth-dev {
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.schools-head-actions {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.schools-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+button.school-action {
+  font: inherit;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  margin: 0;
+}
+
+button.school-action strong {
+  font-size: 17px;
+  color: var(--accent);
+}
+
+button.school-action:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.school-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.school-row:last-child {
+  border-bottom: none;
+}
+
+.school-name {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.school-row .row-actions {
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  margin-top: 4px;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+}
+
+.badge.ready {
+  background: #e8f5ec;
+  border-color: #9fd1ae;
+  color: var(--credit);
+}
+
+.badge.notConnected {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+}
+
+.lock-card {
+  border-left: 3px solid var(--warn-line);
+}
+
+.legacy-card {
+  border-left: 3px solid var(--accent);
+}
+
+tr.clickable {
+  cursor: pointer;
+}
+
+.setup-back {
+  margin-bottom: 12px;
+}
+
+.location-card {
+  border-left: 3px solid var(--accent);
+}
+
+.location-pick {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------- open school, sidebar */
+
+.sidebar-school {
+  margin: -8px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.backup-badge {
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: var(--canvas);
+  color: var(--ink-soft);
+}
+
+.backup-badge::before {
+  content: "●";
+  margin-right: 5px;
+}
+
+.backup-badge.upToDate {
+  background: #e8f5ec;
+  color: var(--credit);
+}
+
+.backup-badge.pending,
+.backup-badge.uploading,
+.backup-badge.never {
+  background: var(--warn-bg);
+  color: #7a5b00;
+}
+
+.backup-badge.offline,
+.backup-badge.failed,
+.backup-badge.signedOut {
+  background: var(--error-bg);
+  color: var(--error-line);
+}
+
+.state.missing {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  color: inherit;
+}
+
+.missing-card {
+  max-width: 560px;
+  text-align: center;
+  border-top: 4px solid var(--warn-line);
+}
+
+.auth-head {
+  flex-wrap: wrap;
+}
+
+.setup-language button {
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------- layout editor */
+
+/* The report's preview beside the settings panel (screens/LayoutEditor.tsx).
+   The preview keeps its real printed size - scaling it would change how its
+   rows measure and so where its pages break - and scrolls inside its own box
+   so the panel stays in view. */
+.layout-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+.layout-canvas {
+  overflow: auto;
+  max-height: calc(100vh - 190px);
+  border-radius: 8px;
+  user-select: none;
+}
+
+.layout-canvas.resizing,
+.layout-canvas.resizing * {
+  cursor: col-resize !important;
+}
+
+.layout-panel {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  max-height: calc(100vh - 190px);
+  overflow-y: auto;
+  font-size: 14px;
+}
+
+.layout-panel section {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  margin-top: 12px;
+}
+
+.layout-panel h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.layout-panel .field {
+  margin-bottom: 10px;
+}
+
+.layout-panel .issue {
+  margin: 10px 0 0;
+}
+
+.layout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.layout-hint {
+  color: var(--ink-soft);
+  font-size: 13px;
+  margin: 10px 0 0;
+}
+
+.layout-selected {
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.stepper {
+  display: grid;
+  grid-template-columns: 34px 1fr 34px;
+  gap: 4px;
+}
+
+.stepper input {
+  min-width: 0;
+  text-align: center;
+  padding: 4px 6px;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: 1px solid var(--line-strong);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* The form's own colour: no choice made. */
+.swatch.default {
+  background: var(--canvas);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--ink-soft);
+}
+
+/* Blank: plain white, even where the form has a colour of its own. */
+.swatch.none {
+  background: #fff;
+}
+
+.layout-parent {
+  display: block;
+  margin: -4px 0 10px;
+  font-size: 13px;
+}
+
+/* The selected cell's colour now, and the way to pick another. */
+.colour-now {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.colour-now input[type="color"] {
+  width: 44px;
+  height: 30px;
+  padding: 1px 2px;
+  cursor: pointer;
+}
+
+.swatches + .layout-hint {
+  display: block;
+  margin-top: 6px;
+}
+
+.layout-check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 4px 0 12px;
+  cursor: pointer;
+}
+
+.layout-check input {
+  margin-top: 4px;
+}
+
+.swatch.chosen {
+  outline: 2px solid #1f6feb;
+  outline-offset: 1px;
+}
+
+.swatches input[type="color"] {
+  width: 34px;
+  height: 28px;
+  padding: 1px 2px;
+  cursor: pointer;
+}
+
+/* While a column edge is dragged: where it will land, and the new width. */
+.layout-guide {
+  position: fixed;
+  width: 0;
+  border-left: 2px dashed #1f6feb;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.layout-guide-label {
+  position: fixed;
+  background: #1f6feb;
+  color: #fff;
+  font-family: var(--numeric);
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 21;
+}

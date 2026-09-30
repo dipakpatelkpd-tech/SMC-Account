@@ -1,0 +1,339 @@
+// SMC school accounts - data model.
+//
+// Conventions that hold for every model here (docs/SPEC.md sections 4 and 10):
+//
+//   Money     every amount is an Int of PAISE, never a float and never a Decimal.
+//             Prisma's Decimal is float-backed on SQLite, so paise is the only
+//             exact option that survives a move to Postgres unchanged.
+//             Use src/lib/money.ts to convert and format; never do arithmetic on
+//             rupees. Int holds up to Rs 2,14,74,836 - far beyond an SMC's grants.
+//
+//   Dates     date-only values are ISO "YYYY-MM-DD" strings, not DateTime.
+//             They sort chronologically as text, compare with lte/gte, and cannot
+//             drift a day across timezones. Only createdAt/updatedAt are DateTime.
+//
+//   Enums     SQLite has no enums in Prisma, so type/status are String columns.
+//             The allowed values live in src/lib/types.ts and are enforced by Zod.
+//
+//   Derived   nothing computed is stored. No net_amount on Bill, no amount on
+//             Cheque, no closing balance anywhere - the report engine computes
+//             them. See CLAUDE.md: "Every report number is computed, never stored".
+//
+//   Where      the datasource carries no url. Prisma 7 takes the connection from a
+//             driver adapter at runtime, which is what the desktop build needs:
+//             the database lives in the user's data directory, a path only known
+//             once the app starts, not a build-time env var. See src/lib/db.ts.
+
+generator client {
+  provider = "prisma-client-js"
+
+  // queryCompiler replaces Prisma's native Rust query engine with a WASM one.
+  // That is what makes this packageable in Electron: no per-platform .node
+  // binary to unpack from the asar archive, and no engine/OS mismatch when the
+  // Windows installer is built from a Linux machine. Requires a driver adapter,
+  // which src/lib/db.ts provides.
+  previewFeatures = ["queryCompiler", "driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ---------------------------------------------------------------- master data
+
+model School {
+  id Int @id @default(autoincrement())
+
+  nameGu     String // બેટાવાડાના મુવાડા પ્રા. શાળા
+  smcLabelGu String // printed in every page header: "SMCE બેટાવાડાના મુવાડા પ્રા.શાળા"
+  diseCode   String @unique
+  clusterGu  String
+  talukaGu   String
+  districtGu String
+
+  // The two programme lines at the top of Annexure 9 and 10, newline separated:
+  // "સમગ્ર શિક્ષા ખેડા – SMCE" / "સર્વ શિક્ષા અભિયાન – ખેડા"
+  programmeGu String
+
+  memberSecretaryGu      String // full name of the head teacher
+  memberSecretaryShortGu String // short form printed as the cheque payee
+  memberSecretaryMobile  String?
+
+  bankAccounts   BankAccount[]
+  financialYears FinancialYear[]
+  grantHeads     GrantHead[]
+  reportLayouts  ReportLayout[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// One account today (SPEC section 11.7), but modelled as a table so that adding a
+// second one later is a UI change and not a migration of every report.
+model BankAccount {
+  id       Int    @id @default(autoincrement())
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  bankNameGu String // "Bank of Baroda (BOB)"
+  branchGu   String // "અંતિસર"
+  accountNo  String
+  isPrimary  Boolean @default(true)
+  active     Boolean @default(true)
+
+  receipts Receipt[]
+  cheques  Cheque[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolId, accountNo])
+}
+
+model FinancialYear {
+  id       Int    @id @default(autoincrement())
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  label     String // "2025-26"
+  startDate String // "2025-04-01" - also the date the opening balances are as of
+  endDate   String // "2026-03-31"
+  status    String @default("OPEN") // FinancialYearStatus in src/lib/types.ts
+
+  grantHeadYears   GrantHeadYear[]
+  openingBalances  OpeningBalance[]
+  receipts         Receipt[]
+  bills            Bill[]
+  cheques          Cheque[]
+  reconciliation   BankReconciliation?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolId, label])
+}
+
+// A grant head is a school-level master so that a closing balance can become next
+// year's opening balance by id. Which heads are in use, and in what print order,
+// varies by year - that lives in GrantHeadYear (SPEC section 11.3).
+model GrantHead {
+  id       Int    @id @default(autoincrement())
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  code   String // "SWACHHATA" - stable key, used by the seed and the tests
+  nameGu String // "શાળા સ્વચ્છતા ગ્રાન્ટ" - what the reports print
+
+  years            GrantHeadYear[]
+  openingBalances  OpeningBalance[]
+  receipts         Receipt[]
+  bills            Bill[]
+  allocations      ChequeAllocation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolId, code])
+}
+
+model GrantHeadYear {
+  id              Int           @id @default(autoincrement())
+  financialYearId Int
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+  grantHeadId     Int
+  grantHead       GrantHead     @relation(fields: [grantHeadId], references: [id], onDelete: Cascade)
+
+  reportOrder Int // row order in Annexure 10 and the ledger
+  active      Boolean @default(true)
+
+  @@unique([financialYearId, grantHeadId])
+  @@index([financialYearId, reportOrder])
+}
+
+// ----------------------------------------------------------- opening balances
+
+// Last year's closing, as of financialYear.startDate. Cash is 0 in the sample but
+// is a real column: SPEC section 11.8 is still open with the client.
+model OpeningBalance {
+  id              Int           @id @default(autoincrement())
+  financialYearId Int
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+  grantHeadId     Int
+  grantHead       GrantHead     @relation(fields: [grantHeadId], references: [id], onDelete: Cascade)
+
+  bankPaise Int @default(0)
+  cashPaise Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([financialYearId, grantHeadId])
+}
+
+// ------------------------------------------------------------------ money in
+
+model Receipt {
+  id              Int           @id @default(autoincrement())
+  financialYearId Int
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+  grantHeadId     Int
+  grantHead       GrantHead     @relation(fields: [grantHeadId], references: [id])
+
+  date       String // cash-book date, ISO
+  amountPaise Int
+
+  receivedFromGu String // "SSA", "BOB અંતિસર વ્યાજ"
+  modeGu         String // "ઓનલાઈન", "બેન્ક દ્વારા"
+
+  // Optional instrument and sanction details - the grant register prints them.
+  ddChequeNo         String?
+  ddChequeDate       String?
+  allotmentOrderNo   String?
+  allotmentOrderDate String?
+
+  bankAccountId Int
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+  // What the grant register prints in its bank columns. Usually the account's own
+  // branch, but the sample's civil grant arrived via "BOB ચિખલોડ" (SPEC 11.7).
+  bankLabelGu   String
+
+  depositedDate String?
+  creditedDate  String?
+  remarksGu     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([financialYearId, date])
+}
+
+// ----------------------------------------------------------------- money out
+
+model Bill {
+  id              Int           @id @default(autoincrement())
+  financialYearId Int
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+  grantHeadId     Int
+  grantHead       GrantHead     @relation(fields: [grantHeadId], references: [id])
+
+  voucherNo Int
+  // TEXT, e.g. "1/2". Never parsed as a date (CLAUDE.md). Null for the bill behind
+  // a direct-payment cheque, which has a voucher but no bill number (SPEC 6.5).
+  // SQLite treats NULLs as distinct, so the unique below still allows several.
+  billNo    String?
+  billDate  String // may fall before the financial year - voucher 1 pays 2024-25 bills
+
+  descriptionGu String
+  vendorGu      String
+
+  amountPaise    Int
+  deductionPaise Int @default(0)
+  // netAmountPaise is deliberately absent: it is amountPaise - deductionPaise.
+
+  quantityGu String?
+  remarksGu  String?
+
+  // A bill belongs to at most one cheque. Modelling the link this way makes
+  // "a bill linked to more than one cheque" (SPEC section 7) structurally
+  // impossible rather than a rule to check.
+  chequeId Int?
+  cheque   Cheque? @relation(fields: [chequeId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([financialYearId, voucherNo, billNo])
+  @@index([financialYearId, voucherNo])
+}
+
+model Cheque {
+  id              Int           @id @default(autoincrement())
+  financialYearId Int
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+
+  chequeNo     Int
+  chequeDate   String // date written on the cheque
+  cashbookDate String // date it enters the rojmel; may differ from chequeDate
+  cashedDate   String? // ચેક વટાવ્યાં તારીખ; null = not yet encashed
+
+  voucherNo Int?
+  payeeGu   String
+  purposeGu String
+  type      String // ChequeType in src/lib/types.ts
+
+  bankAccountId Int
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+
+  remarksGu String?
+
+  // amountPaise is deliberately absent: a cheque's amount is the sum of its
+  // allocation, which for REIMBURSEMENT and DIRECT is computed from bills.
+  bills       Bill[]
+  allocations ChequeAllocation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([financialYearId, chequeNo])
+  @@index([financialYearId, cashbookDate])
+}
+
+// Rows exist ONLY for GRANT_RETURN cheques, where the split per head is typed by
+// the user because there are no bills. For REIMBURSEMENT and DIRECT the split is
+// computed from the linked bills and storing it would be storing a derived fact.
+model ChequeAllocation {
+  id       Int    @id @default(autoincrement())
+  chequeId Int
+  cheque   Cheque @relation(fields: [chequeId], references: [id], onDelete: Cascade)
+
+  grantHeadId Int
+  grantHead   GrantHead @relation(fields: [grantHeadId], references: [id])
+
+  amountPaise Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([chequeId, grantHeadId])
+}
+
+// ------------------------------------------------- year-end bank reconciliation
+
+// The five inputs of Annexure 9 (SPEC section 6.8). chequesIssuedNotCashedPaise is
+// stored because the school copies it off the passbook, but the engine also
+// computes it from cheques with no cashedDate and warns when the two disagree.
+model BankReconciliation {
+  id              Int           @id @default(autoincrement())
+  financialYearId Int           @unique
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+
+  chequesIssuedNotCashedPaise      Int @default(0) // B
+  creditsInBankNotInCashbookPaise  Int @default(0) // C
+  depositsNotYetCreditedPaise      Int @default(0) // D
+  bankChargesNotInCashbookPaise    Int @default(0) // E
+  passbookBalancePaise             Int @default(0) // what the passbook actually says
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ------------------------------------------------------------ report layouts
+
+// How the school wants a printed report laid out: column widths, fonts, spacing,
+// highlighted cells (src/shared/report-layout.ts). Presentation only - no figure
+// is ever stored here. Kept per school rather than per year, so a layout set up
+// once prints every year the same; kept in the books rather than on the PC, so
+// the pen drive carries it and every PC prints the school's forms alike.
+model ReportLayout {
+  id       Int    @id @default(autoincrement())
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  report     String // PrintableReportId in src/shared/api.ts
+  layoutJson String // reportLayoutSchema, validated on the way in and out
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolId, report])
+}

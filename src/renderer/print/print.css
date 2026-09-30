@@ -1,0 +1,644 @@
+/*
+ * Print geometry for the audit registers.
+ *
+ * These pages are reproductions of government forms, so the layout is fixed in
+ * millimetres rather than left to flow: a reviewer compares them against the
+ * paper originals. Two page shapes exist (SPEC section 6):
+ *
+ *   portrait   Annexure 9 and 10, the vouchers
+ *   landscape  Rojmel, Khatavahi, the three registers and પત્રક-D
+ *
+ * The same markup is used for the on-screen preview and for printToPDF, so what
+ * the user checks is what the PDF contains.
+ */
+
+/*
+ * PAPER: Legal, 215.9 x 355.6mm (8.5 x 14in) - the size the school actually
+ * prints on. Every form uses it, portrait or landscape.
+ *
+ * Legal is both wider and taller than A4. Landscape Legal gives 335.6mm of
+ * width against A4's 297, which is 21% more room for the rojmel's sixteen
+ * columns, and the extra length fits more rows per page.
+ */
+@page {
+  size: legal portrait;
+  /* The originals have a narrow margin; anything wider pushes the wide
+     landscape tables off the sheet. */
+  margin: 10mm;
+}
+
+.print-root {
+  /*
+   * Every form prints its text at 14pt - titles, column headings, figures and
+   * all - the size the school was told its reports must use and the size of the
+   * client's own Excel registers (docs/DECISIONS.md, "Report font size"). One
+   * variable, so the whole set changes together if that instruction ever does.
+   *
+   * The rojmel is the exception: it uses the sizes of the client's own ROJMED
+   * sheet (sample/bariyana muvada.xlsx) - figures and dates at 11 (Calibri 11
+   * there), Gujarati text at 12 (LMG-Arun 12 there). Sixteen columns at 14 do
+   * not fit one Legal sheet; the client's book does not try to either.
+   */
+  --report-font: 14pt;
+  --rojmel-figure: 11pt;
+  --rojmel-text: 12pt;
+  font-size: var(--report-font);
+  /* Gujarati needs a face with real conjunct coverage. Chromium shapes these
+     with HarfBuzz, which is why ક્ષ, જ્ઞ, શ્રી and reph come out correct. */
+  font-family: "Noto Sans Gujarati", "Shruti", "Nirmala UI", "Lohit Gujarati", serif;
+  color: #000;
+  background: #fff;
+}
+
+/*
+ * One sheet. On screen it looks like paper; in print it IS the page.
+ *
+ * The dimensions are the Legal sheet less its two 10mm margins, so what is
+ * measured on screen is exactly the printable area:
+ *
+ *   portrait    195.9 x 335.6mm   (740 x 1268 px at 96dpi)
+ *   landscape   335.6 x 195.9mm   (1268 x 740 px)
+ */
+.sheet {
+  box-sizing: border-box;
+  width: 195.9mm;
+  min-height: 335.6mm;
+  margin: 0 auto 8mm;
+  padding: 0;
+  background: #fff;
+  position: relative;
+}
+
+.sheet.landscape {
+  width: 335.6mm;
+  min-height: 195.9mm;
+}
+
+/*
+ * Forms printed with 5mm margins (PrintRoot, NARROW_MARGIN_REPORTS): the
+ * client's workbook prints these edge to edge to fit its columns at full size.
+ *
+ *   portrait    205.9 x 345.6mm
+ *   landscape   345.6 x 205.9mm
+ */
+.print-root.narrow .sheet {
+  width: 205.9mm;
+  min-height: 345.6mm;
+}
+
+.print-root.narrow .sheet.landscape {
+  width: 345.6mm;
+  min-height: 205.9mm;
+}
+
+/* Screen-only chrome: a grey surround so the sheet reads as paper. */
+@media screen {
+  .print-root {
+    background: #58585c;
+    padding: 16px 0;
+  }
+
+  /* No padding: the sheet IS the text block, exactly as in print, where the
+     inset comes from the @page margin. Adding screen-only padding would make
+     the preview narrower than the page and hide an overflow that the PDF has. */
+  .sheet {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+    outline: 8mm solid #fff;
+    outline-offset: 0;
+    margin: 8mm auto 16mm;
+  }
+}
+
+@media print {
+  .print-root {
+    background: #fff;
+    padding: 0;
+  }
+
+  .sheet {
+    box-shadow: none;
+    margin: 0;
+    /* Each sheet starts a new physical page, except the last - a trailing
+       break would emit a blank page at the end of the PDF. */
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  /* Table borders vanish without this when Chromium drops backgrounds. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* ------------------------------------------------------------------ tables */
+
+table.form {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--report-font);
+  table-layout: fixed;
+}
+
+/*
+ * Every cell's text is centred - amounts, descriptions and labels alike - the
+ * developer's decision (docs/DECISIONS.md, "Report layouts"). A school can set
+ * left or right per report, column, row or cell in the layout editor.
+ */
+table.form th,
+table.form td {
+  border: 0.7pt solid #000;
+  padding: 1.2mm 1.1mm;
+  vertical-align: middle;
+  text-align: center;
+  /* A long Gujarati column heading must wrap rather than widen the column. */
+  overflow-wrap: break-word;
+}
+
+table.form th {
+  font-weight: 700;
+  text-align: center;
+  /* The application stylesheet sets `thead th { white-space: nowrap }` for the
+     data-entry tables, which is right there and wrong here: a long Gujarati
+     column heading must wrap inside its column, not overflow across the next
+     one. The print sheet borrows the page, so it has to undo app chrome it did
+     not ask for. */
+  white-space: normal;
+  color: #000;
+  font-size: var(--report-font);
+  line-height: 1.25;
+}
+
+/* Same reason: the register's own colours and rules, not the interface's. */
+.print-root table.form tbody tr:hover {
+  background: transparent;
+}
+
+.print-root table.form tr.total-row td {
+  background: transparent;
+  font-weight: 700;
+}
+
+/* Amounts and dates. Tabular figures keep a money column aligned, which is the
+   whole point of a register. */
+.figure {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--report-font);
+  font-feature-settings: "tnum" 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.centre {
+  text-align: center;
+}
+
+/* ------------------------------------------------------- annexure header */
+
+/* The stacked banner every annexure carries: programme lines, the annexure
+   number, the year, then the school and bank identification rows. */
+table.banner {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--report-font);
+  margin-bottom: 4mm;
+}
+
+table.banner td {
+  border: 0.7pt solid #000;
+  padding: 1.6mm 2mm;
+  text-align: center;
+  font-weight: 700;
+}
+
+table.banner td.label {
+  width: 22%;
+  background: #e8efe4;
+}
+
+table.banner td.value {
+  background: #f4f7f2;
+}
+
+.banner-title {
+  font-size: var(--report-font);
+}
+
+/* --------------------------------------------------------- certificate */
+
+.certificate {
+  margin-top: 6mm;
+  border: 0.7pt solid #000;
+  padding: 3mm 3.5mm;
+  font-size: var(--report-font);
+  line-height: 2.1;
+  text-align: justify;
+}
+
+/* The filled-in amounts sit on a rule, the way the original form does. */
+.certificate .blank {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  border-bottom: 0.7pt solid #000;
+  padding: 0 3mm;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ signatures */
+
+.signatures {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 14mm;
+  font-size: var(--report-font);
+}
+
+.signatures div {
+  text-align: center;
+  min-width: 45mm;
+}
+
+/* ------------------------------------------------------------------ rojmel */
+
+/*
+ * The cash book is A4 landscape with sixteen columns - two eight-column halves
+ * sharing one table so their rows line up exactly. Getting that alignment from
+ * two side-by-side tables is impossible once a block's sides differ in height,
+ * which is why it is one table with a gutter border down the middle.
+ */
+
+.rojmel-title {
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--report-font);
+  margin-bottom: 1.5mm;
+}
+
+.rojmel-band {
+  display: flex;
+  align-items: stretch;
+  gap: 2mm;
+  margin-bottom: 1.5mm;
+  font-weight: 700;
+  font-size: var(--rojmel-text);
+}
+
+.rojmel-band > div {
+  box-sizing: border-box;
+  border: 0.7pt solid #000;
+  padding: 0.8mm 3mm;
+  display: flex;
+  justify-content: space-around;
+  gap: 6mm;
+  align-items: center;
+}
+
+.rojmel-band .band-left,
+.rojmel-band .band-right {
+  flex: 1;
+  background: #eef2ea;
+}
+
+/* The આવક box is as wide as the table's receipt half (RojmelPage sets the
+   share), so its edge meets the heavy rule down the middle of the table. A
+   school can still set its width in the layout editor. */
+.rojmel-band .band-left {
+  flex: 0 0 var(--receipt-half, 50%);
+}
+
+.rojmel-band .band-page {
+  min-width: 34mm;
+  justify-content: center;
+  background: #f6eef2;
+}
+
+.rojmel-band .page-no {
+  display: inline-block;
+  min-width: 8mm;
+  text-align: center;
+  font-weight: 700;
+}
+
+table.form.rojmel {
+  font-size: var(--rojmel-text);
+  table-layout: fixed;
+}
+
+table.form.rojmel th,
+table.form.rojmel td {
+  /* Twenty-six rows have to fit the page height once the title, the band and
+     the column headings have taken their share - the engine pages the book by
+     that count (ROWS_PER_PAGE), and the ledger prints the page numbers. So a
+     row stays one line: a description too long for its column is made smaller
+     until it fits (PrintRoot, fitCells), as the client sets its long ones to 9. */
+  padding: 0.3mm 0.6mm;
+  height: 5.4mm;
+  font-size: var(--rojmel-figure);
+  line-height: 1.1;
+}
+
+table.form.rojmel th {
+  font-size: var(--rojmel-text);
+  height: auto;
+  padding: 0.6mm 0.4mm;
+  /* Wrap between words only; a word wider than its narrow column is made
+     smaller instead (PrintRoot, fitCells). */
+  overflow-wrap: normal;
+}
+
+table.form.rojmel td.detail,
+table.form.rojmel td.label {
+  font-size: var(--rojmel-text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* The two halves meet here; a heavier rule separates આવક from જાવક. */
+table.form.rojmel .gutter {
+  border-left-width: 2pt;
+}
+
+table.form.rojmel td.detail {
+  text-align: center;
+}
+
+/* Sub-headings such as મુ.શિ.એ કરેલ પદર ખર્ચ carry no money of their own. */
+table.form.rojmel td.detail.heading {
+  text-align: center;
+  font-style: normal;
+}
+
+table.form.rojmel td.ref {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  /* A date is never broken in the middle; fitCells shrinks it instead. */
+  white-space: nowrap;
+}
+
+table.form.rojmel td.label {
+  text-align: center;
+  font-weight: 700;
+}
+
+table.form.rojmel tr.footer-row td {
+  font-weight: 700;
+}
+
+table.form.rojmel tr.footer-row.spent td {
+  background: #fdeee4;
+}
+
+table.form.rojmel tr.footer-row.closing td {
+  background: #fdf6e3;
+}
+
+table.form.rojmel tr.footer-row.grand td {
+  background: #eaf3ea;
+}
+
+/* A blank band between blocks, as on the printed book. */
+table.form.rojmel tr.block-gap td {
+  border: 0;
+  height: 2.2mm;
+}
+
+.rojmel-closing {
+  margin-top: 4mm;
+  font-size: var(--rojmel-text);
+  font-weight: 700;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------- registers */
+
+/*
+ * The three registers and પત્રક-D share a shape: a title, then one wide table
+ * across A4 landscape. They print Gujarati digits, unlike the rojmel.
+ */
+
+.register-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8mm;
+  border: 0.7pt solid #000;
+  padding: 1.6mm 3mm;
+  margin-bottom: 2.5mm;
+  font-size: var(--report-font);
+  font-weight: 700;
+}
+
+.register-title .smc {
+  font-size: var(--report-font);
+}
+
+.register-title .what {
+  color: #7b1d1d;
+  letter-spacing: 0.02em;
+}
+
+table.form.register {
+  font-size: var(--report-font);
+  table-layout: fixed;
+}
+
+table.form.register th {
+  font-size: var(--report-font);
+  line-height: 1.2;
+  padding: 1mm 0.7mm;
+}
+
+table.form.register td {
+  padding: 1.1mm 1mm;
+  height: 7mm;
+  overflow-wrap: break-word;
+}
+
+table.form.register td.figure {
+  font-size: var(--report-font);
+}
+
+/* ------------------------------------------------------------------ voucher */
+
+.voucher-head .programme {
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--report-font);
+  margin-bottom: 3mm;
+}
+
+table.form.voucher-meta,
+table.form.patrak-meta {
+  margin-bottom: 3mm;
+  font-size: var(--report-font);
+}
+
+table.form.voucher-meta td.label,
+table.form.patrak-meta td.label {
+  background: #eef2ea;
+  font-weight: 700;
+  white-space: nowrap;
+  width: 15%;
+}
+
+/* The voucher is portrait: at 14pt "આચાર્યશ્રીનું નામ" needs more than 15% of it. */
+table.form.voucher-meta td.label {
+  width: 24%;
+}
+
+/* ----------------------------------------------------- annexure 9 / ledger */
+
+.annexure-heading {
+  border: 0.7pt solid #000;
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--report-font);
+  padding: 3mm;
+  margin: 5mm 0;
+}
+
+table.form.reconciliation {
+  font-size: var(--report-font);
+}
+
+table.form.reconciliation td {
+  height: 9mm;
+  padding: 2mm 2.5mm;
+}
+
+/* Column widths come from the table's <colgroup> (REPORT_COLUMNS). */
+table.form.reconciliation td.marker {
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--report-font);
+}
+
+table.form.reconciliation td.index {
+  text-align: center;
+}
+
+table.form.reconciliation td.figure {
+  font-weight: 700;
+  font-size: var(--report-font);
+}
+
+table.form.reconciliation td.right {
+  text-align: center;
+  font-weight: 700;
+}
+
+table.form.reconciliation tr.subtotal td,
+table.form.reconciliation tr.grand td {
+  font-weight: 700;
+}
+
+table.form.reconciliation tr.grand td {
+  background: #eef2ea;
+}
+
+/* SPEC 6.8: a reconciliation that does not reconcile has to say so on the form. */
+.reconciliation-warning {
+  margin-top: 5mm;
+  border: 0.9pt solid #c62828;
+  background: #fdecec;
+  padding: 3mm 3.5mm;
+  font-size: var(--report-font);
+  line-height: 1.6;
+}
+
+/* ------------------------------------------------------------------ ledger */
+
+.khatavahi-title {
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--report-font);
+  margin-bottom: 2.5mm;
+}
+
+.khatavahi-title.foot {
+  margin: 2.5mm 0 0;
+}
+
+/* One account to a landscape sheet at 14pt (KhatavahiPage.tsx). */
+.account-head {
+  margin-bottom: 1.5mm;
+}
+
+.account-kind {
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--report-font);
+  background: #fdeee4;
+  border: 0.7pt solid #000;
+  padding: 1mm;
+}
+
+.account-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 3mm;
+  font-size: var(--report-font);
+  font-weight: 700;
+  padding: 1mm 1.5mm 0;
+}
+
+table.form.khatavahi {
+  font-size: var(--report-font);
+  table-layout: fixed;
+}
+
+table.form.khatavahi th {
+  font-size: var(--report-font);
+  padding: 0.8mm 0.5mm;
+  line-height: 1.15;
+}
+
+table.form.khatavahi td {
+  height: 5mm;
+  padding: 0.6mm 0.8mm;
+  font-size: var(--report-font);
+}
+
+table.form.khatavahi td.detail {
+  text-align: center;
+  overflow-wrap: break-word;
+}
+
+table.form.khatavahi tr.closing-row td {
+  font-weight: 700;
+  background: #f2f6f2;
+}
+
+/* ------------------------------------------------------------ annexure 10 */
+
+/*
+ * Portrait at 14pt, as the client's P10E sheet prints it: seven money columns
+ * across 205.9mm leave about 22.9mm each, so the cells keep only a sliver of
+ * padding and the column headings wrap onto several lines.
+ */
+table.form.annexure10 th,
+table.form.annexure10 td {
+  padding: 1mm 0.6mm;
+}
+
+
+/* ------------------------------------------------------- heading blocks */
+
+/*
+ * One-line headings keep their text in the middle when a school makes them
+ * taller in the layout editor (a part's height is a min-height).
+ */
+.rojmel-title,
+.khatavahi-title,
+.annexure-heading,
+.account-kind,
+.voucher-head .programme {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

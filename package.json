@@ -1,0 +1,133 @@
+{
+  "name": "smc-accounts",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "main": "out/main/index.js",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "db:push": "prisma db push",
+    "db:reset": "prisma db push --force-reset && npm run db:seed",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "verify:seed": "tsx scripts/verify-seed.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "show:reports": "tsx scripts/show-reports.ts",
+    "preview": "electron-vite preview",
+    "pack:win": "npm run rebuild:electron && electron-vite build && node scripts/win-native.mjs && electron-builder --win",
+    "pack:linux": "electron-vite build && electron-builder --linux",
+    "rebuild:node": "node scripts/native-abi.mjs node",
+    "rebuild:electron": "node scripts/native-abi.mjs electron",
+    "rebuild:win": "node scripts/win-native.mjs",
+    "pretest": "npm run rebuild:node",
+    "predb:seed": "npm run rebuild:node",
+    "preverify:seed": "npm run rebuild:node",
+    "preshow:reports": "npm run rebuild:node",
+    "predev": "npm run rebuild:electron",
+    "prebuild": "npm run rebuild:electron",
+    "fix:sandbox": "sudo chown root:root node_modules/electron/dist/chrome-sandbox && sudo chmod 4755 node_modules/electron/dist/chrome-sandbox && echo 'chrome-sandbox fixed'",
+    "dev:nosandbox": "electron-vite dev -- --no-sandbox",
+    "check:abi": "node scripts/check-abi.mjs",
+    "print:preview": "tsx scripts/print-preview.mjs",
+    "shoot": "node scripts/shoot.mjs",
+    "db:migration": "prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script",
+    "check:cloud": "node scripts/check-cloud.mjs"
+  },
+  "dependencies": {
+    "@fontsource/anek-gujarati": "^5.3.0",
+    "@fontsource/baloo-bhai-2": "^5.3.0",
+    "@fontsource/hind-vadodara": "^5.3.0",
+    "@fontsource/mukta-vaani": "^5.3.0",
+    "@fontsource/noto-sans-gujarati": "^5.3.0",
+    "@fontsource/noto-serif-gujarati": "^5.3.0",
+    "@fontsource/rasa": "^5.3.0",
+    "@prisma/adapter-better-sqlite3": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "@supabase/supabase-js": "^2.117.2",
+    "better-sqlite3": "npm:better-sqlite3-multiple-ciphers@12.11.1",
+    "exceljs": "^4.4.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0",
+    "electron-vite": "^5.0.0",
+    "prisma": "^7.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vite": "^7.0.0",
+    "vitest": "4.0.18"
+  },
+  "build": {
+    "appId": "in.gov.gujarat.smc.accounts",
+    "productName": "SMC Accounts",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "npmRebuild": false,
+    "files": [
+      "out/**/*",
+      "package.json",
+      {
+        "from": "node_modules/.prisma",
+        "to": "node_modules/.prisma",
+        "filter": [
+          "**/*"
+        ]
+      },
+      "!**/node_modules/*/{test,__tests__,example,examples}/**",
+      "!**/node_modules/**/*.{md,map,d.ts,cc,h,gyp,gypi}",
+      "!**/node_modules/better-sqlite3/{deps,src,build/Release/obj,build/Release/obj.target}/**",
+      "!**/node_modules/@prisma/client/runtime/*{mysql,postgresql,cockroachdb,sqlserver}*",
+      "!**/node_modules/@prisma/client/runtime/*react-native*"
+    ],
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "SMC-Accounts-${version}-setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office"
+    },
+    "extraResources": [
+      {
+        "from": "prisma/migrations",
+        "to": "prisma/migrations",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  }
+}
