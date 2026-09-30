@@ -16,6 +16,7 @@ import { Setup } from "./screens/Setup.js";
 import { Login } from "./screens/Login.js";
 import { Schools } from "./screens/Schools.js";
 import { BackupBadge } from "./components/BackupBadge.js";
+import { Suggestions } from "./components/Suggestions.js";
 import { LanguageProvider, useStrings } from "./i18n/index.js";
 import { PrintRoot, printableReportFromHash } from "./print/PrintRoot.js";
 import type { JSX } from "react";
@@ -53,6 +54,8 @@ export function App(): JSX.Element {
   return (
     <LanguageProvider>
       <Root />
+      {/* Once, above every screen: it watches whichever text box has focus. */}
+      <Suggestions />
     </LanguageProvider>
   );
 }

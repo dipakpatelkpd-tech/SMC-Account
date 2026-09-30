@@ -219,7 +219,7 @@ function ReceiptForm({
         </div>
         <div className="field">
           <label htmlFor="from">{t.receivedFrom}</label>
-          <input id="from" value={receivedFrom} onChange={(e) => setReceivedFrom(e.target.value)} required />
+          <input id="from" data-suggest="receipt.from" value={receivedFrom} onChange={(e) => setReceivedFrom(e.target.value)} required />
         </div>
         <div className="field">
           <label htmlFor="mode">{t.mode}</label>
@@ -231,7 +231,7 @@ function ReceiptForm({
         </div>
         <div className="field">
           <label htmlFor="bank">{t.bankName}</label>
-          <input id="bank" value={bankLabel} onChange={(e) => setBankLabel(e.target.value)} required />
+          <input id="bank" data-suggest="bank.name" value={bankLabel} onChange={(e) => setBankLabel(e.target.value)} required />
         </div>
         <div className="field">
           <label htmlFor="credited">{t.creditedDate}</label>
@@ -244,7 +244,7 @@ function ReceiptForm({
         </div>
         <div className="field">
           <label htmlFor="remarks">{t.remarks}</label>
-          <input id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+          <input id="remarks" data-suggest="receipt.remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
         </div>
       </div>
       <div className="form-actions">

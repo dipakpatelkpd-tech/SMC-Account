@@ -280,6 +280,7 @@ function ChequeForm({
           <label htmlFor="chequeno">{t.chequeNo}</label>
           <input
             id="chequeno"
+            data-no-suggest
             className="num-input"
             inputMode="numeric"
             value={chequeNo}
@@ -291,6 +292,7 @@ function ChequeForm({
           <label htmlFor="voucher">{t.voucherNo}</label>
           <input
             id="voucher"
+            data-no-suggest
             className="num-input"
             inputMode="numeric"
             value={voucherNo}
@@ -328,11 +330,11 @@ function ChequeForm({
         </div>
         <div className="field">
           <label htmlFor="payee">{t.payee}</label>
-          <input id="payee" value={payee} onChange={(e) => setPayee(e.target.value)} required />
+          <input id="payee" data-suggest="vendor.name" value={payee} onChange={(e) => setPayee(e.target.value)} required />
         </div>
         <div className="field">
           <label htmlFor="purpose">{t.chequePurpose}</label>
-          <input id="purpose" value={purpose} onChange={(e) => setPurpose(e.target.value)} required />
+          <input id="purpose" data-suggest="cheque.purpose" value={purpose} onChange={(e) => setPurpose(e.target.value)} required />
         </div>
       </div>
 

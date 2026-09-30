@@ -237,6 +237,7 @@ function BillForm({
           <label htmlFor="voucher">{t.voucherNo}</label>
           <input
             id="voucher"
+            data-no-suggest
             className="num-input"
             inputMode="numeric"
             value={voucherNo}
@@ -250,6 +251,7 @@ function BillForm({
               workbook (SPEC 9.7) and that is the bug this field prevents. */}
           <input
             id="billno"
+            data-no-suggest
             value={billNo}
             onChange={(e) => setBillNo(e.target.value)}
             placeholder="1/2"
@@ -277,11 +279,11 @@ function BillForm({
         </div>
         <div className="field">
           <label htmlFor="desc">{t.billDescription}</label>
-          <input id="desc" value={description} onChange={(e) => setDescription(e.target.value)} required />
+          <input id="desc" data-suggest="bill.description" value={description} onChange={(e) => setDescription(e.target.value)} required />
         </div>
         <div className="field">
           <label htmlFor="vendor">{t.billFrom}</label>
-          <input id="vendor" value={vendor} onChange={(e) => setVendor(e.target.value)} required />
+          <input id="vendor" data-suggest="vendor.name" value={vendor} onChange={(e) => setVendor(e.target.value)} required />
         </div>
         <div className="field">
           <label htmlFor="amount">{t.billAmount}</label>

@@ -51,6 +51,8 @@ export interface Strings {
   date: string;
   amount: string;
   remarks: string;
+  suggestRemove: string;
+  suggestHelp: string;
   grantHead: string;
   bank: string;
   cash: string;
@@ -501,6 +503,8 @@ export const gu: Strings = {
   date: "તારીખ",
   amount: "રકમ",
   remarks: "રીમાર્કસ",
+  suggestRemove: "આ સૂચન ભૂલી જાઓ (Shift+Delete)",
+  suggestHelp: "↑↓ પસંદ કરો · Tab / Enter ભરો · Esc બંધ",
   grantHead: "ગ્રાન્ટ હેડ",
   bank: "બેન્ક",
   cash: "રોકડ",
@@ -955,6 +959,8 @@ export const en: Strings = {
   date: "Date",
   amount: "Amount",
   remarks: "Remarks",
+  suggestRemove: "Forget this suggestion (Shift+Delete)",
+  suggestHelp: "↑↓ choose · Tab / Enter fill in · Esc close",
   grantHead: "Grant head",
   bank: "Bank",
   cash: "Cash",

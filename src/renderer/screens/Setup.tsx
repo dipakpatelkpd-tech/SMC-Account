@@ -220,33 +220,35 @@ export function Setup({
         <section className="card">
           <h3>{t.setupSchoolSection}</h3>
           <div className="form-grid">
-            <Field label={t.setupSchoolName} value={nameGu} onChange={setNameGu} required />
-            <Field label={t.diseCode} value={diseCode} onChange={setDiseCode} numeric required />
-            <Field label={t.setupCluster} value={clusterGu} onChange={setClusterGu} required />
-            <Field label={t.setupTaluka} value={talukaGu} onChange={setTalukaGu} required />
-            <Field label={t.setupDistrict} value={districtGu} onChange={setDistrictGu} required />
+            <Field label={t.setupSchoolName} value={nameGu} onChange={setNameGu} required suggest="school.name" />
+            <Field label={t.diseCode} value={diseCode} onChange={setDiseCode} numeric required suggest="school.dise" />
+            <Field label={t.setupCluster} value={clusterGu} onChange={setClusterGu} required suggest="school.cluster" />
+            <Field label={t.setupTaluka} value={talukaGu} onChange={setTalukaGu} required suggest="school.taluka" />
+            <Field label={t.setupDistrict} value={districtGu} onChange={setDistrictGu} required suggest="school.district" />
             <Field
+              suggest="school.headTeacher"
               label={t.setupHeadTeacher}
               value={memberSecretaryGu}
               onChange={setMemberSecretaryGu}
               required
             />
             <Field
+              suggest="school.headTeacherShort"
               label={t.setupHeadTeacherShort}
               value={memberSecretaryShortGu}
               onChange={setMemberSecretaryShortGu}
               hint={t.setupHeadTeacherShortHint}
             />
-            <Field label={t.setupMobile} value={mobile} onChange={setMobile} numeric />
+            <Field label={t.setupMobile} value={mobile} onChange={setMobile} numeric suggest="school.mobile" />
           </div>
         </section>
 
         <section className="card">
           <h3>{t.setupBankSection}</h3>
           <div className="form-grid">
-            <Field label={t.bankName} value={bankNameGu} onChange={setBankNameGu} required />
-            <Field label={t.setupBranch} value={branchGu} onChange={setBranchGu} />
-            <Field label={t.setupAccountNo} value={accountNo} onChange={setAccountNo} numeric required />
+            <Field label={t.bankName} value={bankNameGu} onChange={setBankNameGu} required suggest="bank.name" />
+            <Field label={t.setupBranch} value={branchGu} onChange={setBranchGu} suggest="bank.branch" />
+            <Field label={t.setupAccountNo} value={accountNo} onChange={setAccountNo} numeric required suggest="bank.accountNo" />
           </div>
         </section>
 
@@ -254,6 +256,7 @@ export function Setup({
           <h3>{t.setupYearSection}</h3>
           <div className="form-grid">
             <Field
+              suggest="year.label"
               label={t.setupYearLabel}
               value={yearLabel}
               onChange={setYearLabel}
@@ -291,6 +294,7 @@ export function Setup({
                 <tr key={head.code}>
                   <td>
                     <input
+                      data-suggest="grantHead.name"
                       value={head.nameGu}
                       onChange={(event) =>
                         setHeads((current) =>
@@ -395,6 +399,7 @@ function Field({
   required,
   numeric,
   hint,
+  suggest,
 }: {
   label: string;
   value: string;
@@ -402,6 +407,8 @@ function Field({
   required?: boolean;
   numeric?: boolean;
   hint?: string;
+  /** What kind of thing this is, so every screen asking for it shares one list of suggestions. */
+  suggest: string;
 }): JSX.Element {
   return (
     <div className="field">
@@ -411,6 +418,7 @@ function Field({
       </label>
       <input
         className={numeric ? "num-input" : undefined}
+        data-suggest={suggest}
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />

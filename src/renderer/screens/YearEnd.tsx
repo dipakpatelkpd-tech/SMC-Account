@@ -173,6 +173,7 @@ export function YearEnd(): JSX.Element {
             <label>{t.yearNextLabel}</label>
             <input
               className="num-input"
+              data-suggest="year.label"
               value={nextLabel}
               onChange={(event) => setNextLabel(event.target.value)}
             />
