@@ -78,6 +78,7 @@ export interface ControllerOptions {
   legacyBooks?: { file: string; developmentCopy: boolean } | null;
   timers?: Timers;
   now?: () => number;
+  standaloneDb?: string | null;
 }
 
 interface OpenSchool {
@@ -102,10 +103,14 @@ export class AppController {
   private readonly backups: CloudBackups | null;
   private current: OpenSchool | null = null;
   private dataMissing = false;
+  private standalone = false;
 
   constructor(private readonly options: ControllerOptions) {
     this.known = new KnownProfiles(options.userDataDir);
     this.device = loadDevice(options.userDataDir);
+    if (options.standaloneDb && existsSync(options.standaloneDb)) {
+      this.standalone = true;
+    }
     if ("backend" in options.cloud) {
       this.account = new Account(options.cloud.backend, options.userDataDir, options.secretBox, options.now);
       this.backups = new CloudBackups(
@@ -120,9 +125,54 @@ export class AppController {
     }
   }
 
+  /** Open an unencrypted standalone testing database directly without cloud requirements. */
+  async openStandaloneDatabase(filePath: string): Promise<void> {
+    const migration = runMigrations(filePath, this.options.migrationsDir);
+    const prisma = createPrismaClient({ file: filePath });
+    const year = await latestYear(prisma);
+    const school = await prisma.school.findFirst();
+    const manifest: Manifest = {
+      format: "smc-accounts-profile",
+      formatVersion: 1,
+      profileId: "standalone-testing-profile",
+      ownerUserId: "standalone-tester",
+      schoolNameGu: school?.nameGu ?? "બેટાવાડાના મુવાડા પ્રા. શાળા",
+      diseCode: school?.diseCode ?? "24160201802",
+      cipher: "chacha20",
+      keyFingerprint: "plain",
+      createdAt: new Date().toISOString(),
+    };
+    this.current = {
+      profileId: manifest.profileId,
+      folder: path.dirname(filePath),
+      manifest,
+      keyHex: "",
+      prisma,
+      setup: new SetupService(prisma),
+      books: year ? new AccountsService(prisma, year.id) : null,
+      yearLabel: year?.label ?? "",
+      schemaVersion: migration.schemaVersion,
+    };
+    this.standalone = true;
+    this.dataMissing = false;
+  }
+
   // ------------------------------------------------------------------ state
 
   getAppState(): AppStateDto {
+    if (this.standalone && this.current) {
+      const current = this.current;
+      const user = { id: "tester", email: "test@smc.gov.in" };
+      const cloud: CloudInfoDto = { kind: "fake", note: null };
+      const school = {
+        profileId: current.profileId,
+        schoolNameGu: current.manifest.schoolNameGu,
+        diseCode: current.manifest.diseCode,
+        folder: current.folder,
+      };
+      return { phase: "open", cloud, user, school, needsSetup: current.books === null };
+    }
+
     const cloud = this.options.cloud;
     if (!("backend" in cloud) || !this.account) {
       return { phase: "unavailable", reason: "unavailable" in cloud ? cloud.unavailable : "" };
@@ -173,6 +223,7 @@ export class AppController {
 
   /** Every successful write to the books calls this. */
   onBooksChanged(): void {
+    if (this.standalone) return;
     this.backups?.markChanged();
   }
 
@@ -417,15 +468,17 @@ export class AppController {
   async closeSchool(flushMs = CLOSE_FLUSH_MS): Promise<AppStateDto> {
     const current = this.current;
     if (current) {
-      if (!this.dataMissing) await this.backups?.flush(flushMs);
+      if (!this.dataMissing && !this.standalone) await this.backups?.flush(flushMs);
       this.backups?.detach();
       this.current = null;
       this.dataMissing = false;
       await current.prisma.$disconnect().catch(() => undefined);
-      try {
-        releaseLock(current.folder, this.device);
-      } catch {
-        // The drive is gone; its lock goes with it.
+      if (!this.standalone) {
+        try {
+          releaseLock(current.folder, this.device);
+        } catch {
+          // The drive is gone; its lock goes with it.
+        }
       }
     }
     return this.getAppState();
@@ -442,6 +495,7 @@ export class AppController {
    * once, so nothing tries to write to a drive that is not there.
    */
   checkDataPresent(): boolean {
+    if (this.standalone) return true;
     const current = this.current;
     if (!current || this.dataMissing) return !this.dataMissing;
     if (existsSync(path.join(current.folder, MANIFEST_FILE))) return true;

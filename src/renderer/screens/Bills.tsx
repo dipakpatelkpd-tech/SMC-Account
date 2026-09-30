@@ -24,6 +24,9 @@ export function Bills({ onChanged }: { onChanged: () => void }): JSX.Element {
   const [editing, setEditing] = useState<BillDto | "new" | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [headFilter, setHeadFilter] = useState<number | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "unpaid">("all");
 
   async function reload(): Promise<void> {
     const [nextBills, nextHeads] = await Promise.all([api.listBills(), api.listGrantHeads()]);
@@ -57,18 +60,42 @@ export function Bills({ onChanged }: { onChanged: () => void }): JSX.Element {
 
   if (loading) return <div className="state">{t.loading}</div>;
 
-  const vouchers = [...new Set(bills.map((bill) => bill.voucherNo))].sort((a, b) => a - b);
+  const allVouchers = [...new Set(bills.map((bill) => bill.voucherNo))].sort((a, b) => a - b);
   const total = bills.reduce((sum, bill) => sum + bill.netPaise, 0);
+
+  const filteredBills = bills.filter((bill) => {
+    if (headFilter !== "all" && bill.grantHeadId !== headFilter) return false;
+    const isPaid = bill.chequeNo !== null;
+    if (statusFilter === "paid" && !isPaid) return false;
+    if (statusFilter === "unpaid" && isPaid) return false;
+    if (!query.trim()) return true;
+    const q = query.toLowerCase().trim();
+    return (
+      (bill.billNo && bill.billNo.toLowerCase().includes(q)) ||
+      bill.descriptionGu.toLowerCase().includes(q) ||
+      bill.vendorGu.toLowerCase().includes(q) ||
+      bill.headNameGu.toLowerCase().includes(q) ||
+      String(bill.voucherNo).includes(q) ||
+      (bill.chequeNo !== null && String(bill.chequeNo).includes(q))
+    );
+  });
+
+  const vouchers = [...new Set(filteredBills.map((bill) => bill.voucherNo))].sort((a, b) => a - b);
+  const filteredTotal = filteredBills.reduce((sum, bill) => sum + bill.netPaise, 0);
+  const isFiltered = query.trim() !== "" || headFilter !== "all" || statusFilter !== "all";
 
   return (
     <>
       <div className="page-head">
         <div>
-          <h2>{t.billsTitle}</h2>
+          <h2>
+            {t.billsTitle}
+            <span className="page-head-badge">{bills.length}</span>
+          </h2>
           <p>{t.billsSubtitle}</p>
         </div>
         <button className="primary" onClick={() => { setEditing("new"); setIssues([]); }}>
-          {t.newBill}
+          + {t.newBill}
         </button>
       </div>
 
@@ -83,7 +110,7 @@ export function Bills({ onChanged }: { onChanged: () => void }): JSX.Element {
           t={t}
           heads={heads}
           bill={editing === "new" ? null : editing}
-          nextVoucher={(vouchers[vouchers.length - 1] ?? 0) + 1}
+          nextVoucher={(allVouchers[allVouchers.length - 1] ?? 0) + 1}
           onCancel={() => { setEditing(null); setIssues([]); }}
           onSave={save}
           onHeadCreated={(head) => {
@@ -94,85 +121,199 @@ export function Bills({ onChanged }: { onChanged: () => void }): JSX.Element {
         />
       )}
 
+      {bills.length > 0 && (
+        <div className="search-filter-bar">
+          <div className="search-input-wrap">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder={t.searchPlaceholder}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {query && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setQuery("")}
+                title="Clear"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="filter-group">
+            <select
+              className="filter-select"
+              value={headFilter}
+              onChange={(e) => setHeadFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
+            >
+              <option value="all">{t.filterAll} ({t.grantHead})</option>
+              {heads.map((head) => (
+                <option key={head.id} value={head.id}>
+                  {head.nameGu}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-segments">
+            <button
+              type="button"
+              className={`filter-segment-btn ${statusFilter === "all" ? "active" : ""}`}
+              onClick={() => setStatusFilter("all")}
+            >
+              {t.filterAll}
+            </button>
+            <button
+              type="button"
+              className={`filter-segment-btn ${statusFilter === "paid" ? "active" : ""}`}
+              onClick={() => setStatusFilter("paid")}
+            >
+              {t.statusPaid}
+            </button>
+            <button
+              type="button"
+              className={`filter-segment-btn ${statusFilter === "unpaid" ? "active" : ""}`}
+              onClick={() => setStatusFilter("unpaid")}
+            >
+              {t.statusUnpaid}
+            </button>
+          </div>
+
+          {isFiltered && (
+            <button
+              type="button"
+              className="ghost small"
+              onClick={() => {
+                setQuery("");
+                setHeadFilter("all");
+                setStatusFilter("all");
+              }}
+            >
+              {t.clearFilters}
+            </button>
+          )}
+
+          <div className="filter-count-badge">
+            {isFiltered ? (
+              <span>
+                {filteredBills.length} / {bills.length} બિલ (<Money paise={filteredTotal} />)
+              </span>
+            ) : (
+              <span>
+                {t.billsSummary(bills.length)} <Money paise={total} />
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {vouchers.map((voucherNo) => {
-        const rows = bills.filter((bill) => bill.voucherNo === voucherNo);
+        const rows = filteredBills.filter((bill) => bill.voucherNo === voucherNo);
         const voucherTotal = rows.reduce((sum, bill) => sum + bill.netPaise, 0);
         const paidBy = rows.find((bill) => bill.chequeNo !== null)?.chequeNo ?? null;
 
         return (
           <div className="card" key={voucherNo}>
-            <h3>
-              {t.voucher} {voucherNo}{" "}
-              <span className="muted" style={{ fontWeight: 400 }}>
-                {paidBy === null ? t.notLinkedToCheque : t.linkedToCheque(paidBy)}
-              </span>
-            </h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>{t.billNo}</th>
-                  <th>{t.billDate}</th>
-                  <th>{t.billDescription}</th>
-                  <th>{t.billFrom}</th>
-                  <th>{t.grantHead}</th>
-                  <th className="num">{t.amount}</th>
-                  <th className="num">{t.deduction}</th>
-                  <th className="num">{t.netAmountShort}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((bill) => (
-                  <tr key={bill.id}>
-                    <td className="num">{bill.billNo ?? "—"}</td>
-                    <td className="num">{formatDate(bill.billDate)}</td>
-                    <td>{bill.descriptionGu}</td>
-                    <td>{bill.vendorGu}</td>
-                    <td>{bill.headNameGu}</td>
-                    <td className="num">
-                      <Money paise={bill.amountPaise} />
-                    </td>
-                    <td className="num">
-                      <Money paise={bill.deductionPaise} />
-                    </td>
-                    <td className="num">
-                      <Money paise={bill.netPaise} />
-                    </td>
-                    <td>
-                      <div className="row-actions">
-                        <button className="ghost" onClick={() => { setEditing(bill); setIssues([]); }}>
-                          {t.edit}
-                        </button>
-                        <button className="danger" onClick={() => void remove(bill)}>
-                          {t.delete}
-                        </button>
-                      </div>
-                    </td>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <h3 style={{ margin: 0 }}>
+                {t.voucher} {voucherNo}{" "}
+                <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>
+                  {paidBy === null ? (
+                    <span style={{ color: "var(--warn-line)", marginLeft: 6 }}>● {t.notLinkedToCheque}</span>
+                  ) : (
+                    <span style={{ color: "var(--credit)", marginLeft: 6 }}>● {t.linkedToCheque(paidBy)}</span>
+                  )}
+                </span>
+              </h3>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>{t.billNo}</th>
+                    <th>{t.billDate}</th>
+                    <th>{t.billDescription}</th>
+                    <th>{t.billFrom}</th>
+                    <th>{t.grantHead}</th>
+                    <th className="num">{t.amount}</th>
+                    <th className="num">{t.deduction}</th>
+                    <th className="num">{t.netAmountShort}</th>
+                    <th />
                   </tr>
-                ))}
-                <tr className="total-row">
-                  <td colSpan={7}>{t.voucherTotal(voucherNo)}</td>
-                  <td className="num">
-                    <Money paise={voucherTotal} />
-                  </td>
-                  <td />
-                </tr>
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rows.map((bill) => (
+                    <tr key={bill.id}>
+                      <td className="num">{bill.billNo ?? "—"}</td>
+                      <td className="num">{formatDate(bill.billDate)}</td>
+                      <td>{bill.descriptionGu}</td>
+                      <td>{bill.vendorGu}</td>
+                      <td>{bill.headNameGu}</td>
+                      <td className="num">
+                        <Money paise={bill.amountPaise} />
+                      </td>
+                      <td className="num">
+                        <Money paise={bill.deductionPaise} />
+                      </td>
+                      <td className="num" style={{ fontWeight: 600 }}>
+                        <Money paise={bill.netPaise} />
+                      </td>
+                      <td>
+                        <div className="row-actions">
+                          <button className="ghost" onClick={() => { setEditing(bill); setIssues([]); }}>
+                            {t.edit}
+                          </button>
+                          <button className="danger" onClick={() => void remove(bill)}>
+                            {t.delete}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="total-row">
+                    <td colSpan={7}>{t.voucherTotal(voucherNo)}</td>
+                    <td className="num">
+                      <Money paise={voucherTotal} />
+                    </td>
+                    <td />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         );
       })}
 
       {bills.length === 0 && (
-        <div className="card">
-          <p className="muted">{t.noBills}</p>
+        <div className="card empty-state">
+          <div className="empty-state-icon">📄</div>
+          <h4>{t.noBills}</h4>
+          <p>{t.billsSubtitle}</p>
+          <button className="primary" onClick={() => { setEditing("new"); setIssues([]); }}>
+            + {t.newBill}
+          </button>
         </div>
       )}
 
-      {bills.length > 0 && (
-        <p className="muted">
-          {t.billsSummary(bills.length)} <Money paise={total} />
-        </p>
+      {bills.length > 0 && filteredBills.length === 0 && (
+        <div className="card empty-state">
+          <div className="empty-state-icon">🔍</div>
+          <h4>{t.noMatchingRecords}</h4>
+          <p>શોધ અથવા ફિલ્ટર સાફ કરીને ફરી પ્રયાસ કરો.</p>
+          <button
+            className="ghost"
+            onClick={() => {
+              setQuery("");
+              setHeadFilter("all");
+              setStatusFilter("all");
+            }}
+          >
+            {t.clearFilters}
+          </button>
+        </div>
       )}
     </>
   );
@@ -239,8 +380,19 @@ function BillForm({
   }
 
   return (
-    <form className="card" onSubmit={submit}>
-      <h3>{bill ? t.editBill : t.billsTitle}</h3>
+    <form className="card form-card" onSubmit={submit}>
+      <div className="form-card-header">
+        <h3 className="form-card-title">
+          <span>{bill ? "✏️" : "➕"}</span>
+          <span>{bill ? t.editBill : t.newBill}</span>
+        </h3>
+        {netPaise !== null && (
+          <div className="calc-chip">
+            <span>{t.netPayable}:</span>
+            <Money paise={netPaise} />
+          </div>
+        )}
+      </div>
       <div className="form-grid">
         <div className="field">
           <label htmlFor="voucher">{t.voucherNo}</label>

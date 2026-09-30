@@ -19,7 +19,7 @@
  */
 import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from "electron";
 import path from "node:path";
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { AppController } from "../src/server/app-controller.js";
@@ -46,12 +46,19 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 // --------------------------------------------------------------- this PC
 
+const exeDir = app.isPackaged ? path.dirname(app.getPath("exe")) : process.cwd();
+const portableDataDir = path.join(exeDir, "data");
+const portableDbFile = path.join(portableDataDir, "smc-accounts.db");
+const isPortable = existsSync(portableDataDir) || existsSync(path.join(exeDir, "portable.json"));
+
 /**
- * In development each "PC" keeps its state inside the project, so two PCs can
- * be simulated on one machine (SMC_DEV_PC=pc2 npm run dev) and nothing mixes
- * with an installed copy's data in ~/.config.
+ * In portable mode, all state lives directly inside the application's folder.
+ * In development each "PC" keeps its state inside the project (.dev-data).
  */
-if (!app.isPackaged) {
+if (isPortable) {
+  mkdirSync(portableDataDir, { recursive: true });
+  app.setPath("userData", portableDataDir);
+} else if (!app.isPackaged) {
   const pc = (process.env["SMC_DEV_PC"] ?? "pc1").replace(/[^a-z0-9-]/gi, "");
   app.setPath("userData", path.resolve(process.cwd(), ".dev-data", pc || "pc1"));
 }
@@ -107,12 +114,12 @@ function osSecretBox(): SecretBox {
   };
 }
 
-function createController(): AppController {
+function createController(standaloneDb?: string): AppController {
   const config = resolveCloudConfig({
-    isPackaged: app.isPackaged,
+    isPackaged: app.isPackaged && !standaloneDb,
     url: import.meta.env.MAIN_VITE_SUPABASE_URL,
     publishableKey: import.meta.env.MAIN_VITE_SUPABASE_PUBLISHABLE_KEY,
-    forceFake: process.env["SMC_CLOUD"] === "fake",
+    forceFake: process.env["SMC_CLOUD"] === "fake" || Boolean(standaloneDb),
   });
 
   let cloud: ConstructorParameters<typeof AppController>[0]["cloud"];
@@ -122,7 +129,9 @@ function createController(): AppController {
       info: { kind: "supabase", note: null },
     };
   } else if (config.kind === "fake") {
-    const dir = path.resolve(process.cwd(), ".dev-data", "cloud");
+    const dir = app.isPackaged
+      ? path.join(app.getPath("userData"), "cloud")
+      : path.resolve(process.cwd(), ".dev-data", "cloud");
     const outbox = path.join(dir, "outbox.txt");
     mkdirSync(dir, { recursive: true });
     cloud = {
@@ -137,8 +146,8 @@ function createController(): AppController {
       info: {
         kind: "fake",
         note:
-          `Development cloud in .dev-data/cloud (${config.reason}). ` +
-          `Emailed codes are printed in the terminal and in .dev-data/cloud/outbox.txt.`,
+          `Development cloud in ${dir} (${config.reason}). ` +
+          `Emailed codes are printed in the terminal and in ${outbox}.`,
       },
     };
   } else {
@@ -154,6 +163,7 @@ function createController(): AppController {
     appVersion: app.getVersion(),
     platform: process.platform === "win32" ? "win32" : "posix",
     legacyBooks: legacyBooks(),
+    standaloneDb,
   });
 }
 
@@ -600,9 +610,13 @@ const QUIT_FLUSH_MS = 10_000;
 let quitting = false;
 
 if (singleInstance) {
-  void app.whenReady().then(() => {
+  void app.whenReady().then(async () => {
     try {
-      controller = createController();
+      const standaloneDb = existsSync(portableDbFile) ? portableDbFile : undefined;
+      controller = createController(standaloneDb);
+      if (standaloneDb) {
+        await controller.openStandaloneDatabase(standaloneDb);
+      }
     } catch (error) {
       console.error("Could not start:", error);
     }

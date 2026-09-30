@@ -24,7 +24,32 @@ import "../print/print.css";
 type FigureTab = "balances" | "ledgers";
 type Tab = PrintableReportId | FigureTab;
 
+const STATUTORY_TABS: PrintableReportId[] = ["rojmel", "khatavahi", "annexure10", "annexure9", "patrakD"];
+const REGISTER_TABS: PrintableReportId[] = ["grantRegister", "chequeRegister", "billRegister", "vouchers"];
 const FIGURE_TABS: FigureTab[] = ["balances", "ledgers"];
+
+function getReportDescription(tab: PrintableReportId): string {
+  switch (tab) {
+    case "rojmel":
+      return "રોજમેળ (કેશ બુક) — શાળાના તમામ આવક અને જાવક વ્યવહારોની દૈનિક ક્રમબદ્ધ નોંધ. (ઇન્ડિયન લીગલ સાઇઝ, આડો)";
+    case "khatavahi":
+      return "ખાતાવહી — ગ્રાન્ટ હેડ મુજબ ખાતાઓની વિગતો, જમા અને ઉધાર વ્યવહારો તથા સિલક. (ઇન્ડિયન લીગલ સાઇઝ, આડો)";
+    case "annexure10":
+      return "પરિશિષ્ટ ૧૦ — ગ્રાન્ટ મુજબ વાર્ષિક હિસાબ પત્રક (ઓપનિંગ બેલેન્સ, મળેલી ગ્રાન્ટ, ખર્ચ અને આખર સિલક). (ઇન્ડિયન લીગલ સાઇઝ, ઊભો)";
+    case "annexure9":
+      return "પરિશિષ્ટ ૯ — બેંક સાથે મેળવણું (બેંક રિકન્સીલિએશન સ્ટેટમેન્ટ). (ઇન્ડિયન લીગલ સાઇઝ, ઊભો)";
+    case "patrakD":
+      return "પત્રક – D — ઓડિટ અને વાર્ષિક તપાસ માટેનું વિગતવાર પત્રક. (ઇન્ડિયન લીગલ સાઇઝ, આડો)";
+    case "grantRegister":
+      return "ગ્રાન્ટ રજીસ્ટર — વર્ષ દરમિયાન મળેલ તમામ ગ્રાન્ટ અને તેના ખર્ચની વિગતો. (ઇન્ડિયન લીગલ સાઇઝ, આડો)";
+    case "chequeRegister":
+      return "ચેક રજીસ્ટર — લખાયેલા તમામ ચેક, જેના નામે લખ્યા અને વટાવ્યાની તારીખો. (ઇન્ડિયન લીગલ સાઇઝ, આડો)";
+    case "billRegister":
+      return "બિલ રજીસ્ટર — વાઉચર મુજબના તમામ બિલ, વેપારી અને રકમની નોંધ. (ઇન્ડિયન લીગલ સાઇઝ, આડો)";
+    case "vouchers":
+      return "વાઉચર — ચુકવણીના પ્રિન્ટેડ વાઉચર ફોર્મ્સ. (ઇન્ડિયન લીગલ સાઇઝ, ઊભો)";
+  }
+}
 
 function labelFor(tab: Tab, t: Strings): string {
   switch (tab) {
@@ -60,6 +85,7 @@ function isPrintable(tab: Tab): tab is PrintableReportId {
 export function Reports(): JSX.Element {
   const t = useStrings();
   const [tab, setTab] = useState<Tab>("rojmel");
+  const [showPreview, setShowPreview] = useState(false);
   // One flag per kind of export, so the two buttons can be told apart while one
   // of them is working.
   const [saving, setSaving] = useState<"pdf" | "excel" | "excel-all" | null>(null);
@@ -80,6 +106,7 @@ export function Reports(): JSX.Element {
     setTab(next);
     setSaved(null);
     setLayoutDirty(false);
+    setShowPreview(false);
     if (!isPrintable(next)) setEditing(false);
   }
 
@@ -111,19 +138,27 @@ export function Reports(): JSX.Element {
         </div>
         <div className="row-actions">
           {isPrintable(tab) && !editing && (
+            <button
+              className={showPreview ? "ghost" : "primary"}
+              onClick={() => setShowPreview(!showPreview)}
+            >
+              <span>👁️</span> {showPreview ? t.hidePreview : t.viewPreview}
+            </button>
+          )}
+          {isPrintable(tab) && !editing && (
             <button className="ghost" disabled={saving !== null} onClick={() => setEditing(true)}>
-              {t.layoutEdit}
+              <span>✏️</span> {t.layoutEdit}
             </button>
           )}
           {editing && <span className="muted">{t.layoutUnsavedExport}</span>}
           {isPrintable(tab) && !editing && (
-            <button className="primary" disabled={saving !== null} onClick={() => runExport("pdf")}>
-              {saving === "pdf" ? t.savingPdf : t.savePdf}
+            <button className="ghost" disabled={saving !== null} onClick={() => runExport("pdf")}>
+              <span>📄</span> {saving === "pdf" ? t.savingPdf : t.savePdf}
             </button>
           )}
           {isPrintable(tab) && !editing && (
             <button className="ghost" disabled={saving !== null} onClick={() => runExport("excel")}>
-              {saving === "excel" ? t.savingExcel : t.saveExcel}
+              <span>📊</span> {saving === "excel" ? t.savingExcel : t.saveExcel}
             </button>
           )}
           {/* The whole year in one workbook, whichever tab is open - this is the
@@ -134,26 +169,45 @@ export function Reports(): JSX.Element {
               disabled={saving !== null}
               onClick={() => runExport("excel-all")}
             >
-              {saving === "excel-all" ? t.savingExcel : t.saveExcelAll}
+              <span>📑</span> {saving === "excel-all" ? t.savingExcel : t.saveExcelAll}
             </button>
           )}
         </div>
       </div>
 
-      <div className="tab-bar">
-        <span className="tab-group">{t.groupPrintable}</span>
-        {PRINTABLE_REPORTS.map((id) => (
-          <button key={id} className={tab === id ? "primary" : "ghost"} onClick={() => chooseTab(id)}>
-            {labelFor(id, t)}
-          </button>
-        ))}
+      <div className="tab-category-strip card" style={{ padding: "12px 14px", marginBottom: 18 }}>
+        <div className="tab-category-row">
+          <span className="tab-category-label">🏛️ {t.groupStatutory}</span>
+          <div className="tab-category-buttons">
+            {STATUTORY_TABS.map((id) => (
+              <button key={id} className={tab === id ? "primary small" : "ghost small"} onClick={() => chooseTab(id)}>
+                {labelFor(id, t)}
+              </button>
+            ))}
+          </div>
+        </div>
 
-        <span className="tab-group">{t.groupFigures}</span>
-        {FIGURE_TABS.map((id) => (
-          <button key={id} className={tab === id ? "primary" : "ghost"} onClick={() => chooseTab(id)}>
-            {labelFor(id, t)}
-          </button>
-        ))}
+        <div className="tab-category-row" style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--line-subtle)" }}>
+          <span className="tab-category-label">📋 {t.groupRegisters}</span>
+          <div className="tab-category-buttons">
+            {REGISTER_TABS.map((id) => (
+              <button key={id} className={tab === id ? "primary small" : "ghost small"} onClick={() => chooseTab(id)}>
+                {labelFor(id, t)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="tab-category-row" style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--line-subtle)" }}>
+          <span className="tab-category-label">📊 {t.groupFigures}</span>
+          <div className="tab-category-buttons">
+            {FIGURE_TABS.map((id) => (
+              <button key={id} className={tab === id ? "primary small" : "ghost small"} onClick={() => chooseTab(id)}>
+                {labelFor(id, t)}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {saved !== null && (
@@ -173,8 +227,81 @@ export function Reports(): JSX.Element {
           }}
         />
       ) : isPrintable(tab) ? (
-        // Keyed by tab so switching reports remounts and refetches cleanly.
-        <PrintRoot key={tab} report={tab} />
+        showPreview ? (
+          <div className="report-preview-section">
+            <div className="report-preview-toolbar">
+              <div className="report-preview-toolbar-title">
+                <span>📄 {labelFor(tab, t)} — {t.viewPreview}</span>
+                <span className="report-preview-toolbar-badge">{t.printPreviewNote}</span>
+              </div>
+              <div className="row-actions">
+                <button className="ghost small" onClick={() => setShowPreview(false)}>
+                  ✕ {t.hidePreview}
+                </button>
+                <button className="ghost small" disabled={saving !== null} onClick={() => setEditing(true)}>
+                  <span>✏️</span> {t.layoutEdit}
+                </button>
+                <button className="primary small" disabled={saving !== null} onClick={() => runExport("pdf")}>
+                  <span>📄</span> {saving === "pdf" ? t.savingPdf : t.savePdf}
+                </button>
+                <button className="ghost small" disabled={saving !== null} onClick={() => runExport("excel")}>
+                  <span>📊</span> {saving === "excel" ? t.savingExcel : t.saveExcel}
+                </button>
+              </div>
+            </div>
+            <div className="report-preview-frame">
+              <div className="report-preview-content">
+                <PrintRoot key={tab} report={tab} />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="card report-overview-card">
+            <div className="report-overview-header">
+              <div className="report-overview-info">
+                <div className="report-overview-badge">
+                  {STATUTORY_TABS.includes(tab as any) ? `🏛️ ${t.groupStatutory}` : `📋 ${t.groupRegisters}`}
+                </div>
+                <h3>{labelFor(tab, t)}</h3>
+                <p className="report-overview-desc">
+                  {getReportDescription(tab)}
+                </p>
+                <p className="report-overview-hint muted">
+                  {t.previewPrompt}
+                </p>
+              </div>
+              <div className="report-overview-actions">
+                <button
+                  className="primary"
+                  onClick={() => setShowPreview(true)}
+                >
+                  <span>👁️</span> {t.viewPreview}
+                </button>
+                <button
+                  className="ghost"
+                  disabled={saving !== null}
+                  onClick={() => runExport("pdf")}
+                >
+                  <span>📄</span> {saving === "pdf" ? t.savingPdf : t.savePdf}
+                </button>
+                <button
+                  className="ghost"
+                  disabled={saving !== null}
+                  onClick={() => runExport("excel")}
+                >
+                  <span>📊</span> {saving === "excel" ? t.savingExcel : t.saveExcel}
+                </button>
+                <button
+                  className="ghost"
+                  disabled={saving !== null}
+                  onClick={() => setEditing(true)}
+                >
+                  <span>✏️</span> {t.layoutEdit}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
       ) : (
         <Figures tab={tab} />
       )}
@@ -189,6 +316,7 @@ function Figures({ tab }: { tab: FigureTab }): JSX.Element {
   const [ledgers, setLedgers] = useState<Ledger[]>([]);
   const [loading, setLoading] = useState(true);
   const [failure, setFailure] = useState<string | null>(null);
+  const [selectedHead, setSelectedHead] = useState<string>("all");
 
   useEffect(() => {
     void (async () => {
@@ -254,9 +382,42 @@ function Figures({ tab }: { tab: FigureTab }): JSX.Element {
     );
   }
 
+  const filteredLedgers = selectedHead === "all"
+    ? ledgers
+    : ledgers.filter((acc) => acc.headCode === selectedHead);
+
   return (
     <>
-      {ledgers.map((account) => (
+      <div className="search-filter-bar" style={{ marginBottom: 16 }}>
+        <div className="filter-group">
+          <label style={{ fontSize: 13, fontWeight: 600, marginRight: 8, color: "var(--ink)" }}>
+            ખાતું પસંદ કરો:
+          </label>
+          <select
+            className="filter-select"
+            value={selectedHead}
+            onChange={(e) => setSelectedHead(e.target.value)}
+          >
+            <option value="all">બધા ખાતા ({ledgers.length})</option>
+            {ledgers.map((acc) => (
+              <option key={acc.headCode} value={acc.headCode}>
+                {acc.nameGu}
+              </option>
+            ))}
+          </select>
+        </div>
+        {selectedHead !== "all" && (
+          <button
+            type="button"
+            className="ghost small"
+            onClick={() => setSelectedHead("all")}
+          >
+            {t.clearFilters}
+          </button>
+        )}
+      </div>
+
+      {filteredLedgers.map((account) => (
         <div className="card" key={account.headCode}>
           <h3>{account.nameGu}</h3>
           <table>

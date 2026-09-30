@@ -127,7 +127,10 @@ export function Masters({ onChanged }: { onChanged: () => void }): JSX.Element {
     <>
       <div className="page-head">
         <div>
-          <h2>{t.mastersTitle}</h2>
+          <h2>
+            {t.mastersTitle}
+            <span className="page-head-badge">{heads.length} {t.grantHead}</span>
+          </h2>
           <p>{t.mastersSubtitle}</p>
         </div>
       </div>
@@ -222,7 +225,8 @@ export function Masters({ onChanged }: { onChanged: () => void }): JSX.Element {
         <p className="muted" style={{ marginTop: 0 }}>
           {t.mastersHeadsHint}
         </p>
-        <table>
+        <div className="table-wrap" style={{ margin: "14px 0", border: "none", boxShadow: "none" }}>
+          <table>
           <thead>
             <tr>
               <th className="num">{t.mastersOrder}</th>
@@ -322,6 +326,7 @@ export function Masters({ onChanged }: { onChanged: () => void }): JSX.Element {
             })}
           </tbody>
         </table>
+        </div>
 
         <div className="form-actions">
           <input

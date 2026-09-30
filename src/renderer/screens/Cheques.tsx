@@ -28,6 +28,8 @@ export function Cheques({ onChanged }: { onChanged: () => void }): JSX.Element {
   const [editing, setEditing] = useState<ChequeDto | "new" | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   async function reload(): Promise<void> {
     const [nextCheques, nextBills, nextHeads] = await Promise.all([
@@ -68,15 +70,33 @@ export function Cheques({ onChanged }: { onChanged: () => void }): JSX.Element {
 
   const total = cheques.reduce((sum, cheque) => sum + cheque.amountPaise, 0);
 
+  const filteredCheques = cheques.filter((cheque) => {
+    if (typeFilter !== "all" && cheque.type !== typeFilter) return false;
+    if (!query.trim()) return true;
+    const q = query.toLowerCase().trim();
+    return (
+      String(cheque.chequeNo).includes(q) ||
+      cheque.payeeGu.toLowerCase().includes(q) ||
+      cheque.purposeGu.toLowerCase().includes(q) ||
+      cheque.allocation.some((a) => a.headNameGu.toLowerCase().includes(q))
+    );
+  });
+
+  const filteredTotal = filteredCheques.reduce((sum, cheque) => sum + cheque.amountPaise, 0);
+  const isFiltered = query.trim() !== "" || typeFilter !== "all";
+
   return (
     <>
       <div className="page-head">
         <div>
-          <h2>{t.chequesTitle}</h2>
+          <h2>
+            {t.chequesTitle}
+            <span className="page-head-badge">{cheques.length}</span>
+          </h2>
           <p>{t.chequesSubtitle}</p>
         </div>
         <button className="primary" onClick={() => { setEditing("new"); setIssues([]); }}>
-          {t.newCheque}
+          + {t.newCheque}
         </button>
       </div>
 
@@ -98,69 +118,156 @@ export function Cheques({ onChanged }: { onChanged: () => void }): JSX.Element {
         />
       )}
 
-      <div className="card">
-        <table>
-          <thead>
-            <tr>
-              <th className="num">{t.chequeNo}</th>
-              <th>{t.chequeDate}</th>
-              <th>{t.cashbookDate}</th>
-              <th>{t.chequeType}</th>
-              <th>{t.payee}</th>
-              <th>{t.allocation}</th>
-              <th className="num">{t.amount}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {cheques.map((cheque) => (
-              <tr key={cheque.id}>
-                <td className="num">{cheque.chequeNo}</td>
-                <td className="num">{formatDate(cheque.chequeDate)}</td>
-                <td className="num">{formatDate(cheque.cashbookDate)}</td>
-                <td>{typeLabels[cheque.type] ?? cheque.type}</td>
-                <td>{cheque.payeeGu}</td>
-                <td>
-                  {cheque.allocation.map((row) => (
-                    <div key={row.headCode} style={{ fontSize: 13 }}>
-                      {row.headNameGu} <Money paise={row.amountPaise} />
-                    </div>
-                  ))}
-                </td>
-                <td className="num">
-                  <Money paise={cheque.amountPaise} />
-                </td>
-                <td>
-                  <div className="row-actions">
-                    <button className="ghost" onClick={() => { setEditing(cheque); setIssues([]); }}>
-                      {t.edit}
-                    </button>
-                    <button className="danger" onClick={() => void remove(cheque)}>
-                      {t.delete}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {cheques.length === 0 && (
-              <tr>
-                <td colSpan={8} className="muted">
-                  {t.noCheques}
-                </td>
-              </tr>
+      {cheques.length > 0 && (
+        <div className="search-filter-bar">
+          <div className="search-input-wrap">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder={t.searchPlaceholder}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {query && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setQuery("")}
+                title="Clear"
+              >
+                ✕
+              </button>
             )}
-            {cheques.length > 0 && (
-              <tr className="total-row">
-                <td colSpan={6}>{t.total}</td>
-                <td className="num">
-                  <Money paise={total} />
-                </td>
-                <td />
-              </tr>
+          </div>
+
+          <div className="filter-group">
+            <select
+              className="filter-select"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              <option value="all">{t.filterAll} ({t.chequeType})</option>
+              {(Object.keys(typeLabels) as ChequeType[]).map((val) => (
+                <option key={val} value={val}>
+                  {typeLabels[val]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {isFiltered && (
+            <button
+              type="button"
+              className="ghost small"
+              onClick={() => {
+                setQuery("");
+                setTypeFilter("all");
+              }}
+            >
+              {t.clearFilters}
+            </button>
+          )}
+
+          <div className="filter-count-badge">
+            {isFiltered ? (
+              <span>
+                {filteredCheques.length} / {cheques.length} ચેક (<Money paise={filteredTotal} />)
+              </span>
+            ) : (
+              <span>
+                કુલ રકમ: <Money paise={total} />
+              </span>
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </div>
+      )}
+
+      {filteredCheques.length > 0 && (
+        <div className="card">
+          <div className="table-wrap" style={{ margin: 0, border: "none", boxShadow: "none" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th className="num">{t.chequeNo}</th>
+                  <th>{t.chequeDate}</th>
+                  <th>{t.cashbookDate}</th>
+                  <th>{t.chequeType}</th>
+                  <th>{t.payee}</th>
+                  <th>{t.allocation}</th>
+                  <th className="num">{t.amount}</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCheques.map((cheque) => (
+                  <tr key={cheque.id}>
+                    <td className="num" style={{ fontWeight: 600 }}>{cheque.chequeNo}</td>
+                    <td className="num">{formatDate(cheque.chequeDate)}</td>
+                    <td className="num">{formatDate(cheque.cashbookDate)}</td>
+                    <td>{typeLabels[cheque.type] ?? cheque.type}</td>
+                    <td>{cheque.payeeGu}</td>
+                    <td>
+                      {cheque.allocation.map((row) => (
+                        <div key={row.headCode} style={{ fontSize: 13 }}>
+                          {row.headNameGu} <Money paise={row.amountPaise} />
+                        </div>
+                      ))}
+                    </td>
+                    <td className="num" style={{ fontWeight: 600 }}>
+                      <Money paise={cheque.amountPaise} />
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <button className="ghost" onClick={() => { setEditing(cheque); setIssues([]); }}>
+                          {t.edit}
+                        </button>
+                        <button className="danger" onClick={() => void remove(cheque)}>
+                          {t.delete}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                <tr className="total-row">
+                  <td colSpan={6}>{t.total}</td>
+                  <td className="num">
+                    <Money paise={filteredTotal} />
+                  </td>
+                  <td />
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {cheques.length === 0 && (
+        <div className="card empty-state">
+          <div className="empty-state-icon">💳</div>
+          <h4>{t.noCheques}</h4>
+          <p>{t.chequesSubtitle}</p>
+          <button className="primary" onClick={() => { setEditing("new"); setIssues([]); }}>
+            + {t.newCheque}
+          </button>
+        </div>
+      )}
+
+      {cheques.length > 0 && filteredCheques.length === 0 && (
+        <div className="card empty-state">
+          <div className="empty-state-icon">🔍</div>
+          <h4>{t.noMatchingRecords}</h4>
+          <p>શોધ અથવા ફિલ્ટર સાફ કરીને ફરી પ્રયાસ કરો.</p>
+          <button
+            className="ghost"
+            onClick={() => {
+              setQuery("");
+              setTypeFilter("all");
+            }}
+          >
+            {t.clearFilters}
+          </button>
+        </div>
+      )}
     </>
   );
 }
@@ -259,8 +366,19 @@ function ChequeForm({
   }
 
   return (
-    <form className="card" onSubmit={submit}>
-      <h3>{cheque ? t.editCheque(cheque.chequeNo) : t.chequesTitle}</h3>
+    <form className="card form-card" onSubmit={submit}>
+      <div className="form-card-header">
+        <h3 className="form-card-title">
+          <span>{cheque ? "✏️" : "➕"}</span>
+          <span>{cheque ? t.editCheque(cheque.chequeNo) : t.newCheque}</span>
+        </h3>
+        {amountPaise > 0 && (
+          <div className="calc-chip">
+            <span>{t.amount}:</span>
+            <Money paise={amountPaise} />
+          </div>
+        )}
+      </div>
 
       <div className="form-grid">
         <div className="field">

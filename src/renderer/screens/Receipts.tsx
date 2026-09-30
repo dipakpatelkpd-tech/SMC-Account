@@ -18,6 +18,8 @@ export function Receipts({ onChanged }: { onChanged: () => void }): JSX.Element 
   const [editing, setEditing] = useState<ReceiptDto | "new" | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [headFilter, setHeadFilter] = useState<number | "all">("all");
 
   async function reload(): Promise<void> {
     const [nextReceipts, nextHeads] = await Promise.all([api.listReceipts(), api.listGrantHeads()]);
@@ -56,15 +58,34 @@ export function Receipts({ onChanged }: { onChanged: () => void }): JSX.Element 
 
   const total = receipts.reduce((sum, receipt) => sum + receipt.amountPaise, 0);
 
+  const filteredReceipts = receipts.filter((receipt) => {
+    if (headFilter !== "all" && receipt.grantHeadId !== headFilter) return false;
+    if (!query.trim()) return true;
+    const q = query.toLowerCase().trim();
+    return (
+      receipt.headNameGu.toLowerCase().includes(q) ||
+      receipt.receivedFromGu.toLowerCase().includes(q) ||
+      receipt.modeGu.toLowerCase().includes(q) ||
+      receipt.bankLabelGu.toLowerCase().includes(q) ||
+      receipt.date.includes(q)
+    );
+  });
+
+  const filteredTotal = filteredReceipts.reduce((sum, receipt) => sum + receipt.amountPaise, 0);
+  const isFiltered = query.trim() !== "" || headFilter !== "all";
+
   return (
     <>
       <div className="page-head">
         <div>
-          <h2>{t.receiptsTitle}</h2>
+          <h2>
+            {t.receiptsTitle}
+            <span className="page-head-badge">{receipts.length}</span>
+          </h2>
           <p>{t.receiptsSubtitle}</p>
         </div>
         <button className="primary" onClick={() => { setEditing("new"); setIssues([]); }}>
-          {t.newReceipt}
+          + {t.newReceipt}
         </button>
       </div>
 
@@ -89,61 +110,148 @@ export function Receipts({ onChanged }: { onChanged: () => void }): JSX.Element 
         />
       )}
 
-      <div className="card">
-        <table>
-          <thead>
-            <tr>
-              <th>{t.date}</th>
-              <th>{t.grantHead}</th>
-              <th>{t.receivedFrom}</th>
-              <th>{t.mode}</th>
-              <th>{t.bank}</th>
-              <th className="num">{t.amount}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {receipts.map((receipt) => (
-              <tr key={receipt.id}>
-                <td className="num">{formatDate(receipt.date)}</td>
-                <td>{receipt.headNameGu}</td>
-                <td>{receipt.receivedFromGu}</td>
-                <td>{receipt.modeGu}</td>
-                <td>{receipt.bankLabelGu}</td>
-                <td className="num">
-                  <Money paise={receipt.amountPaise} />
-                </td>
-                <td>
-                  <div className="row-actions">
-                    <button className="ghost" onClick={() => { setEditing(receipt); setIssues([]); }}>
-                      {t.edit}
-                    </button>
-                    <button className="danger" onClick={() => void remove(receipt)}>
-                      {t.delete}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {receipts.length === 0 && (
-              <tr>
-                <td colSpan={7} className="muted">
-                  {t.noReceipts}
-                </td>
-              </tr>
+      {receipts.length > 0 && (
+        <div className="search-filter-bar">
+          <div className="search-input-wrap">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder={t.searchPlaceholder}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {query && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setQuery("")}
+                title="Clear"
+              >
+                ✕
+              </button>
             )}
-            {receipts.length > 0 && (
-              <tr className="total-row">
-                <td colSpan={5}>{t.total}</td>
-                <td className="num">
-                  <Money paise={total} />
-                </td>
-                <td />
-              </tr>
+          </div>
+
+          <div className="filter-group">
+            <select
+              className="filter-select"
+              value={headFilter}
+              onChange={(e) => setHeadFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
+            >
+              <option value="all">{t.filterAll} ({t.grantHead})</option>
+              {heads.map((head) => (
+                <option key={head.id} value={head.id}>
+                  {head.nameGu}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {isFiltered && (
+            <button
+              type="button"
+              className="ghost small"
+              onClick={() => {
+                setQuery("");
+                setHeadFilter("all");
+              }}
+            >
+              {t.clearFilters}
+            </button>
+          )}
+
+          <div className="filter-count-badge">
+            {isFiltered ? (
+              <span>
+                {filteredReceipts.length} / {receipts.length} પહોંચ (<Money paise={filteredTotal} />)
+              </span>
+            ) : (
+              <span>
+                કુલ આવક: <Money paise={total} />
+              </span>
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </div>
+      )}
+
+      {filteredReceipts.length > 0 && (
+        <div className="card">
+          <div className="table-wrap" style={{ margin: 0, border: "none", boxShadow: "none" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>{t.date}</th>
+                  <th>{t.grantHead}</th>
+                  <th>{t.receivedFrom}</th>
+                  <th>{t.mode}</th>
+                  <th>{t.bank}</th>
+                  <th className="num">{t.amount}</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {filteredReceipts.map((receipt) => (
+                  <tr key={receipt.id}>
+                    <td className="num">{formatDate(receipt.date)}</td>
+                    <td style={{ fontWeight: 600 }}>{receipt.headNameGu}</td>
+                    <td>{receipt.receivedFromGu}</td>
+                    <td>{receipt.modeGu}</td>
+                    <td>{receipt.bankLabelGu}</td>
+                    <td className="num" style={{ fontWeight: 600 }}>
+                      <Money paise={receipt.amountPaise} />
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <button className="ghost" onClick={() => { setEditing(receipt); setIssues([]); }}>
+                          {t.edit}
+                        </button>
+                        <button className="danger" onClick={() => void remove(receipt)}>
+                          {t.delete}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                <tr className="total-row">
+                  <td colSpan={5}>{t.total}</td>
+                  <td className="num">
+                    <Money paise={filteredTotal} />
+                  </td>
+                  <td />
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {receipts.length === 0 && (
+        <div className="card empty-state">
+          <div className="empty-state-icon">📥</div>
+          <h4>{t.noReceipts}</h4>
+          <p>{t.receiptsSubtitle}</p>
+          <button className="primary" onClick={() => { setEditing("new"); setIssues([]); }}>
+            + {t.newReceipt}
+          </button>
+        </div>
+      )}
+
+      {receipts.length > 0 && filteredReceipts.length === 0 && (
+        <div className="card empty-state">
+          <div className="empty-state-icon">🔍</div>
+          <h4>{t.noMatchingRecords}</h4>
+          <p>શોધ અથવા ફિલ્ટર સાફ કરીને ફરી પ્રયાસ કરો.</p>
+          <button
+            className="ghost"
+            onClick={() => {
+              setQuery("");
+              setHeadFilter("all");
+            }}
+          >
+            {t.clearFilters}
+          </button>
+        </div>
+      )}
     </>
   );
 }
@@ -197,8 +305,19 @@ function ReceiptForm({
   }
 
   return (
-    <form className="card" onSubmit={submit}>
-      <h3>{receipt ? t.editReceipt : t.receiptsTitle}</h3>
+    <form className="card form-card" onSubmit={submit}>
+      <div className="form-card-header">
+        <h3 className="form-card-title">
+          <span>{receipt ? "✏️" : "➕"}</span>
+          <span>{receipt ? t.editReceipt : t.newReceipt}</span>
+        </h3>
+        {amountPaise !== null && amountPaise > 0 && (
+          <div className="calc-chip">
+            <span>{t.amount}:</span>
+            <Money paise={amountPaise} />
+          </div>
+        )}
+      </div>
       <div className="form-grid">
         <div className="field">
           <label htmlFor="date">{t.cashbookDate}</label>

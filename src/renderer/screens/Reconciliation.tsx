@@ -154,7 +154,8 @@ export function Reconciliation({ onChanged }: { onChanged: () => void }): JSX.El
       )}
 
       <div className="card">
-        <table>
+        <div className="table-wrap" style={{ margin: 0, border: "none", boxShadow: "none" }}>
+          <table>
           <tbody>
             <tr>
               <td>{t.recCashbook}</td>
@@ -237,12 +238,13 @@ export function Reconciliation({ onChanged }: { onChanged: () => void }): JSX.El
             />
           </tbody>
         </table>
+        </div>
 
         {valid && (
-          <div className={difference === 0 ? "issue" : "issue error"} style={{ marginTop: 12 }}>
+          <div className={difference === 0 ? "issue success" : "issue error"} style={{ marginTop: 14 }}>
             <div>
               {difference === 0 ? (
-                t.recAgrees
+                <>✓ {t.recAgrees}</>
               ) : (
                 <>
                   {t.recMismatch} {t.recDifference}{" "}

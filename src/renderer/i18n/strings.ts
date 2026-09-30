@@ -483,6 +483,20 @@ export interface Strings {
   backupSize: string;
   signOutHint: string;
   reportFontNote: string;
+
+  // ------------------------------------------------------------- UI polish
+  searchPlaceholder: string;
+  filterAll: string;
+  statusPaid: string;
+  statusUnpaid: string;
+  clearFilters: string;
+  groupStatutory: string;
+  groupRegisters: string;
+  netPayable: string;
+  noMatchingRecords: string;
+  viewPreview: string;
+  hidePreview: string;
+  previewPrompt: string;
 }
 
 export const gu: Strings = {
@@ -951,6 +965,19 @@ export const gu: Strings = {
   signOutHint:
     "લૉગઆઉટ કરવાથી આ PC પરથી લૉગિન અને શાળાઓની ચાવીઓ દૂર થાય છે. પેન ડ્રાઈવ પરનો ડેટા અને ક્લાઉડ બેકઅપ સલામત રહે છે.",
   reportFontNote: "છાપવાનાં પત્રકો (PDF અને Excel) 14 ના ફોન્ટમાં બને છે.",
+
+  searchPlaceholder: "શોધો... (નંબર, નામ અથવા વિગત)",
+  filterAll: "બધા",
+  statusPaid: "ચૂકવાયેલ",
+  statusUnpaid: "બાકી",
+  clearFilters: "ફિલ્ટર સાફ કરો",
+  groupStatutory: "સરકારી પત્રકો",
+  groupRegisters: "રજિસ્ટર",
+  netPayable: "ચૂકવવાપાત્ર ચોખ્ખી રકમ",
+  noMatchingRecords: "કોઈ મેળ ખાતી વિગત મળી નથી.",
+  viewPreview: "પ્રિવ્યૂ જુઓ",
+  hidePreview: "પ્રિવ્યૂ છુપાવો",
+  previewPrompt: "દસ્તાવેજ પ્રિન્ટમાં કેવો દેખાશે તે જોવા માટે 'પ્રિવ્યૂ જુઓ' બટન પર ક્લિક કરો. અથવા સીધું PDF / Excel ડાઉનલોડ કરો.",
 };
 
 export const en: Strings = {
@@ -1420,4 +1447,17 @@ export const en: Strings = {
   signOutHint:
     "Logging out removes the login and the schools' keys from this PC. The data on the pen drive and the cloud backups stay safe.",
   reportFontNote: "Printed reports (PDF and Excel) use font size 14.",
+
+  searchPlaceholder: "Search... (number, payee or description)",
+  filterAll: "All",
+  statusPaid: "Paid",
+  statusUnpaid: "Unpaid",
+  clearFilters: "Clear filter",
+  groupStatutory: "Statutory forms",
+  groupRegisters: "Registers",
+  netPayable: "Net payable amount",
+  noMatchingRecords: "No matching records found.",
+  viewPreview: "View Preview",
+  hidePreview: "Hide Preview",
+  previewPrompt: "Click 'View Preview' to see how this document prints, or download PDF / Excel directly.",
 };

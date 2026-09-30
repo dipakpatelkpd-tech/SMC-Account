@@ -62,13 +62,17 @@ export function OpeningBalances({ onChanged }: { onChanged: () => void }): JSX.E
     <>
       <div className="page-head">
         <div>
-          <h2>{t.openingTitle}</h2>
+          <h2>
+            {t.openingTitle}
+            <span className="page-head-badge">{rows.length}</span>
+          </h2>
           <p>{t.openingSubtitle}</p>
         </div>
       </div>
 
       <div className="card">
-        <table>
+        <div className="table-wrap" style={{ margin: 0, border: "none", boxShadow: "none" }}>
+          <table>
           <thead>
             <tr>
               <th>{t.grantHead}</th>
@@ -150,6 +154,7 @@ export function OpeningBalances({ onChanged }: { onChanged: () => void }): JSX.E
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     </>
   );
