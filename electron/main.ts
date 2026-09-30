@@ -39,8 +39,9 @@ import {
   type PrintableReportId,
   type SetupInput,
 } from "../src/shared/api.js";
-import { defaultPdfName, exportReportPdf } from "./pdf.js";
+import { defaultPdfName, exportReportPdf, printReport } from "./pdf.js";
 import { buildWorkbook, defaultExcelName, workbookBytes } from "../src/server/excel.js";
+import { resolvePage, type ResolvedPage } from "../src/shared/report-layout.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -342,6 +343,22 @@ function registerBooksApi(): void {
     }
   });
 
+  handle(channelFor("printReport"), async (_event, report: PrintableReportId) => {
+    try {
+      const { url, file } = rendererLocation();
+      const sent = await printReport({
+        report,
+        rendererUrl: url,
+        rendererFile: file,
+        preloadPath: preloadPath(),
+        page: await pageFor(report),
+      });
+      return { ok: true, data: sent };
+    } catch (error) {
+      return internalFailure("print_failed", "છાપી શકાયું નહીં.", "The report could not be printed.", error);
+    }
+  });
+
   // The workbook is built from the service's data, but asking where to put it
   // is the desktop app's job.
   handle(channelFor("exportExcel"), async (_event, report: ExcelReportId) => {
@@ -372,6 +389,7 @@ function registerBooksApi(): void {
     "getSetupState",
     "completeSetup",
     "exportPdf",
+    "printReport",
     "exportExcel",
     "pickLegacyFile",
   ]);
@@ -454,8 +472,16 @@ async function exportPdf(
     rendererUrl: url,
     rendererFile: file,
     preloadPath: preloadPath(),
+    page: await pageFor(report),
   });
   return { ok: true, data: written };
+}
+
+/** The report's page setup as the school saved it: paper, orientation, margins, zoom. */
+async function pageFor(report: PrintableReportId): Promise<ResolvedPage> {
+  const api = requireController().books;
+  if (!api) throw new Error("no school's books are open");
+  return resolvePage(report, (await api.getReportLayout(report)).page);
 }
 
 /**

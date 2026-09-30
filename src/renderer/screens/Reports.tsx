@@ -8,6 +8,8 @@ import { formatDate } from "../format.js";
 import { useStrings, type Strings } from "../i18n/index.js";
 import { PrintRoot } from "../print/PrintRoot.js";
 import { LayoutEditor } from "./LayoutEditor.js";
+import { PrintDialog } from "./PrintDialog.js";
+import { paperOf, resolvePage } from "../../shared/report-layout.js";
 import "../print/print.css";
 
 /**
@@ -31,23 +33,23 @@ const FIGURE_TABS: FigureTab[] = ["balances", "ledgers"];
 function getReportDescription(tab: PrintableReportId): string {
   switch (tab) {
     case "rojmel":
-      return "રોજમેળ (કેશ બુક) — શાળાના તમામ આવક અને જાવક વ્યવહારોની દૈનિક ક્રમબદ્ધ નોંધ. (ઇન્ડિયન લીગલ સાઇઝ, આડો)";
+      return "રોજમેળ (કેશ બુક) — શાળાના તમામ આવક અને જાવક વ્યવહારોની દૈનિક ક્રમબદ્ધ નોંધ.";
     case "khatavahi":
-      return "ખાતાવહી — ગ્રાન્ટ હેડ મુજબ ખાતાઓની વિગતો, જમા અને ઉધાર વ્યવહારો તથા સિલક. (ઇન્ડિયન લીગલ સાઇઝ, આડો)";
+      return "ખાતાવહી — ગ્રાન્ટ હેડ મુજબ ખાતાઓની વિગતો, જમા અને ઉધાર વ્યવહારો તથા સિલક.";
     case "annexure10":
-      return "પરિશિષ્ટ ૧૦ — ગ્રાન્ટ મુજબ વાર્ષિક હિસાબ પત્રક (ઓપનિંગ બેલેન્સ, મળેલી ગ્રાન્ટ, ખર્ચ અને આખર સિલક). (ઇન્ડિયન લીગલ સાઇઝ, ઊભો)";
+      return "પરિશિષ્ટ ૧૦ — ગ્રાન્ટ મુજબ વાર્ષિક હિસાબ પત્રક (ઓપનિંગ બેલેન્સ, મળેલી ગ્રાન્ટ, ખર્ચ અને આખર સિલક).";
     case "annexure9":
-      return "પરિશિષ્ટ ૯ — બેંક સાથે મેળવણું (બેંક રિકન્સીલિએશન સ્ટેટમેન્ટ). (ઇન્ડિયન લીગલ સાઇઝ, ઊભો)";
+      return "પરિશિષ્ટ ૯ — બેંક સાથે મેળવણું (બેંક રિકન્સીલિએશન સ્ટેટમેન્ટ).";
     case "patrakD":
-      return "પત્રક – D — ઓડિટ અને વાર્ષિક તપાસ માટેનું વિગતવાર પત્રક. (ઇન્ડિયન લીગલ સાઇઝ, આડો)";
+      return "પત્રક – D — ઓડિટ અને વાર્ષિક તપાસ માટેનું વિગતવાર પત્રક.";
     case "grantRegister":
-      return "ગ્રાન્ટ રજીસ્ટર — વર્ષ દરમિયાન મળેલ તમામ ગ્રાન્ટ અને તેના ખર્ચની વિગતો. (ઇન્ડિયન લીગલ સાઇઝ, આડો)";
+      return "ગ્રાન્ટ રજીસ્ટર — વર્ષ દરમિયાન મળેલ તમામ ગ્રાન્ટ અને તેના ખર્ચની વિગતો.";
     case "chequeRegister":
-      return "ચેક રજીસ્ટર — લખાયેલા તમામ ચેક, જેના નામે લખ્યા અને વટાવ્યાની તારીખો. (ઇન્ડિયન લીગલ સાઇઝ, આડો)";
+      return "ચેક રજીસ્ટર — લખાયેલા તમામ ચેક, જેના નામે લખ્યા અને વટાવ્યાની તારીખો.";
     case "billRegister":
-      return "બિલ રજીસ્ટર — વાઉચર મુજબના તમામ બિલ, વેપારી અને રકમની નોંધ. (ઇન્ડિયન લીગલ સાઇઝ, આડો)";
+      return "બિલ રજીસ્ટર — વાઉચર મુજબના તમામ બિલ, વેપારી અને રકમની નોંધ.";
     case "vouchers":
-      return "વાઉચર — ચુકવણીના પ્રિન્ટેડ વાઉચર ફોર્મ્સ. (ઇન્ડિયન લીગલ સાઇઝ, ઊભો)";
+      return "વાઉચર — ચુકવણીના પ્રિન્ટેડ વાઉચર ફોર્મ્સ.";
   }
 }
 
@@ -95,6 +97,11 @@ export function Reports(): JSX.Element {
   // screen beside them would say otherwise.
   const [editing, setEditing] = useState(false);
   const [layoutDirty, setLayoutDirty] = useState(false);
+  // The print window, over everything while it is open.
+  const [printing, setPrinting] = useState(false);
+  // Bumped when the print window saved new settings, so the summary reloads.
+  const [pageVersion, setPageVersion] = useState(0);
+  const pageSummary = usePageSummary(isPrintable(tab) ? tab : null, pageVersion, t);
 
   /** Leaving the editor, or its report, with changes not saved: ask first. */
   function mayLeaveEditor(): boolean {
@@ -107,6 +114,7 @@ export function Reports(): JSX.Element {
     setSaved(null);
     setLayoutDirty(false);
     setShowPreview(false);
+    setPrinting(false);
     if (!isPrintable(next)) setEditing(false);
   }
 
@@ -151,6 +159,11 @@ export function Reports(): JSX.Element {
             </button>
           )}
           {editing && <span className="muted">{t.layoutUnsavedExport}</span>}
+          {isPrintable(tab) && !editing && (
+            <button className="ghost" disabled={saving !== null} onClick={() => setPrinting(true)}>
+              <span>🖨️</span> {t.printOpen}
+            </button>
+          )}
           {isPrintable(tab) && !editing && (
             <button className="ghost" disabled={saving !== null} onClick={() => runExport("pdf")}>
               <span>📄</span> {saving === "pdf" ? t.savingPdf : t.savePdf}
@@ -226,6 +239,16 @@ export function Reports(): JSX.Element {
             setLayoutDirty(false);
           }}
         />
+      ) : isPrintable(tab) && printing ? (
+        <PrintDialog
+          key={tab}
+          report={tab}
+          reportLabel={labelFor(tab, t)}
+          onClose={(changed) => {
+            setPrinting(false);
+            if (changed) setPageVersion((version) => version + 1);
+          }}
+        />
       ) : isPrintable(tab) ? (
         showPreview ? (
           <div className="report-preview-section">
@@ -241,7 +264,10 @@ export function Reports(): JSX.Element {
                 <button className="ghost small" disabled={saving !== null} onClick={() => setEditing(true)}>
                   <span>✏️</span> {t.layoutEdit}
                 </button>
-                <button className="primary small" disabled={saving !== null} onClick={() => runExport("pdf")}>
+                <button className="primary small" disabled={saving !== null} onClick={() => setPrinting(true)}>
+                  <span>🖨️</span> {t.printOpen}
+                </button>
+                <button className="ghost small" disabled={saving !== null} onClick={() => runExport("pdf")}>
                   <span>📄</span> {saving === "pdf" ? t.savingPdf : t.savePdf}
                 </button>
                 <button className="ghost small" disabled={saving !== null} onClick={() => runExport("excel")}>
@@ -265,6 +291,7 @@ export function Reports(): JSX.Element {
                 <h3>{labelFor(tab, t)}</h3>
                 <p className="report-overview-desc">
                   {getReportDescription(tab)}
+                  {pageSummary && ` (${pageSummary})`}
                 </p>
                 <p className="report-overview-hint muted">
                   {t.previewPrompt}
@@ -276,6 +303,9 @@ export function Reports(): JSX.Element {
                   onClick={() => setShowPreview(true)}
                 >
                   <span>👁️</span> {t.viewPreview}
+                </button>
+                <button className="ghost" disabled={saving !== null} onClick={() => setPrinting(true)}>
+                  <span>🖨️</span> {t.printOpen}
                 </button>
                 <button
                   className="ghost"
@@ -307,6 +337,33 @@ export function Reports(): JSX.Element {
       )}
     </>
   );
+}
+
+/** "A4 (210 × 297 મિમી), આડો, 100%": how the report prints now. */
+function usePageSummary(report: PrintableReportId | null, version: number, t: Strings): string | null {
+  const [summary, setSummary] = useState<string | null>(null);
+  useEffect(() => {
+    setSummary(null);
+    if (!report) return;
+    let current = true;
+    void api
+      .getReportLayout(report)
+      .then((layout) => {
+        if (!current) return;
+        const page = resolvePage(report, layout.page);
+        const paper = paperOf(page.paper);
+        setSummary(
+          `${paper.labelGu} ${t.printPaperSizeMm(paper.shortMm, paper.longMm)}, ${
+            page.landscape ? t.printLandscape : t.printPortrait
+          }, ${Math.round(page.scale * 100)}%`,
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [report, version, t]);
+  return summary;
 }
 
 /** The number-only views: the running balances and the ledgers. */

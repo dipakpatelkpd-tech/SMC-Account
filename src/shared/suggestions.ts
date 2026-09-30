@@ -28,6 +28,16 @@ export interface SuggestionRow {
   removed?: number;
 }
 
+/**
+ * Values offered in a kind of field before anything has been typed there: the
+ * bank branches schools in the district bank with, so the first receipt of a
+ * school at another branch needs no typing. They rank below what the school
+ * has entered itself and can be forgotten like any other suggestion.
+ */
+export const STARTER_SUGGESTIONS: Readonly<Record<string, readonly string[]>> = {
+  "bank.name": ["BOB કડાણા", "BOB અનાસ", "BOB સિમલી", "BOB સેલંબા"],
+};
+
 /** Per kind of field: plenty for a school's vendors, bounded all the same. */
 export const MAX_PER_FIELD = 150;
 export const MAX_VALUE_LENGTH = 300;

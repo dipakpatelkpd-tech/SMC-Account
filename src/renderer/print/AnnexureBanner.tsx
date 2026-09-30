@@ -55,7 +55,7 @@ export function AnnexureBanner({
           <td className="value">{school.talukaGu}</td>
         </tr>
         <tr>
-          <td className="label">BOB ખાતા નંબર –:</td>
+          <td className="label">{bankShortName(school.bankNameGu)} ખાતા નંબર –:</td>
           <td className="value" colSpan={3}>
             {school.bankAccountNo}
           </td>
@@ -63,4 +63,14 @@ export function AnnexureBanner({
       </tbody>
     </table>
   );
+}
+
+/**
+ * The short name a form prints before "ખાતા નંબર": "Bank of Baroda (BOB)" is
+ * BOB, as the forms have always said - and another school's bank is its own,
+ * the letters in brackets when its name has them, else the name as entered.
+ */
+export function bankShortName(bankNameGu: string): string {
+  const inBrackets = bankNameGu.match(/\(([^()]+)\)\s*$/)?.[1]?.trim();
+  return inBrackets || bankNameGu.trim() || "બેંક";
 }

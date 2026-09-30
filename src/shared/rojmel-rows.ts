@@ -26,6 +26,17 @@ export interface RojmelTableRow {
   right: RojmelLine | null;
 }
 
+/**
+ * A line recording money received into the bank - a grant, or the bank's
+ * interest. The print page and the Excel export colour these rows.
+ */
+export function isGrantCredit(line: RojmelLine): boolean {
+  return line.side === "receipt" && line.source.kind === "receipt";
+}
+
+/** The colour of a grant-received row, from its words to its amounts. */
+export const GRANT_CREDIT_FILL = "#e3eefa";
+
 export function rojmelBlockRows(block: RojmelBlock): RojmelTableRow[] {
   // The આવક side with its blank rows: opening, blank, receipts, blank, and the
   // bank-to-hand transfer (engine/rojmel.ts, receiptSideRows).

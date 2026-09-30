@@ -392,11 +392,13 @@ tbody tr {
   transition: background-color 0.12s ease;
 }
 
-tbody tr:nth-child(even):not(.total-row) {
+/* Not on the printed forms: a paper register has no striped rows, and the
+   same stylesheet is loaded when the PDF is made. */
+tbody tr:nth-child(even):not(.total-row):not(.print-root tr) {
   background: #fafafc;
 }
 
-tbody tr:hover:not(.total-row) {
+tbody tr:hover:not(.total-row):not(.print-root tr) {
   background: #f0f2f7;
 }
 
@@ -1655,4 +1657,112 @@ tr.clickable {
 .phonetic-help p {
   margin: 6px 0 0;
   font-size: 12px;
+}
+
+/* ------------------------------------------------------------ print window */
+
+/* The print window (screens/PrintDialog.tsx): the report as it will print on
+   the left, the paper settings on the right - the shape of a browser's print
+   dialog. It covers the whole window while it is open. */
+.print-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  background: #3e3f44;
+}
+
+.print-dialog-preview {
+  overflow: auto;
+  padding: 16px 24px;
+}
+
+.print-dialog-sheets .print-root {
+  background: transparent;
+  padding: 0;
+}
+
+.print-dialog-sheets .sheet {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.print-dialog-panel {
+  background: var(--paper);
+  border-left: 1px solid var(--line);
+  padding: 16px 18px;
+  overflow-y: auto;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.print-dialog-panel .field {
+  margin-bottom: 10px;
+}
+
+.print-dialog-panel .issue {
+  margin: 8px 0 0;
+}
+
+.print-dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.print-dialog-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.print-scale {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.print-scale input.num-input {
+  width: 70px;
+  text-align: center;
+  padding: 4px 6px;
+}
+
+.print-dialog-panel input[type="range"] {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.print-dialog-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.print-dialog-view {
+  margin-top: 12px;
+}
+
+/* A little sheet of paper, upright or lying down, beside the words. */
+.orientation-icon {
+  display: inline-block;
+  border: 1.5px solid currentColor;
+  border-radius: 1px;
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+
+.orientation-icon.portrait {
+  width: 10px;
+  height: 14px;
+}
+
+.orientation-icon.landscape {
+  width: 14px;
+  height: 10px;
+  vertical-align: 0;
 }

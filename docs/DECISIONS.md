@@ -184,8 +184,28 @@ after the 10mm margins is:
 the `landscape` flag passed to Electron. A single global `@page { size: legal
 portrait }` would have printed all seven landscape forms portrait with their
 tables cropped down the right-hand side. `PrintRoot` emits the correct rule for
-the report it is showing, and `LANDSCAPE_REPORTS` there must stay in step with
-`PAGE_SETUP` in `electron/pdf.ts`.
+the report it is showing.
+
+**Page setup per report (October 2026).** At the client's request each report
+can be printed on another paper (Indian Legal, US Legal, A4, A3, Letter,
+Folio), portrait or landscape, with its own margin and zoom (25–200%), chosen
+in a print window on the Reports screen that shows the report as it will print.
+Every report keeps its old setup until a school changes it (`DEFAULT_PAGE` in
+`shared/report-layout.ts`), **except the voucher and પત્રક-D, which now default
+to A4** (voucher portrait, પત્રક-D landscape) on the client's instruction. The
+choice is stored in the report's layout (`ReportLayout.page`), so it is per
+school and per report, and travels on the pen drive. One setup drives the
+preview, the PDF (`@page` from `PrintRoot`, and `printToPDF`'s own options),
+the new Print button (Electron's `webContents.print`, the system print dialog)
+and the Excel sheet's page setup.
+
+The zoom is CSS `zoom` on each sheet: a sheet at 80% is laid out 1/0.8 as large
+and zoomed back onto the paper, on screen and in print alike, so the preview
+still is the artefact. Chromium reports measured boxes zoomed and CSS sizes not,
+so the page-packing code (`PagedSheets`, `spreadBlocks`) divides measurements by
+the sheet's zoom (`sheetZoom`). "Fit to page" picks the zoom at which the
+report's default sheet fits the chosen paper: across for the paged tables,
+across and down for the rojmel, whose 26 rows a page are fixed.
 
 Every sheet of all nine reports is measured against these dimensions in the
 browser preview: no report overflows its page in either direction. At the

@@ -25,7 +25,20 @@ describe("suggestion store", () => {
     store.record("vendor.name", "Ram Stationery");
     store.record("school.taluka", "Anand");
     expect(store.suggest("school.taluka", "")).toEqual(["Anand"]);
-    expect(store.suggest("bank.name", "")).toEqual([]);
+    expect(store.suggest("vendor.name", "anand")).toEqual([]);
+  });
+
+  it("offers the built-in bank branches after the school's own, and forgets them when asked", () => {
+    const store = new SuggestionStore();
+    expect(store.suggest("bank.name", "")).toEqual(["BOB કડાણા", "BOB અનાસ", "BOB સિમલી", "BOB સેલંબા"]);
+    store.record("bank.name", "BOB અંતિસર");
+    store.record("bank.name", "BOB સિમલી");
+    expect(store.suggest("bank.name", "")).toEqual(["BOB અંતિસર", "BOB સિમલી", "BOB કડાણા", "BOB અનાસ", "BOB સેલંબા"]);
+    expect(store.suggest("bank.name", "bob સે")).toEqual(["BOB સેલંબા"]);
+    store.remove("bank.name", "BOB કડાણા");
+    expect(store.suggest("bank.name", "")).not.toContain("BOB કડાણા");
+    // Forgotten on this PC is forgotten on the others too: it travels as a row.
+    expect(store.export().some((each) => each.value === "BOB કડાણા" && each.removed !== undefined)).toBe(true);
   });
 
   it("matches by prefix, then by word, then anywhere", () => {

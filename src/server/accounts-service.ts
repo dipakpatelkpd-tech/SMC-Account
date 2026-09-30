@@ -1311,6 +1311,15 @@ export class AccountsService implements BooksApi {
     );
   }
 
+  /** Printing needs a browser and a printer: the main process answers it. */
+  async printReport(_report: PrintableReportId): Promise<ApiResult<boolean>> {
+    return fail(
+      "print_not_available",
+      "આ જગ્યાએથી છાપી શકાતું નથી",
+      "Printing is not available in this environment",
+    );
+  }
+
   /**
    * Building the workbook is pure Node and lives in src/server/excel.ts, but
    * SAVING it needs a file dialog, which this class has no business owning. The

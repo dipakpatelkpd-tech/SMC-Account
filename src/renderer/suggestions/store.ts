@@ -14,6 +14,7 @@
  */
 import {
   MAX_VALUE_LENGTH,
+  STARTER_SUGGESTIONS,
   fingerprint,
   fold,
   mergeRows,
@@ -85,6 +86,13 @@ export class SuggestionStore {
   /** Forget one suggestion - a typo, or something that should not be offered. */
   remove(field: string, value: string): void {
     const existing = this.find(field, value);
+    if (!existing && isStarter(field, value)) {
+      // A built-in one never typed here: kept as forgotten all the same.
+      const now = this.now();
+      this.rows.push({ field, value: normalise(value), count: 0, last: now, removed: now });
+      this.changed();
+      return;
+    }
     if (!existing || existing.removed !== undefined) return;
     // Kept as forgotten, so merging with another copy does not bring it back.
     existing.removed = Math.max(this.now(), existing.last);
@@ -107,12 +115,30 @@ export class SuggestionStore {
       if (folded.split(/[\s/,.\-()]+/).some((word) => word.startsWith(query))) return 1;
       return folded.includes(query) ? 2 : -1;
     };
-    return this.rows
-      .filter((row) => row.field === field && row.removed === undefined)
-      .map((row) => ({ row, rank: rank(row.value) }))
+    // The built-in ones this school has neither typed nor forgotten, after its own.
+    const starters = (STARTER_SUGGESTIONS[field] ?? [])
+      .filter((value) => !this.find(field, value))
+      .map((value) => ({ row: { field, value, count: 0, last: 0 }, starter: true }));
+    return [
+      ...this.rows
+        .filter((row) => row.field === field && row.removed === undefined)
+        .map((row) => ({ row, starter: false })),
+      ...starters,
+    ]
+      .map((item) => ({ ...item, rank: rank(item.row.value) }))
       .filter((item) => item.rank >= 0)
-      .sort((a, b) => a.rank - b.rank || weight(b.row, now) - weight(a.row, now))
+      .sort(
+        (a, b) =>
+          a.rank - b.rank ||
+          Number(a.starter) - Number(b.starter) ||
+          weight(b.row, now) - weight(a.row, now),
+      )
       .slice(0, limit)
       .map((item) => item.row.value);
   }
+}
+
+function isStarter(field: string, value: string): boolean {
+  const wanted = fold(value);
+  return (STARTER_SUGGESTIONS[field] ?? []).some((starter) => fold(starter) === wanted);
 }

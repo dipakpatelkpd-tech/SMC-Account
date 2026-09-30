@@ -31,6 +31,7 @@ import {
 } from "../../shared/report-layout.js";
 import { useLanguage, useStrings } from "../i18n/index.js";
 import { LAYOUT_ROOT_ID, PrintRoot, type LayoutCheck } from "../print/PrintRoot.js";
+import { sheetZoom } from "../print/PagedSheets.js";
 
 /**
  * The layout editor: the report's own print preview, which can be clicked and
@@ -54,6 +55,12 @@ import { LAYOUT_ROOT_ID, PrintRoot, type LayoutCheck } from "../print/PrintRoot.
 const EDGE_PX = 6;
 
 const SWATCHES = ["#fff59d", "#c8e6c9", "#bbdefb", "#f8bbd0", "#ffe0b2", "#e0e0e0"];
+
+/** Text colours that still read on white paper. */
+const TEXT_SWATCHES = ["#000000", "#1a237e", "#0d47a1", "#b71c1c", "#1b5e20", "#4a148c", "#e65100", "#616161"];
+
+/** Colours for the ruled lines: dark enough to print, light enough to recede. */
+const LINE_SWATCHES = ["#000000", "#616161", "#9e9e9e", "#0d47a1", "#1b5e20", "#b71c1c", "#4a148c", "#bf360c"];
 
 /** How many steps "Undo" can go back. */
 const HISTORY = 50;
@@ -101,6 +108,12 @@ declare global {
   interface Window {
     EyeDropper?: new () => EyeDropperApi;
   }
+}
+
+/** A size measured on a zoomed sheet (the page setup's zoom), in the sheet's own pixels. */
+function unzoomed(element: Element, px: number): number {
+  const sheet = element.closest<HTMLElement>(".sheet");
+  return sheet ? px / sheetZoom(sheet) : px;
 }
 
 /** CSS pixels to millimetres, one decimal. */
@@ -329,7 +342,7 @@ export function LayoutEditor({
       col: cell.dataset["col"] ?? "",
       row,
       gapAllowed,
-      rowMm: tr ? pxToMm(tr.getBoundingClientRect().height) : null,
+      rowMm: tr ? pxToMm(unzoomed(tr, tr.getBoundingClientRect().height)) : null,
     });
     if (row === null) setScope("col");
   }
@@ -338,8 +351,8 @@ export function LayoutEditor({
     return {
       kind: "part",
       part,
-      heightMm: pxToMm(measured?.getBoundingClientRect().height ?? 0),
-      widthMm: pxToMm(element.getBoundingClientRect().width),
+      heightMm: pxToMm(unzoomed(element, measured?.getBoundingClientRect().height ?? 0)),
+      widthMm: pxToMm(unzoomed(element, element.getBoundingClientRect().width)),
       parent: element.parentElement?.closest<HTMLElement>("[data-part]")?.dataset["part"] ?? null,
     };
   }
@@ -401,7 +414,7 @@ export function LayoutEditor({
   // ------------------------------------------------------------ the preview
 
   const widths = useMemo(() => (draft ? columnWidths(report, draft) : {}), [report, draft]);
-  const tableMm = tableWidthMm(report);
+  const tableMm = tableWidthMm(report, draft ?? undefined);
 
   // While dragging: where the edge would land, in the column's new width.
   const dragWidthMm = useMemo(() => {
@@ -530,6 +543,18 @@ export function LayoutEditor({
           )}
         </div>
         <span className="layout-hint">{t.layoutFillHelp}</span>
+      </Field>
+
+      <Field label={t.layoutTextColour}>
+        <ColourChoice value={own.colour} swatches={TEXT_SWATCHES} onChange={(colour) => setStyle({ colour })} />
+      </Field>
+
+      <Field label={t.layoutLineColour}>
+        <ColourChoice
+          value={own.lineColour}
+          swatches={LINE_SWATCHES}
+          onChange={(lineColour) => setStyle({ lineColour })}
+        />
       </Field>
 
       <Field label={t.layoutWeight}>
@@ -728,6 +753,8 @@ export function LayoutEditor({
                   align: undefined,
                   heightMm: undefined,
                   widthMm: undefined,
+                  colour: undefined,
+                  lineColour: undefined,
                 })
               }
             >
@@ -788,6 +815,21 @@ export function LayoutEditor({
           <Field label={t.layoutAlign}>
             <AlignButtons value={draft.align} onChange={(align) => change({ ...draft, align })} />
           </Field>
+          <Field label={t.layoutTextColour}>
+            <ColourChoice
+              value={draft.colour}
+              swatches={TEXT_SWATCHES}
+              onChange={(colour) => change({ ...draft, colour })}
+            />
+          </Field>
+          <Field label={t.layoutLineColour}>
+            <ColourChoice
+              value={draft.lineColour}
+              swatches={LINE_SWATCHES}
+              onChange={(lineColour) => change({ ...draft, lineColour })}
+            />
+          </Field>
+          <span className="layout-hint">{t.layoutColourHelp}</span>
           <label className="layout-check">
             <input
               type="checkbox"
@@ -804,7 +846,11 @@ export function LayoutEditor({
             >
               {t.layoutResetWidths}
             </button>
-            <button className="ghost small" onClick={() => change(emptyLayout())}>
+            {/* The paper and zoom are the print window's, and stay. */}
+            <button
+              className="ghost small"
+              onClick={() => change(draft.page ? { ...emptyLayout(), page: draft.page } : emptyLayout())}
+            >
               {t.layoutResetAll}
             </button>
           </div>
@@ -813,6 +859,45 @@ export function LayoutEditor({
         {report === "rojmel" && <p className="layout-hint">{t.layoutRojmelNote}</p>}
         <p className="layout-hint">{t.layoutExcelNote}</p>
       </aside>
+    </div>
+  );
+}
+
+/** A colour, or the form's default (↺): a few swatches and a picker for any other. */
+function ColourChoice({
+  value,
+  swatches,
+  onChange,
+}: {
+  value: string | undefined;
+  swatches: string[];
+  onChange: (colour: string | undefined) => void;
+}): JSX.Element {
+  const t = useStrings();
+  return (
+    <div className="swatches">
+      <button
+        className={`swatch default${value ? "" : " chosen"}`}
+        title={t.layoutColourDefault}
+        onClick={() => onChange(undefined)}
+      >
+        ↺
+      </button>
+      {swatches.map((colour) => (
+        <button
+          key={colour}
+          className={`swatch${value?.toLowerCase() === colour ? " chosen" : ""}`}
+          style={{ background: colour }}
+          title={colour}
+          onClick={() => onChange(colour)}
+        />
+      ))}
+      <input
+        type="color"
+        title={t.layoutOtherColour}
+        value={value ?? "#000000"}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </div>
   );
 }

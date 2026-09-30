@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { JSX } from "react";
+import type { CSSProperties, JSX } from "react";
 import { api } from "../api.js";
 import type { DashboardDto, GrantRegisterRowDto } from "../../shared/api.js";
 import { PRINTABLE_REPORTS, type PrintableReportId } from "../../shared/api.js";
@@ -22,13 +22,12 @@ import {
   PatrakDPages,
   VoucherPages,
 } from "./RegisterPages.js";
-import { PrintLayoutGate, usePrintLayoutGate } from "./PagedSheets.js";
+import { PrintLayoutGate, sheetZoom, usePrintLayoutGate } from "./PagedSheets.js";
 import { ReportLayoutContext, layoutFontsReady, type ReportLayoutValue } from "./layout-context.js";
 import {
-  LANDSCAPE_REPORTS,
-  NARROW_MARGIN_REPORTS,
   columnWidths,
   layoutCss,
+  resolvePage,
   type ReportLayout,
 } from "../../shared/report-layout.js";
 import "./print.css";
@@ -155,17 +154,20 @@ function spreadBlocks(): void {
   const sheets = document.querySelectorAll<HTMLElement>(".print-root > .sheet[data-spread-blocks]:not([aria-hidden])");
   const plans = [...sheets].map((sheet) => {
     const gaps = [...sheet.querySelectorAll<HTMLElement>("tr.block-gap > td")].slice(0, -1);
+    // Measured sizes are zoomed; the sheet's own CSS sizes are not.
+    const zoom = sheetZoom(sheet);
     // How far the content reaches - the sheet's own box is never shorter than
     // the paper, so its height says nothing about the space left inside it.
     const top = sheet.getBoundingClientRect().top;
     const used = Math.max(
       0,
       ...[...sheet.children].map(
-        (child) => child.getBoundingClientRect().bottom + parseFloat(getComputedStyle(child).marginBottom) - top,
+        (child) =>
+          (child.getBoundingClientRect().bottom - top) / zoom + parseFloat(getComputedStyle(child).marginBottom),
       ),
     );
     const room = parseFloat(getComputedStyle(sheet).minHeight) - used - SPREAD_SAFETY_PX;
-    return { gaps: gaps.map((cell) => ({ cell, px: cell.getBoundingClientRect().height })), room };
+    return { gaps: gaps.map((cell) => ({ cell, px: cell.getBoundingClientRect().height / zoom })), room };
   });
   for (const { gaps, room } of plans) {
     if (gaps.length === 0 || room <= 0) continue;
@@ -201,7 +203,7 @@ function overflowingSheets(): number[] {
   const sheets = document.querySelectorAll<HTMLElement>(".print-root > .sheet:not([aria-hidden])");
   return [...sheets].flatMap((sheet, index) => {
     const room = parseFloat(getComputedStyle(sheet).minHeight);
-    const tooTall = sheet.getBoundingClientRect().height > room + 1;
+    const tooTall = sheet.getBoundingClientRect().height / sheetZoom(sheet) > room + 1;
     const tooWide = sheet.scrollWidth > sheet.clientWidth + 1;
     return tooTall || tooWide ? [index + 1] : [];
   });
@@ -411,21 +413,28 @@ export function PrintRoot({ report, layout: draft, editorCss, onChecked }: Print
     );
   }
 
-  const landscape = LANDSCAPE_REPORTS.has(report);
-  const narrow = NARROW_MARGIN_REPORTS.has(report);
+  const page = resolvePage(report, layoutValue.layout.page);
+  // The sheet is the paper less its margins, laid out 1/zoom as large and
+  // zoomed back onto the paper (print.css, ".sheet").
+  const sheetVars = {
+    "--sheet-width": `${page.contentWidthMm}mm`,
+    "--sheet-height": `${page.contentHeightMm}mm`,
+    "--sheet-zoom": String(page.scale),
+    "--sheet-margin": `${Math.round((page.marginMm / page.scale) * 100) / 100}mm`,
+  } as CSSProperties;
 
   return (
     <PrintLayoutGate.Provider value={gate.gate}>
       <ReportLayoutContext.Provider value={layoutValue}>
-        <div id={LAYOUT_ROOT_ID} className={`print-root${narrow ? " narrow" : ""}`}>
+        <div id={LAYOUT_ROOT_ID} className="print-root" style={sheetVars}>
           {/*
-          The page box, set per report.
+          The page box, set per report from its page setup.
           `printToPDF` is called with preferCSSPageSize, so this rule - not the
-          landscape flag passed to Electron - decides the actual orientation. A
-          single global `@page` would print all seven landscape forms portrait,
-          with their tables cropped down the right-hand side.
+          landscape flag passed to Electron - decides the actual paper and
+          orientation. A single global `@page` would print all the landscape
+          forms portrait, with their tables cropped down the right-hand side.
           */}
-          <style>{`@page { size: ${landscape ? "345mm 215mm" : "215mm 345mm"}; margin: ${narrow ? "5mm" : "10mm"}; }`}</style>
+          <style>{`@page { size: ${page.paperWidthMm}mm ${page.paperHeightMm}mm; margin: ${page.marginMm}mm; }`}</style>
           {/* The school's layout, then - on the Reports screen - the editor's marks. */}
           <style>{layoutCss(report, layoutValue.layout, `#${LAYOUT_ROOT_ID}`)}</style>
           {editorCss && <style>{editorCss}</style>}

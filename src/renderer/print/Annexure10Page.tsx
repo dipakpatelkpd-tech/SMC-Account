@@ -5,6 +5,7 @@ import { formatAmount } from "../../lib/money.js";
 import { toGujaratiDigits } from "../../lib/gujarati.js";
 import { PagedSheets } from "./PagedSheets.js";
 import { ROW_KEYS } from "../../shared/report-layout.js";
+import { bankShortName } from "./AnnexureBanner.js";
 
 /**
  * પરિશિષ્ટ ૧૦ — the annual grant statement (SPEC 6.9).
@@ -79,7 +80,7 @@ export function Annexure10Page({
               <td className="value">{school.talukaGu}</td>
             </tr>
             <tr>
-              <td className="label">BOB ખાતા નંબર –:</td>
+              <td className="label">{bankShortName(school.bankNameGu)} ખાતા નંબર –:</td>
               <td className="value" colSpan={3}>
                 {school.bankAccountNo}
               </td>

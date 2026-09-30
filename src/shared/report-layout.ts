@@ -84,10 +84,60 @@ export const cellStyleSchema = z
     heightMm: z.number().min(2).max(80).optional(),
     /** Width of a heading piece that has one (REPORT_PARTS, `sizable`). */
     widthMm: z.number().min(5).max(400).optional(),
+    /** Colour of the text, "#rrggbb". */
+    colour: hexColour.optional(),
+    /** Colour of the ruled lines round the cell (or heading), "#rrggbb". */
+    lineColour: hexColour.optional(),
   })
   .strict();
 
 export type CellStyle = z.infer<typeof cellStyleSchema>;
+
+// -------------------------------------------------------------- page setup
+
+/**
+ * The papers a report can be printed on. Indian Legal is what the school
+ * loads; the others are there for a school, or a print shop, that has them.
+ * `excel` is the paper's number in an .xlsx (Excel names a paper, it cannot
+ * give a size): Indian Legal has none, so it asks for Legal and keeps inside
+ * the shorter sheet (see printSetup in server/excel.ts).
+ */
+export const PAPER_SIZES = [
+  { id: "legal-in", labelGu: "ઇન્ડિયન લીગલ", shortMm: 215, longMm: 345, excel: 5 },
+  { id: "legal-us", labelGu: "US લીગલ", shortMm: 215.9, longMm: 355.6, excel: 5 },
+  { id: "a4", labelGu: "A4", shortMm: 210, longMm: 297, excel: 9 },
+  { id: "a3", labelGu: "A3", shortMm: 297, longMm: 420, excel: 8 },
+  { id: "letter", labelGu: "લેટર (Letter)", shortMm: 215.9, longMm: 279.4, excel: 1 },
+  { id: "folio", labelGu: "ફુલસ્કેપ (Folio)", shortMm: 215.9, longMm: 330.2, excel: 14 },
+] as const;
+
+export type PaperId = (typeof PAPER_SIZES)[number]["id"];
+const PAPER_IDS = PAPER_SIZES.map((paper) => paper.id) as [PaperId, ...PaperId[]];
+
+export const ORIENTATIONS = ["portrait", "landscape"] as const;
+export type Orientation = (typeof ORIENTATIONS)[number];
+
+/** The zoom a report can print at, in percent - as a print dialog offers. */
+export const MIN_SCALE_PCT = 25;
+export const MAX_SCALE_PCT = 200;
+
+/**
+ * How a report goes onto paper: which paper, which way round, the margin and
+ * the zoom. Every field is optional; what is left out is the report's own
+ * default (`DEFAULT_PAGE`), so a report nobody has touched prints as it always did.
+ */
+export const pageSetupSchema = z
+  .object({
+    paper: z.enum(PAPER_IDS).optional(),
+    orientation: z.enum(ORIENTATIONS).optional(),
+    /** 100 prints at full size; 80 fits more on the sheet, smaller. */
+    scalePct: z.number().int().min(MIN_SCALE_PCT).max(MAX_SCALE_PCT).optional(),
+    /** The same margin on all four edges. */
+    marginMm: z.number().min(0).max(30).optional(),
+  })
+  .strict();
+
+export type PageSetup = z.infer<typeof pageSetupSchema>;
 
 export const reportLayoutSchema = z
   .object({
@@ -106,6 +156,12 @@ export const reportLayoutSchema = z
     align: z.enum(ALIGNMENTS).optional(),
     /** Print none of the form's own colours (bands, footer rows, labels). */
     plain: z.boolean().optional(),
+    /** The whole report's text colour. */
+    colour: hexColour.optional(),
+    /** The whole report's ruled lines. */
+    lineColour: hexColour.optional(),
+    /** Paper, orientation, margin and zoom. */
+    page: pageSetupSchema.optional(),
     /** Column id -> share of the table's width. Normalised when used. */
     widths: bounded(z.string().min(1).max(40), z.number().min(0.1).max(100)),
     /** Row key -> blank space printed after that row. */
@@ -131,6 +187,9 @@ export function isEmptyLayout(layout: ReportLayout): boolean {
     layout.rowHeightMm === undefined &&
     layout.align === undefined &&
     layout.plain === undefined &&
+    layout.colour === undefined &&
+    layout.lineColour === undefined &&
+    (layout.page === undefined || Object.keys(layout.page).length === 0) &&
     Object.keys(layout.widths).length === 0 &&
     Object.keys(layout.rowGapsMm).length === 0 &&
     Object.keys(layout.styles).length === 0
@@ -186,10 +245,12 @@ function rojmelSide(
  */
 export const REPORT_COLUMNS: Record<PrintableReportId, ReportColumn[]> = {
   rojmel: columns([
-    ...rojmelSide("r", "આવક", [7.2, 10, 6.6, 3.4, 2.6, 5.7, 5.7, 5.7]),
+    // The date column holds "02/04/2025 TO" on one line, so a month's range
+    // prints on two lines rather than three.
+    ...rojmelSide("r", "આવક", [8.4, 10, 6.6, 3.4, 2.6, 5.7, 5.7, 5.7]),
     // The cheque column holds the cheque number - its date only when it is not
     // the block's own - so it is as wide as "103" and its heading, no wider.
-    ...rojmelSide("p", "જાવક", [19.8, 8.6, 4.6, 2.6, 5.7, 5.7, null]),
+    ...rojmelSide("p", "જાવક", [18.6, 8.6, 4.6, 2.6, 5.7, 5.7, null]),
   ]),
   khatavahi: columns([
     ["date", "તારીખ", 12],
@@ -373,25 +434,6 @@ export const REPORT_DEFAULTS: Record<PrintableReportId, ReportDefaults> = {
 const ROJMEL_FIGURE_RATIO = 11 / 12;
 const ROJMEL_TITLE_RATIO = 14 / 12;
 
-/** Which reports print sideways. Must agree with PAGE_SETUP in electron/pdf.ts. */
-export const LANDSCAPE_REPORTS: ReadonlySet<PrintableReportId> = new Set<PrintableReportId>([
-  "rojmel",
-  "khatavahi",
-  "grantRegister",
-  "chequeRegister",
-  "billRegister",
-  "patrakD",
-]);
-
-/**
- * Forms printed with 5mm margins instead of 10mm - the ones the client's own
- * workbook prints edge to edge to get its columns across at full size.
- */
-export const NARROW_MARGIN_REPORTS: ReadonlySet<PrintableReportId> = new Set<PrintableReportId>([
-  "annexure10",
-  "rojmel",
-]);
-
 /**
  * The paper: Indian Legal, 215 x 345mm - a little shorter than US Legal
  * (215.9 x 355.6mm), which is what Indian offices load. A form laid out for US
@@ -399,10 +441,95 @@ export const NARROW_MARGIN_REPORTS: ReadonlySet<PrintableReportId> = new Set<Pri
  */
 export const PAPER_MM = { short: 215, long: 345 } as const;
 
+/**
+ * How each report prints when the school has not chosen otherwise. The rojmel,
+ * ledger and registers are wide tables and print sideways; the annexures and
+ * the vouchers stand upright. The voucher and પત્રક-D are on A4, the others
+ * on Indian Legal. The annexure 10 and the rojmel print with 5mm margins, as
+ * the client's own workbook does to get its columns across at full size.
+ */
+export const DEFAULT_PAGE: Record<PrintableReportId, Required<Omit<PageSetup, "scalePct">>> = {
+  rojmel: { paper: "legal-in", orientation: "landscape", marginMm: 5 },
+  khatavahi: { paper: "legal-in", orientation: "landscape", marginMm: 10 },
+  grantRegister: { paper: "legal-in", orientation: "landscape", marginMm: 10 },
+  chequeRegister: { paper: "legal-in", orientation: "landscape", marginMm: 10 },
+  billRegister: { paper: "legal-in", orientation: "landscape", marginMm: 10 },
+  vouchers: { paper: "a4", orientation: "portrait", marginMm: 10 },
+  patrakD: { paper: "a4", orientation: "landscape", marginMm: 10 },
+  annexure9: { paper: "legal-in", orientation: "portrait", marginMm: 10 },
+  annexure10: { paper: "legal-in", orientation: "portrait", marginMm: 5 },
+};
+
+/** Which reports print sideways by default. */
+export const LANDSCAPE_REPORTS: ReadonlySet<PrintableReportId> = new Set<PrintableReportId>(
+  (Object.keys(DEFAULT_PAGE) as PrintableReportId[]).filter(
+    (report) => DEFAULT_PAGE[report].orientation === "landscape",
+  ),
+);
+
+/** A report's page setup worked out: what the stylesheet, the PDF and Excel print with. */
+export interface ResolvedPage {
+  paper: PaperId;
+  landscape: boolean;
+  marginMm: number;
+  /** 1 is full size. */
+  scale: number;
+  /** The sheet as it lies: width and height in mm. */
+  paperWidthMm: number;
+  paperHeightMm: number;
+  /**
+   * The text block in the page's own millimetres - the paper less its margins,
+   * divided by the zoom. The sheet is laid out this large, then zoomed onto
+   * the paper.
+   */
+  contentWidthMm: number;
+  contentHeightMm: number;
+}
+
+export function paperOf(id: PaperId): (typeof PAPER_SIZES)[number] {
+  return PAPER_SIZES.find((paper) => paper.id === id) ?? PAPER_SIZES[0];
+}
+
+export function resolvePage(report: PrintableReportId, page: PageSetup | undefined): ResolvedPage {
+  const base = DEFAULT_PAGE[report];
+  const paperId = page?.paper ?? base.paper;
+  const paper = paperOf(paperId);
+  const landscape = (page?.orientation ?? base.orientation) === "landscape";
+  const marginMm = page?.marginMm ?? base.marginMm;
+  const scale = (page?.scalePct ?? 100) / 100;
+  const paperWidthMm = landscape ? paper.longMm : paper.shortMm;
+  const paperHeightMm = landscape ? paper.shortMm : paper.longMm;
+  return {
+    paper: paperId,
+    landscape,
+    marginMm,
+    scale,
+    paperWidthMm,
+    paperHeightMm,
+    contentWidthMm: round3(Math.max(10, paperWidthMm - 2 * marginMm) / scale),
+    contentHeightMm: round3(Math.max(10, paperHeightMm - 2 * marginMm) / scale),
+  };
+}
+
+/**
+ * The zoom that brings the report's own default sheet onto another paper:
+ * the widest percent at which the form still fits across - and, for the
+ * forms whose sheets hold a fixed number of rows (the rojmel's 26), down.
+ * What a print dialog calls "fit to page".
+ */
+export function fitScalePct(report: PrintableReportId, page: PageSetup | undefined): number {
+  const designed = resolvePage(report, { scalePct: 100 });
+  const target = resolvePage(report, { ...page, scalePct: 100 });
+  const across = target.contentWidthMm / designed.contentWidthMm;
+  const down = target.contentHeightMm / designed.contentHeightMm;
+  const fixedRows = report === "rojmel" || report === "annexure9" || report === "annexure10";
+  const fit = Math.min(1, across, fixedRows ? down : Infinity);
+  return Math.max(MIN_SCALE_PCT, Math.floor(fit * 100));
+}
+
 /** The printed width of the report's table: the sheet less its margins. */
-export function tableWidthMm(report: PrintableReportId): number {
-  const paper = LANDSCAPE_REPORTS.has(report) ? PAPER_MM.long : PAPER_MM.short;
-  return paper - 2 * (NARROW_MARGIN_REPORTS.has(report) ? 5 : 10);
+export function tableWidthMm(report: PrintableReportId, layout?: ReportLayout): number {
+  return resolvePage(report, layout?.page).contentWidthMm;
 }
 
 // ---------------------------------------------------------------- row keys
@@ -632,6 +759,8 @@ function declarations(style: CellStyle): string[] {
   if (style.font) out.push(`font-family: ${fontStack(style.font)}`);
   if (style.sizePt !== undefined) out.push(`font-size: ${style.sizePt}pt`);
   if (style.align) out.push(`text-align: ${style.align}`);
+  if (style.colour) out.push(`color: ${style.colour}`);
+  if (style.lineColour) out.push(`border-color: ${style.lineColour}`);
   return out;
 }
 
@@ -687,7 +816,12 @@ export function layoutCss(report: PrintableReportId, layout: ReportLayout, root:
       base.push(`--report-font: ${layout.sizePt}pt`);
     }
   }
+  if (layout.colour) base.push(`color: ${layout.colour}`);
   if (base.length > 0) rules.push(`${root} { ${base.join("; ")}; }`);
+  // The text colour reaches pieces the form sets a colour on, and the line
+  // colour every rule of every table and heading box.
+  if (layout.colour) rules.push(`${root} .sheet * { color: ${layout.colour}; }`);
+  if (layout.lineColour) rules.push(`${root} .sheet * { border-color: ${layout.lineColour}; }`);
 
   // No colours of the form's own. A school's highlights still apply: they come
   // later, with selectors at least as specific.

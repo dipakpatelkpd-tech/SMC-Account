@@ -17,13 +17,16 @@ import {
   billRowKeys,
   columnWidths,
   cssString,
+  LANDSCAPE_REPORTS,
   emptyLayout,
+  fitScalePct,
   isEmptyLayout,
   layoutCss,
   ledgerRowKeys,
   moveColumnEdge,
   parseTargetKey,
   reportLayoutSchema,
+  resolvePage,
   setColumnWidth,
   styleAt,
   tableWidthMm,
@@ -32,6 +35,7 @@ import {
   widthScale,
   withRowGap,
   withStyle,
+  type ReportLayout,
 } from "../src/shared/report-layout.js";
 
 const sum = (values: number[]): number => values.reduce((total, value) => total + value, 0);
@@ -206,6 +210,17 @@ describe("the stylesheet", () => {
     expect(css).toContain("--report-font: 15.4pt");
   });
 
+  it("colours the text and the ruled lines of a cell, a row or the whole report", () => {
+    let layout: ReportLayout = { ...emptyLayout(), colour: "#1a237e", lineColour: "#9e9e9e" };
+    layout = withStyle(layout, { kind: "row", row: "cheque:7" }, { colour: "#b71c1c", lineColour: "#0d47a1" });
+    const css = layoutCss("chequeRegister", layout, "#r");
+    expect(css).toContain("#r .sheet * { color: #1a237e; }");
+    expect(css).toContain("#r .sheet * { border-color: #9e9e9e; }");
+    expect(css).toContain('tr[data-row="cheque:7"] > :is(td, th) { color: #b71c1c; border-color: #0d47a1; }');
+    expect(reportLayoutSchema.safeParse(layout).success).toBe(true);
+    expect(reportLayoutSchema.safeParse({ ...layout, lineColour: "blue" }).success).toBe(false);
+  });
+
   it("writes spacing and row height for the report's tables only", () => {
     const css = layoutCss("billRegister", { ...emptyLayout(), paddingXMm: 2, rowHeightMm: 9 }, "#r");
     expect(css).toContain("#r table[data-layout] > * > tr:not(.layout-gap):not(.block-gap) > :is(td, th) { padding-left: 2mm; padding-right: 2mm; }");
@@ -236,7 +251,50 @@ describe("paper", () => {
     expect(tableWidthMm("rojmel")).toBeCloseTo(335, 6);
     expect(tableWidthMm("chequeRegister")).toBeCloseTo(325, 6);
     expect(tableWidthMm("annexure10")).toBeCloseTo(205, 6);
-    expect(tableWidthMm("vouchers")).toBeCloseTo(195, 6);
+    // The voucher is on A4 by default: 210mm less two 10mm margins.
+    expect(tableWidthMm("vouchers")).toBeCloseTo(190, 6);
+    expect(tableWidthMm("patrakD")).toBeCloseTo(277, 6);
+  });
+
+  it("prints every report as it always did until a school changes it", () => {
+    for (const report of PRINTABLE_REPORTS) {
+      const page = resolvePage(report, undefined);
+      expect(page.scale, report).toBe(1);
+      expect(page.landscape, report).toBe(LANDSCAPE_REPORTS.has(report));
+    }
+    expect(resolvePage("rojmel", undefined)).toMatchObject({
+      paper: "legal-in",
+      paperWidthMm: 345,
+      paperHeightMm: 215,
+      marginMm: 5,
+    });
+    expect(resolvePage("vouchers", undefined).paper).toBe("a4");
+    expect(resolvePage("patrakD", undefined).paper).toBe("a4");
+  });
+
+  it("turns the paper, and lays a zoomed sheet out larger by as much", () => {
+    const page = resolvePage("annexure9", { paper: "a4", orientation: "landscape", scalePct: 50, marginMm: 10 });
+    expect(page.paperWidthMm).toBe(297);
+    expect(page.paperHeightMm).toBe(210);
+    expect(page.contentWidthMm).toBeCloseTo((297 - 20) / 0.5, 6);
+    expect(page.contentHeightMm).toBeCloseTo((210 - 20) / 0.5, 6);
+    expect(tableWidthMm("annexure9", { ...emptyLayout(), page: { orientation: "landscape" } })).toBeCloseTo(325, 6);
+  });
+
+  it("fits a form onto a smaller paper", () => {
+    // The rojmel's 335mm across onto A4 landscape's 287: 85%.
+    expect(fitScalePct("rojmel", { paper: "a4" })).toBe(85);
+    // A larger paper is never zoomed up.
+    expect(fitScalePct("chequeRegister", { paper: "a3" })).toBe(100);
+  });
+
+  it("keeps a page setup in the layout, and checks it", () => {
+    const layout = { ...emptyLayout(), page: { paper: "a4" as const, scalePct: 90 } };
+    expect(isEmptyLayout(layout)).toBe(false);
+    expect(isEmptyLayout({ ...emptyLayout(), page: {} })).toBe(true);
+    expect(reportLayoutSchema.safeParse(layout).success).toBe(true);
+    expect(reportLayoutSchema.safeParse({ ...layout, page: { paper: "b5" } }).success).toBe(false);
+    expect(reportLayoutSchema.safeParse({ ...layout, page: { scalePct: 5 } }).success).toBe(false);
   });
 
   it("gives Excel the same proportion a column was widened by", () => {
