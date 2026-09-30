@@ -1,9 +1,10 @@
 /**
  * રોજમેળ - the cash book (SPEC 6.1).
  *
- * The rojmel is a sequence of BLOCKS. A block covers one voucher on one
- * cash-book date - two vouchers on the same date are two blocks, one after the
- * other - or a range of dates on which nothing happened. Each block has two sides - આવક
+ * The rojmel is a sequence of BLOCKS. A block covers one cheque on one
+ * cash-book date - two cheques on the same date are two blocks, one after the
+ * other, while a cheque's own bills (sub-vouchers 1/1, 1/2 ...) stay in its
+ * block - or a range of dates on which nothing happened. Each block has two sides - આવક
  * (receipts, left) and જાવક (payments, right) - and closes with three footer
  * rows that must agree:
  *
@@ -179,11 +180,12 @@ export function buildRojmel(book: YearBook, options: RojmelOptions = {}): Rojmel
 
   for (let index = 0; index < activeDates.length; index += 1) {
     const date = activeDates[index]!;
-    // One block per voucher: a date with two vouchers prints two blocks, the
-    // second opening with the first one's બંધ સિલક. The date's receipts go in
-    // its first block.
-    const vouchers = voucherGroups(chequesByDate.get(date) ?? []);
-    const parts = vouchers.length === 0 ? [[]] : vouchers;
+    // One block per cheque: a date with two cheques prints two blocks, the
+    // second opening with the first one's બંધ સિલક - as the client's ROJMED
+    // sheet chains them. A cheque's bills (its sub-vouchers) stay in its block.
+    // The date's receipts go in its first block.
+    const cheques = [...(chequesByDate.get(date) ?? [])].sort((a, b) => a.chequeNo - b.chequeNo);
+    const parts = cheques.length === 0 ? [[]] : cheques.map((cheque) => [cheque]);
     parts.forEach((cheques, part) => {
       emit(
         activeBlock(
@@ -302,9 +304,11 @@ function activeBlock(
 
   for (const cheque of [...cheques].sort((a, b) => a.chequeNo - b.chequeNo)) {
     const amount = chequeAmount(cheque);
-    const chequeText = `${cheque.chequeNo} ${formatDate(cheque.chequeDate)}`;
-    const voucherText =
-      cheque.voucherNo === null ? "" : `${cheque.voucherNo} ${formatDate(cheque.chequeDate)}`;
+    // The block's date is printed once, on the આવક side. The cheque's own date
+    // is repeated beside its number only when it is a different day.
+    const ownDate = cheque.chequeDate === date ? "" : ` ${formatDate(cheque.chequeDate)}`;
+    const chequeText = `${cheque.chequeNo}${ownDate}`;
+    const voucherText = cheque.voucherNo === null ? "" : `${cheque.voucherNo}${ownDate}`;
 
     if (cheque.type === "REIMBURSEMENT") {
       // Bank side: the member secretary withdraws for these heads.
@@ -517,21 +521,6 @@ export function isCashInHand(line: RojmelLine): boolean {
 }
 
 const CASH_IN_HAND_GU = "મુખ્ય શિક્ષકે નાણાં ઉપાડી હાથ પર લીધા";
-
-/**
- * A date's cheques, one group per voucher, in cheque-number order. A cheque
- * with no voucher number is a voucher of its own.
- */
-function voucherGroups(cheques: readonly BookCheque[]): BookCheque[][] {
-  const groups = new Map<string, BookCheque[]>();
-  for (const cheque of [...cheques].sort((a, b) => a.chequeNo - b.chequeNo)) {
-    const key = cheque.voucherNo === null ? `cheque:${cheque.chequeNo}` : `voucher:${cheque.voucherNo}`;
-    const group = groups.get(key);
-    if (group) group.push(cheque);
-    else groups.set(key, [cheque]);
-  }
-  return [...groups.values()];
-}
 
 // ---------------------------------------------------------------- pagination
 

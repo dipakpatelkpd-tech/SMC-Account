@@ -44,7 +44,10 @@ const row = (field: string, value: string, count: number, last: number, removed?
   ...(removed === undefined ? {} : { removed }),
 });
 const NOW = Date.now();
-const values = (rows: SuggestionRow[]) => rows.filter((r) => r.removed === undefined).map((r) => r.value).sort();
+// Only this test's own fields ("t.…"): the books' own values are offered too.
+const values = (rows: SuggestionRow[]) =>
+  rows.filter((r) => r.removed === undefined && r.field.startsWith("t.")).map((r) => r.value).sort();
+const own = (rows: SuggestionRow[]) => rows.filter((r) => r.field.startsWith("t."));
 
 afterAll(async () => {
   for (const prisma of opened) await prisma.$disconnect();
@@ -59,14 +62,14 @@ describe("suggestions in the books", () => {
 
   it("saves what it is given and returns it", async () => {
     const { service } = await books("save");
-    const merged = await service.syncSuggestions([row("vendor.name", "શ્રી રામ સ્ટેશનરી", 2, NOW)]);
-    expect(merged).toEqual([row("vendor.name", "શ્રી રામ સ્ટેશનરી", 2, NOW)]);
-    expect(await service.syncSuggestions([])).toEqual(merged);
+    const merged = await service.syncSuggestions([row("t.vendor", "શ્રી રામ સ્ટેશનરી", 2, NOW)]);
+    expect(own(merged)).toEqual([row("t.vendor", "શ્રી રામ સ્ટેશનરી", 2, NOW)]);
+    expect(own(await service.syncSuggestions([]))).toEqual(own(merged));
   });
 
   it("carries them to another PC with the pen drive", async () => {
     const first = await books("drive");
-    await first.service.syncSuggestions([row("bank.name", "Bank of Baroda", 3, NOW), row("vendor.name", "Jay Ambe", 1, NOW)]);
+    await first.service.syncSuggestions([row("t.bank", "Bank of Baroda", 3, NOW), row("t.vendor", "Jay Ambe", 1, NOW)]);
     await first.prisma.$disconnect();
 
     // The same file, opened somewhere else with nothing typed there yet.
@@ -79,8 +82,8 @@ describe("suggestions in the books", () => {
   it("joins the lists of two schools", async () => {
     const a = await books("school-a");
     const b = await books("school-b");
-    await a.service.syncSuggestions([row("vendor.name", "Ram Stationery", 1, NOW)]);
-    await b.service.syncSuggestions([row("vendor.name", "Jay Ambe", 1, NOW)]);
+    await a.service.syncSuggestions([row("t.vendor", "Ram Stationery", 1, NOW)]);
+    await b.service.syncSuggestions([row("t.vendor", "Jay Ambe", 1, NOW)]);
     // School A is opened, then school B: the app carries A's list into B.
     const heldByApp = await a.service.syncSuggestions([]);
     expect(values(await b.service.syncSuggestions(heldByApp))).toEqual(["Jay Ambe", "Ram Stationery"]);
@@ -89,16 +92,43 @@ describe("suggestions in the books", () => {
   it("keeps a forgotten value forgotten in the next school", async () => {
     const a = await books("forget-a");
     const b = await books("forget-b");
-    await b.service.syncSuggestions([row("vendor.name", "typo", 1, NOW - 5000)]);
-    const merged = await a.service.syncSuggestions([row("vendor.name", "typo", 1, NOW - 5000, NOW - 1000)]);
+    await b.service.syncSuggestions([row("t.vendor", "typo", 1, NOW - 5000)]);
+    const merged = await a.service.syncSuggestions([row("t.vendor", "typo", 1, NOW - 5000, NOW - 1000)]);
     expect(values(merged)).toEqual([]);
     expect(values(await b.service.syncSuggestions(merged))).toEqual([]);
+  });
+
+  it("offers what the books already hold: vendors, descriptions, payees, receipt details", async () => {
+    const { service, prisma } = await books("from-books");
+    const merged = await service.syncSuggestions([]);
+    const of = (field: string) => merged.filter((r) => r.field === field).map((r) => r.value);
+    const bill = await prisma.bill.findFirstOrThrow();
+    const cheque = await prisma.cheque.findFirstOrThrow();
+    const receipt = await prisma.receipt.findFirstOrThrow();
+    expect(of("vendor.name")).toContain(bill.vendorGu.trim());
+    expect(of("vendor.name")).toContain(cheque.payeeGu.trim());
+    expect(of("bill.description")).toContain(bill.descriptionGu.trim());
+    expect(of("cheque.purpose")).toContain(cheque.purposeGu.trim());
+    expect(of("receipt.from")).toContain(receipt.receivedFromGu.trim());
+    // The vendor paid most often comes first.
+    const counts = new Map<string, number>();
+    for (const each of await prisma.bill.findMany()) counts.set(each.vendorGu.trim(), (counts.get(each.vendorGu.trim()) ?? 0) + 1);
+    const busiest = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]!;
+    expect(merged.find((r) => r.field === "vendor.name" && r.value === busiest[0])!.count).toBeGreaterThanOrEqual(busiest[1]);
+  });
+
+  it("keeps a value forgotten even though a record still carries it", async () => {
+    const { service, prisma } = await books("forget-book-value");
+    const bill = await prisma.bill.findFirstOrThrow();
+    const later = Date.now() + 1000;
+    const merged = await service.syncSuggestions([row("vendor.name", bill.vendorGu.trim(), 1, 0, later)]);
+    expect(merged.find((r) => r.field === "vendor.name" && r.value === bill.vendorGu.trim())?.removed).toBe(later);
   });
 
   it("drops invalid rows instead of failing", async () => {
     const { service } = await books("invalid");
     const merged = await service.syncSuggestions([
-      row("f", "fine", 1, NOW),
+      row("t.f", "fine", 1, NOW),
       { field: "", value: "bad", count: 1, last: 1 },
       "junk" as unknown as SuggestionRow,
     ]);
@@ -107,9 +137,9 @@ describe("suggestions in the books", () => {
 
   it("writes nothing when nothing changed", async () => {
     const { service, prisma } = await books("quiet");
-    await service.syncSuggestions([row("f", "a", 1, NOW)]);
+    await service.syncSuggestions([row("t.f", "a", 1, NOW)]);
     const before = await prisma.suggestion.findMany();
-    await service.syncSuggestions([row("f", "a", 1, NOW)]);
+    await service.syncSuggestions([row("t.f", "a", 1, NOW)]);
     const after = await prisma.suggestion.findMany();
     expect(after.map((r) => r.id)).toEqual(before.map((r) => r.id)); // not deleted and recreated
   });

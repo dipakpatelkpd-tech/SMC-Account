@@ -231,3 +231,31 @@ describe("the આવક side", () => {
     expect(left[2 + receipts]).toBeNull();
   });
 });
+
+describe("one block per cheque", () => {
+  it("keeps a cheque's sub-vouchers (1/1, 1/2 ...) together in its one block", () => {
+    const blocks = rojmel.blocks.filter((block) => block.paymentLines.some((line) => line.chequeText.startsWith("103")));
+    expect(blocks).toHaveLength(1);
+    const subVouchers = blocks[0]!.paymentLines.filter((line) => /^1\/\d+ /.test(line.referenceText));
+    expect(subVouchers.length).toBe(21);
+  });
+
+  it("splits two cheques of the same date into two blocks, even under one voucher number", () => {
+    const book2 = sampleBook();
+    const second = book2.cheques.find((cheque) => cheque.chequeNo === 109)!;
+    const first = book2.cheques.find((cheque) => cheque.chequeNo === 108)!;
+    second.voucherNo = first.voucherNo;
+    const blocks = buildRojmel(book2).blocks.filter((block) => block.fromDate === second.cashbookDate);
+    expect(blocks.map((block) => block.paymentLines[0]!.chequeText.split(" ")[0])).toEqual(["108", "109"]);
+  });
+
+  it("prints the block's date once: a cheque of the same day shows only its number", () => {
+    const block = rojmel.blocks.find((candidate) => candidate.paymentLines.some((line) => line.chequeText.startsWith("103")))!;
+    const chequeLine = block.paymentLines[0]!;
+    expect(chequeLine.chequeText).toBe("103");
+    expect(chequeLine.referenceText).toBe("1");
+    // A cheque written on another day keeps its own date beside its number.
+    const later = rojmel.blocks.find((candidate) => candidate.id === "2026-03-03")!;
+    expect(later.paymentLines[0]!.chequeText).toBe("108 26/02/2026");
+  });
+});

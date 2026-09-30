@@ -57,9 +57,11 @@ export async function syncSuggestions(): Promise<void> {
   timer = undefined;
   try {
     suggestionStore.merge(await api.syncSuggestions(suggestionStore.export()));
-  } catch {
+  } catch (cause) {
     // No school open, or its drive is out: the suggestions stay in memory and
-    // are merged into the next school opened.
+    // are merged into the next school opened. Said in the console, so a real
+    // failure (an old Prisma client without the Suggestion table) is not silent.
+    console.warn("suggestions were not saved to the books:", cause);
   }
 }
 

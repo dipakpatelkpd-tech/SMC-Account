@@ -1390,6 +1390,11 @@ export class AccountsService implements BooksApi {
    * saved back and returned. Rows that are not valid are dropped rather than
    * refused: suggestions must never be the reason something fails. Nothing is
    * written when the merge changes nothing - the books are on a pen drive.
+   *
+   * What the books already hold is offered too: every vendor, bill
+   * description, payee, purpose and receipt detail entered before - typed,
+   * imported or from an earlier year - so a school's first bill form already
+   * knows its shops.
    */
   async syncSuggestions(incoming: SuggestionRow[]): Promise<SuggestionRow[]> {
     const saved: SuggestionRow[] = (await this.prisma.suggestion.findMany()).map((row) => ({
@@ -1399,7 +1404,8 @@ export class AccountsService implements BooksApi {
       last: Date.parse(row.lastUsedAt) || 0,
       ...(row.removedAt ? { removed: Date.parse(row.removedAt) || 0 } : {}),
     }));
-    const merged = mergeRows(saved, validRows(incoming), Date.now());
+    const now = Date.now();
+    const merged = mergeRows(mergeRows(saved, await this.suggestionsFromBooks(), now), validRows(incoming), now);
     if (fingerprint(merged) === fingerprint(saved)) return merged;
 
     await this.prisma.$transaction(async (tx) => {
@@ -1416,6 +1422,67 @@ export class AccountsService implements BooksApi {
       });
     });
     return merged;
+  }
+
+  /**
+   * Suggestions read off the records themselves, keyed as the forms key their
+   * fields (data-suggest): how many records carry each value, and when the
+   * latest of them was saved.
+   */
+  private async suggestionsFromBooks(): Promise<SuggestionRow[]> {
+    const rows = new Map<string, SuggestionRow>();
+    const add = (field: string, value: string | null | undefined, at: Date): void => {
+      const text = value?.trim();
+      if (!text) return;
+      const key = `${field}\u0000${fold(text)}`;
+      const held = rows.get(key);
+      const last = at.getTime();
+      if (held) {
+        held.count += 1;
+        held.last = Math.max(held.last, last);
+      } else {
+        rows.set(key, { field, value: text, count: 1, last });
+      }
+    };
+
+    const [bills, cheques, receipts, schools, banks, heads] = await Promise.all([
+      this.prisma.bill.findMany({ select: { vendorGu: true, descriptionGu: true, updatedAt: true } }),
+      this.prisma.cheque.findMany({ select: { payeeGu: true, purposeGu: true, updatedAt: true } }),
+      this.prisma.receipt.findMany({
+        select: { receivedFromGu: true, bankLabelGu: true, remarksGu: true, updatedAt: true },
+      }),
+      this.prisma.school.findMany(),
+      this.prisma.bankAccount.findMany(),
+      this.prisma.grantHead.findMany({ select: { nameGu: true, updatedAt: true } }),
+    ]);
+    for (const bill of bills) {
+      add("vendor.name", bill.vendorGu, bill.updatedAt);
+      add("bill.description", bill.descriptionGu, bill.updatedAt);
+    }
+    for (const cheque of cheques) {
+      add("vendor.name", cheque.payeeGu, cheque.updatedAt);
+      add("cheque.purpose", cheque.purposeGu, cheque.updatedAt);
+    }
+    for (const receipt of receipts) {
+      add("receipt.from", receipt.receivedFromGu, receipt.updatedAt);
+      add("bank.name", receipt.bankLabelGu, receipt.updatedAt);
+      add("receipt.remarks", receipt.remarksGu, receipt.updatedAt);
+    }
+    for (const school of schools) {
+      add("school.name", school.nameGu, school.updatedAt);
+      add("school.smcLabel", school.smcLabelGu, school.updatedAt);
+      add("school.cluster", school.clusterGu, school.updatedAt);
+      add("school.taluka", school.talukaGu, school.updatedAt);
+      add("school.district", school.districtGu, school.updatedAt);
+      add("school.headTeacher", school.memberSecretaryGu, school.updatedAt);
+      add("school.headTeacherShort", school.memberSecretaryShortGu, school.updatedAt);
+    }
+    for (const bank of banks) {
+      add("bank.name", bank.bankNameGu, bank.updatedAt);
+      add("bank.branch", bank.branchGu, bank.updatedAt);
+    }
+    for (const head of heads) add("grantHead.name", head.nameGu, head.updatedAt);
+    return validRows([...rows.values()]);
   }
 
   // --------------------------------------------------------------- reports

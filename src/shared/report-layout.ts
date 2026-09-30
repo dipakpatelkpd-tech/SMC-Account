@@ -187,8 +187,9 @@ function rojmelSide(
 export const REPORT_COLUMNS: Record<PrintableReportId, ReportColumn[]> = {
   rojmel: columns([
     ...rojmelSide("r", "આવક", [7.2, 10, 6.6, 3.4, 2.6, 5.7, 5.7, 5.7]),
-    // The cheque column is as wide as "103 09/06/2025" at full size and no wider.
-    ...rojmelSide("p", "જાવક", [16, 8.6, 8.4, 2.6, 5.7, 5.7, null]),
+    // The cheque column holds the cheque number - its date only when it is not
+    // the block's own - so it is as wide as "103" and its heading, no wider.
+    ...rojmelSide("p", "જાવક", [19.8, 8.6, 4.6, 2.6, 5.7, 5.7, null]),
   ]),
   khatavahi: columns([
     ["date", "તારીખ", 12],
