@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 import { packRows, type Measured } from "../src/renderer/print/PagedSheets.js";
 
-const SHEET = 740;
+const SHEET = 737;
 
 function measured(rows: number, overrides: Partial<Measured> = {}): Measured {
   return {

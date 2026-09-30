@@ -164,8 +164,10 @@ function rojmelSide(
   sideGu: string,
   widths: (number | null)[],
 ): [string, string, number | null][] {
+  // The જાવક side has no date column of its own: its date is printed with the
+  // voucher number, and the આવક side carries the block's date.
   const names: [string, string][] = [
-    ["date", "તારીખ"],
+    ...(side === "r" ? ([["date", "તારીખ"]] as [string, string][]) : []),
     ["detail", "વિગત"],
     ["ref", side === "r" ? "પહોંચ નંબર" : "વાઉચર નંબર"],
     ["cheque", "ચેક નં"],
@@ -184,8 +186,10 @@ function rojmelSide(
  */
 export const REPORT_COLUMNS: Record<PrintableReportId, ReportColumn[]> = {
   rojmel: columns([
-    ...rojmelSide("r", "આવક", [6.6, 10, 6.6, 3.4, 2.6, 5.7, 5.7, 5.7]),
-    ...rojmelSide("p", "જાવક", [6.6, 13.4, 8.6, 5.4, 2.6, 5.7, 5.7, null]),
+    ...rojmelSide("r", "આવક", [7.2, 10, 6.6, 3.4, 2.6, 5.7, 5.7, 5.7]),
+    // The cheque column holds the cheque number - its date only when it is not
+    // the block's own - so it is as wide as "103" and its heading, no wider.
+    ...rojmelSide("p", "જાવક", [19.8, 8.6, 4.6, 2.6, 5.7, 5.7, null]),
   ]),
   khatavahi: columns([
     ["date", "તારીખ", 12],
@@ -197,18 +201,20 @@ export const REPORT_COLUMNS: Record<PrintableReportId, ReportColumn[]> = {
     ["debitBalance", "ઉધાર બાકી", null],
   ]),
   grantRegister: columns([
-    ["from", "કોના તરફથી મળી", 7.5],
-    ["ddDate", "ડીડી/ચેક નંબર તારીખ", 8.5],
-    ["amount", "રકમ", 9.5],
-    ["purpose", "કયા કામે મળ્યો", 9],
-    ["order", "ગ્રાન્ટ ફાળવણી આદેશ", 8],
-    ["instrument", "ચેક/ડ્રાફ્ટ બેંકનું નામ", 7],
+    // A date at 14pt needs 9% of the sheet to stay on one line.
+    ["from", "કોના તરફથી મળી", 6.5],
+    ["ddDate", "ડીડી/ચેક નંબર તારીખ", 9],
+    ["amount", "રકમ", 8],
+    ["purpose", "કયા કામે મળ્યો", 8.5],
+    ["order", "ગ્રાન્ટ ફાળવણી આદેશ", 8.5],
+    ["instrument", "ચેક/ડ્રાફ્ટ બેંકનું નામ", 6.5],
     ["bank", "બેંકનું નામ", 6.5],
-    ["deposited", "જમા કર્યા તારીખ", 8.5],
-    ["credited", "જમા થયા તારીખ", 8.5],
-    ["allottedTo", "કોને ફાળવેલ", 8],
-    ["spent", "ખર્ચેલ રકમ", 9.5],
-    ["saving", "બચત રહેલ ગ્રાન્ટ", null],
+    ["deposited", "જમા કર્યા તારીખ", 9],
+    ["credited", "જમા થયા તારીખ", 9],
+    ["allottedTo", "કોને ફાળવેલ", 7.5],
+    ["spent", "ખર્ચેલ રકમ", 7.5],
+    ["saving", "બચત રહેલ ગ્રાન્ટ", 7.5],
+    ["remarks", "રીમાર્કસ", null],
   ]),
   chequeRegister: columns([
     ["serial", "અ.નં", 4],
@@ -386,9 +392,16 @@ export const NARROW_MARGIN_REPORTS: ReadonlySet<PrintableReportId> = new Set<Pri
   "rojmel",
 ]);
 
-/** The printed width of the report's table: the Legal sheet less its margins. */
+/**
+ * The paper: Indian Legal, 215 x 345mm - a little shorter than US Legal
+ * (215.9 x 355.6mm), which is what Indian offices load. A form laid out for US
+ * Legal loses its last 10mm on this paper, which is the edge that was cut.
+ */
+export const PAPER_MM = { short: 215, long: 345 } as const;
+
+/** The printed width of the report's table: the sheet less its margins. */
 export function tableWidthMm(report: PrintableReportId): number {
-  const paper = LANDSCAPE_REPORTS.has(report) ? 355.6 : 215.9;
+  const paper = LANDSCAPE_REPORTS.has(report) ? PAPER_MM.long : PAPER_MM.short;
   return paper - 2 * (NARROW_MARGIN_REPORTS.has(report) ? 5 : 10);
 }
 
@@ -408,9 +421,9 @@ export const ROW_KEYS = {
   grantHead: (code: string): string => `head:${code}`,
   patrakD: (chequeNo: number, headNameGu: string): string => `cheque:${chequeNo}:${headNameGu}`,
   voucherTotal: (voucherNo: number): string => `voucher:${voucherNo}:total`,
-  rojmelRow: (fromDate: string, index: number): string => `${fromDate}:${index}`,
-  rojmelFooter: (fromDate: string, which: "spent" | "closing" | "grand"): string =>
-    `${fromDate}:${which}`,
+  rojmelRow: (blockId: string, index: number): string => `${blockId}:${index}`,
+  rojmelFooter: (blockId: string, which: "spent" | "closing" | "grand"): string =>
+    `${blockId}:${which}`,
   ledgerBlank: (headCode: string, index: number): string => `${headCode}:blank:${index}`,
   ledgerClosing: (headCode: string): string => `${headCode}:closing`,
 } as const;

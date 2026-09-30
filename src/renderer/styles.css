@@ -897,3 +897,188 @@ tr.clickable {
   pointer-events: none;
   z-index: 21;
 }
+
+/* Suggestions from what was typed in a field before (components/Suggestions.tsx). */
+.suggest-popup {
+  position: fixed;
+  z-index: 1000;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  padding: 4px 0;
+}
+
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.suggest-item:hover,
+.suggest-item.active {
+  background: var(--accent-soft);
+}
+
+.suggest-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggest-kbd {
+  font-family: var(--numeric);
+  font-size: 11px;
+  color: var(--ink-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 0 5px;
+  background: var(--canvas);
+}
+
+.suggest-remove {
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  visibility: hidden;
+}
+
+.suggest-item:hover .suggest-remove,
+.suggest-item.active .suggest-remove {
+  visibility: visible;
+}
+
+.suggest-remove:hover {
+  color: var(--error-line);
+}
+
+.suggest-help {
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+  padding: 4px 10px 2px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* A DD/MM/YYYY date box (components/DateInput.tsx): the text box, a calendar
+   button, and the browser's own picker kept out of sight behind it. */
+.date-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.date-input > input.num-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.date-input-picker {
+  padding: 2px 6px;
+  line-height: 1;
+}
+
+.date-input-native {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  border: 0;
+  padding: 0;
+}
+
+/* Phonetic Gujarati typing switch (components/PhoneticTyping.tsx). */
+.phonetic-switch {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 900;
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.phonetic-toggle,
+.phonetic-help-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+  color: var(--ink-soft);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.phonetic-toggle.on {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.phonetic-glyph {
+  font-weight: 700;
+  min-width: 1.2em;
+  text-align: center;
+}
+
+.phonetic-toggle kbd {
+  font-family: var(--numeric);
+  font-size: 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 0 4px;
+  background: var(--canvas);
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.phonetic-help-button {
+  padding: 5px 10px;
+}
+
+.phonetic-help {
+  position: absolute;
+  right: 0;
+  bottom: 42px;
+  width: 330px;
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.phonetic-help table {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.phonetic-help td {
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.phonetic-help p {
+  margin: 6px 0 0;
+  font-size: 12px;
+}

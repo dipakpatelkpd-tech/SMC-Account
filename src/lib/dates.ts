@@ -42,6 +42,38 @@ export function formatDate(value: string): string {
   return `${day}/${month}/${year}`;
 }
 
+/**
+ * A date as a person types it - day first, always: "09/06/2025", "9/6/25",
+ * "9-6-2025", "09.06.2025" or "09062025". Null until it is a real calendar date.
+ * Two-digit years are this century's. Never reads month first: 05/06 is the
+ * fifth of June, whatever the PC's locale says.
+ */
+export function parseTypedDate(text: string): IsoDate | null {
+  const trimmed = text.trim();
+  const parts = /^(\d{1,2})[/.\-\s](\d{1,2})[/.\-\s](\d{2}|\d{4})$/.exec(trimmed) ?? /^(\d{2})(\d{2})(\d{4})$/.exec(trimmed);
+  if (!parts) return null;
+  const [, day = "", month = "", yearText = ""] = parts;
+  const year = yearText.length === 2 ? `20${yearText}` : yearText;
+  const iso = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  return isIsoDate(iso) ? (iso as IsoDate) : null;
+}
+
+/**
+ * What a date box shows while digits are being typed: the slashes go in by
+ * themselves, "0906" becomes "09/06" and "09062025" becomes "09/06/2025". Text
+ * that already has its own separators is left as typed.
+ */
+export function maskTypedDate(text: string): string {
+  // Digits only, or digits with the slashes this mask put in ("09/06" + "2"):
+  // lay them out again. Separators typed by hand ("9/6/25") are left alone.
+  const masked = /^\d*$/.test(text) || /^\d{2}\/\d+$/.test(text) || /^\d{2}\/\d{2}\/\d*$/.test(text);
+  if (!masked) return text.slice(0, 10);
+  const digits = text.replace(/\//g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
 /** Print as DD/MM/YY, used in the rojmel's bill-number column ("15/08/25"). */
 export function formatDateShort(value: string): string {
   const [year = "", month = "", day = ""] = value.split("-");

@@ -4,6 +4,7 @@ import type { BillDto, ChequeDto, ChequeInput, GrantHeadDto } from "../../shared
 import type { Issue } from "../../engine/validation.js";
 import type { ChequeType } from "../../lib/types.js";
 import { Money } from "../components/Money.js";
+import { DateInput } from "../components/DateInput.js";
 import { IssueList } from "../components/IssueList.js";
 import { chequeTypeLabels, amountToInput, formatDate, tryParseAmount } from "../format.js";
 import { useStrings, type Strings } from "../i18n/index.js";
@@ -280,6 +281,7 @@ function ChequeForm({
           <label htmlFor="chequeno">{t.chequeNo}</label>
           <input
             id="chequeno"
+            data-no-suggest
             className="num-input"
             inputMode="numeric"
             value={chequeNo}
@@ -291,6 +293,7 @@ function ChequeForm({
           <label htmlFor="voucher">{t.voucherNo}</label>
           <input
             id="voucher"
+            data-no-suggest
             className="num-input"
             inputMode="numeric"
             value={voucherNo}
@@ -299,40 +302,23 @@ function ChequeForm({
         </div>
         <div className="field">
           <label htmlFor="cdate">{t.chequeDate}</label>
-          <input
-            id="cdate"
-            type="date"
-            value={chequeDate}
-            onChange={(e) => setChequeDate(e.target.value)}
-            required
-          />
+          <DateInput id="cdate" value={chequeDate} onChange={setChequeDate} required />
         </div>
         <div className="field">
           <label htmlFor="cbdate">{t.cashbookDate}</label>
-          <input
-            id="cbdate"
-            type="date"
-            value={cashbookDate}
-            onChange={(e) => setCashbookDate(e.target.value)}
-            required
-          />
+          <DateInput id="cbdate" value={cashbookDate} onChange={setCashbookDate} required />
         </div>
         <div className="field">
           <label htmlFor="cashed">{t.cashedDate}</label>
-          <input
-            id="cashed"
-            type="date"
-            value={cashedDate}
-            onChange={(e) => setCashedDate(e.target.value)}
-          />
+          <DateInput id="cashed" value={cashedDate} onChange={setCashedDate} />
         </div>
         <div className="field">
           <label htmlFor="payee">{t.payee}</label>
-          <input id="payee" value={payee} onChange={(e) => setPayee(e.target.value)} required />
+          <input id="payee" data-suggest="vendor.name" value={payee} onChange={(e) => setPayee(e.target.value)} required />
         </div>
         <div className="field">
           <label htmlFor="purpose">{t.chequePurpose}</label>
-          <input id="purpose" value={purpose} onChange={(e) => setPurpose(e.target.value)} required />
+          <input id="purpose" data-suggest="cheque.purpose" value={purpose} onChange={(e) => setPurpose(e.target.value)} required />
         </div>
       </div>
 

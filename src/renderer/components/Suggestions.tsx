@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import { createPortal } from "react-dom";
 import { useStrings } from "../i18n/index.js";
-import { SuggestionStore, normalise } from "../suggestions/store.js";
+import { normalise } from "../suggestions/store.js";
+import { suggestionStore as store } from "../suggestions/sync.js";
 
 /**
  * Suggestions for every text box in the app, from what was typed there before.
@@ -11,12 +12,14 @@ import { SuggestionStore, normalise } from "../suggestions/store.js";
  * screen has to be changed to get them, and a new field gets them for free.
  * A field's kind is its `data-suggest` key when it has one (shared by meaning:
  * the school's name on the setup form and in Masters is one list), otherwise
- * its screen and id. `data-no-suggest` opts a field out; passwords, dates,
- * numbers the browser handles itself, checkboxes and the like never take part.
+ * its screen and id. `data-no-suggest` opts a field out. Passwords, dates,
+ * checkboxes and the like never take part, nor do amounts (`inputMode="decimal"`:
+ * another school's figure is no help) or a field with a `list` of its own.
  *
  * Values are remembered when a form is saved - every field in it at once - or,
  * for a field outside a form, when it is left after a change, and whenever a
- * suggestion is chosen.
+ * suggestion is chosen. They are kept in the school's books, not on the PC
+ * (suggestions/sync.ts), so they go with the pen drive.
  *
  *   ↑ ↓            move through the list (↓ also opens it)
  *   Tab            fill in the top suggestion - or the one moved to - once
@@ -38,20 +41,14 @@ export function suggestKey(element: EventTarget | null): string | null {
   if (element.readOnly || element.disabled) return null;
   if (element instanceof HTMLInputElement && !TEXT_TYPES.has(element.type)) return null;
   if (element.closest("[data-no-suggest]")) return null;
+  if (element.inputMode === "decimal") return null;
+  if (element instanceof HTMLInputElement && element.getAttribute("list")) return null;
   const explicit = element.dataset["suggest"];
   if (explicit) return explicit;
   const id = element.id || element.name;
   if (!id) return null;
   const screen = window.location.hash.replace(/^#/, "").split(/[:?]/)[0] || "app";
   return `${screen}:${id}`;
-}
-
-function localStore(): Storage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -81,7 +78,6 @@ interface Open {
 
 export function Suggestions(): JSX.Element | null {
   const t = useStrings();
-  const store = useMemo(() => new SuggestionStore(localStore()), []);
   const [open, setOpen] = useState<Open | null>(null);
   const current = useRef(open);
   current.current = open;
@@ -114,6 +110,13 @@ export function Suggestions(): JSX.Element | null {
       // Chromium's own autofill list would sit on top of this one.
       field.setAttribute("autocomplete", "off");
       show(field, key, false);
+    };
+    // Clicking a box that already has focus (after Esc, or after choosing one)
+    // brings the list back - focusin does not fire again for it.
+    const onClick = (event: MouseEvent): void => {
+      const key = suggestKey(event.target);
+      if (!key || current.current?.items.length) return;
+      show(event.target as TextField, key, false);
     };
     const onFocusOut = (event: FocusEvent): void => {
       if (current.current?.field === event.target) setOpen(null);
@@ -187,6 +190,7 @@ export function Suggestions(): JSX.Element | null {
     const onMove = (): void => setFrame((frame) => frame + 1);
 
     document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("click", onClick);
     document.addEventListener("focusout", onFocusOut);
     document.addEventListener("input", onInput, true);
     document.addEventListener("keydown", onKeyDown, true);
@@ -196,6 +200,7 @@ export function Suggestions(): JSX.Element | null {
     window.addEventListener("resize", onMove);
     return () => {
       document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("click", onClick);
       document.removeEventListener("focusout", onFocusOut);
       document.removeEventListener("input", onInput, true);
       document.removeEventListener("keydown", onKeyDown, true);
@@ -204,7 +209,7 @@ export function Suggestions(): JSX.Element | null {
       window.removeEventListener("scroll", onMove, true);
       window.removeEventListener("resize", onMove);
     };
-  }, [store]);
+  }, []);
 
   if (!open || open.items.length === 0 || !open.field.isConnected) return null;
 

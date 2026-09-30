@@ -141,29 +141,33 @@ export function Masters({ onChanged }: { onChanged: () => void }): JSX.Element {
       <section className="card">
         <h3>{t.setupSchoolSection}</h3>
         <div className="form-grid">
-          <Field label={t.setupSchoolName} value={draft.nameGu} onChange={(v) => set("nameGu", v)} />
+          <Field label={t.setupSchoolName} value={draft.nameGu} onChange={(v) => set("nameGu", v)} suggest="school.name" />
           <Field
+            suggest="school.smcLabel"
             label={t.mastersSmcLabel}
             value={draft.smcLabelGu}
             onChange={(v) => set("smcLabelGu", v)}
             hint={t.mastersSmcLabelHint}
           />
-          <Field label={t.diseCode} value={draft.diseCode} onChange={(v) => set("diseCode", v)} numeric />
-          <Field label={t.setupCluster} value={draft.clusterGu} onChange={(v) => set("clusterGu", v)} />
-          <Field label={t.setupTaluka} value={draft.talukaGu} onChange={(v) => set("talukaGu", v)} />
-          <Field label={t.setupDistrict} value={draft.districtGu} onChange={(v) => set("districtGu", v)} />
+          <Field label={t.diseCode} value={draft.diseCode} onChange={(v) => set("diseCode", v)} numeric suggest="school.dise" />
+          <Field label={t.setupCluster} value={draft.clusterGu} onChange={(v) => set("clusterGu", v)} suggest="school.cluster" />
+          <Field label={t.setupTaluka} value={draft.talukaGu} onChange={(v) => set("talukaGu", v)} suggest="school.taluka" />
+          <Field label={t.setupDistrict} value={draft.districtGu} onChange={(v) => set("districtGu", v)} suggest="school.district" />
           <Field
+            suggest="school.headTeacher"
             label={t.setupHeadTeacher}
             value={draft.memberSecretaryGu}
             onChange={(v) => set("memberSecretaryGu", v)}
           />
           <Field
+            suggest="school.headTeacherShort"
             label={t.setupHeadTeacherShort}
             value={draft.memberSecretaryShortGu}
             onChange={(v) => set("memberSecretaryShortGu", v)}
             hint={t.setupHeadTeacherShortHint}
           />
           <Field
+            suggest="school.mobile"
             label={t.setupMobile}
             value={draft.memberSecretaryMobile ?? ""}
             onChange={(v) => set("memberSecretaryMobile", v === "" ? null : v)}
@@ -173,7 +177,7 @@ export function Masters({ onChanged }: { onChanged: () => void }): JSX.Element {
 
         <div className="field" style={{ marginTop: 12 }}>
           <label>{t.mastersProgramme}</label>
-          <input value={draft.programmeGu} onChange={(e) => set("programmeGu", e.target.value)} />
+          <input data-suggest="school.programme" value={draft.programmeGu} onChange={(e) => set("programmeGu", e.target.value)} />
           <span className="muted" style={{ fontSize: 12 }}>
             {t.mastersProgrammeHint}
           </span>
@@ -181,13 +185,15 @@ export function Masters({ onChanged }: { onChanged: () => void }): JSX.Element {
 
         <h3 style={{ marginTop: 20 }}>{t.setupBankSection}</h3>
         <div className="form-grid">
-          <Field label={t.bankName} value={draft.bankNameGu} onChange={(v) => set("bankNameGu", v)} />
+          <Field label={t.bankName} value={draft.bankNameGu} onChange={(v) => set("bankNameGu", v)} suggest="bank.name" />
           <Field
+            suggest="bank.branch"
             label={t.setupBranch}
             value={draft.bankBranchGu}
             onChange={(v) => set("bankBranchGu", v)}
           />
           <Field
+            suggest="bank.accountNo"
             label={t.setupAccountNo}
             value={draft.bankAccountNo}
             onChange={(v) => set("bankAccountNo", v)}
@@ -255,6 +261,7 @@ export function Masters({ onChanged }: { onChanged: () => void }): JSX.Element {
                   </td>
                   <td>
                     <input
+                      data-suggest="grantHead.name"
                       value={name}
                       style={{ width: "100%" }}
                       onChange={(e) =>
@@ -318,6 +325,7 @@ export function Masters({ onChanged }: { onChanged: () => void }): JSX.Element {
 
         <div className="form-actions">
           <input
+            data-suggest="grantHead.name"
             placeholder={t.mastersNewHeadPlaceholder}
             value={newHead}
             onChange={(e) => setNewHead(e.target.value)}
@@ -348,18 +356,22 @@ function Field({
   onChange,
   numeric,
   hint,
+  suggest,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   numeric?: boolean;
   hint?: string;
+  /** What kind of thing this is, so every screen asking for it shares one list of suggestions. */
+  suggest: string;
 }): JSX.Element {
   return (
     <div className="field">
       <label>{label}</label>
       <input
         className={numeric ? "num-input" : undefined}
+        data-suggest={suggest}
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />

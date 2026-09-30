@@ -204,6 +204,7 @@ export function GrantRegisterPages({
           <th data-col="allottedTo">કોને ફાળવેલ</th>
           <th data-col="spent">ખર્ચેલ રકમ</th>
           <th data-col="saving">બચત રહેલ ગ્રાન્ટ</th>
+          <th data-col="remarks">રીમાર્કસ</th>
         </tr>
       }
       rows={rows.map((row) => ({
@@ -228,6 +229,7 @@ export function GrantRegisterPages({
             <td data-col="allottedTo">{school.smcLabelGu}</td>
             <td data-col="spent" className="figure">{money(row.spentPaise)}</td>
             <td data-col="saving" className="figure">{money(row.savingPaise)}</td>
+            <td data-col="remarks">{row.receipt.remarksGu ?? ""}</td>
           </>
         ),
       }))}

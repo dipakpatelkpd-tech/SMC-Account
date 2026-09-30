@@ -55,8 +55,9 @@ describe("default widths", () => {
     expect(widths("khatavahi")).toEqual([12, 7, 33, 12, 12, 12, 12]);
     expect(widths("annexure9")).toEqual([11, 7, 58, 24]);
     expect(widths("annexure10").slice(0, 2)).toEqual([5, 17]);
-    expect(widths("rojmel")).toHaveLength(16);
-    expect(widths("rojmel").at(-1)).toBeCloseTo(5.7, 9);
+    // Fifteen: the જાવક side has no date column of its own.
+    expect(widths("rojmel")).toHaveLength(15);
+    expect(widths("rojmel").at(-1)).toBeCloseTo(6.1, 9);
   });
 
   it("resolve unchanged for an empty layout", () => {
@@ -232,10 +233,10 @@ describe("the schema", () => {
 
 describe("paper", () => {
   it("knows each form's printed table width", () => {
-    expect(tableWidthMm("rojmel")).toBeCloseTo(345.6, 6);
-    expect(tableWidthMm("chequeRegister")).toBeCloseTo(335.6, 6);
-    expect(tableWidthMm("annexure10")).toBeCloseTo(205.9, 6);
-    expect(tableWidthMm("vouchers")).toBeCloseTo(195.9, 6);
+    expect(tableWidthMm("rojmel")).toBeCloseTo(335, 6);
+    expect(tableWidthMm("chequeRegister")).toBeCloseTo(325, 6);
+    expect(tableWidthMm("annexure10")).toBeCloseTo(205, 6);
+    expect(tableWidthMm("vouchers")).toBeCloseTo(195, 6);
   });
 
   it("gives Excel the same proportion a column was widened by", () => {

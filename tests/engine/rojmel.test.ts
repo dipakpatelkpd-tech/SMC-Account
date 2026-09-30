@@ -30,15 +30,32 @@ describe("block structure", () => {
     for (let index = 1; index < rojmel.blocks.length; index += 1) {
       const previous = rojmel.blocks[index - 1]!;
       const current = rojmel.blocks[index]!;
-      expect(current.fromDate > previous.toDate, `${current.fromDate} after ${previous.toDate}`).toBe(
-        true,
-      );
+      // Two vouchers on one date are two blocks of that same date, one after the other.
+      const sameDateVoucher = !current.isNil && !previous.isNil && current.fromDate === previous.toDate;
+      expect(
+        sameDateVoucher || current.fromDate > previous.toDate,
+        `${current.fromDate} after ${previous.toDate}`,
+      ).toBe(true);
     }
   });
 
-  it("has one block per cash-book date, plus nil blocks for the gaps", () => {
+  it("has one block per voucher on each cash-book date, plus nil blocks for the gaps", () => {
     const active = rojmel.blocks.filter((block) => !block.isNil).map((block) => block.fromDate);
-    expect(active).toEqual(Object.keys(expected.closing_balance_after_each_cashbook_date).sort());
+    expect([...new Set(active)]).toEqual(Object.keys(expected.closing_balance_after_each_cashbook_date).sort());
+    // 03/03/2026 has two vouchers, so two blocks.
+    expect(active.filter((date) => date === "2026-03-03")).toHaveLength(2);
+    expect(new Set(rojmel.blocks.map((block) => block.id)).size).toBe(rojmel.blocks.length);
+  });
+
+  it("gives each voucher of a date its own block, opening where the last one closed", () => {
+    const [first, second] = rojmel.blocks.filter((block) => block.fromDate === "2026-03-03");
+    // The voucher number is the first word of the cheque line's reference ("6 26/02/2026").
+    const voucherOf = (block: typeof first): string => block!.paymentLines[0]!.referenceText.split(" ")[0]!;
+    expect(voucherOf(first)).toBe("6");
+    expect(voucherOf(second)).toBe("7");
+    expect(second!.id).toBe("2026-03-03#2");
+    expect(second!.openingBankPaise).toBe(first!.closingBankPaise);
+    expect(second!.openingCashPaise).toBe(first!.closingCashPaise);
   });
 
   it("prints કોઈ નાણાંકીય ખર્ચ કરેલ નથી in a nil block", () => {
@@ -93,7 +110,9 @@ describe("the three footer rows", () => {
 describe("agreement with the rest of the engine", () => {
   it("closes each transaction date exactly as balancesByDate does", () => {
     const byDate = new Map(balancesByDate(book).map((balance) => [balance.date, balance]));
-    for (const block of rojmel.blocks.filter((candidate) => !candidate.isNil)) {
+    // The last block of each date closes the day.
+    const lastOfDate = new Map(rojmel.blocks.filter((candidate) => !candidate.isNil).map((block) => [block.fromDate, block]));
+    for (const block of lastOfDate.values()) {
       const balance = byDate.get(block.fromDate);
       expect(balance, `no balance for ${block.fromDate}`).toBeDefined();
       expect(block.closingBankPaise, `${block.fromDate} bank`).toBe(balance!.bankPaise);
@@ -192,10 +211,51 @@ describe("the nil-block rule is a setting, because SPEC 11.4 is open", () => {
   it("can be switched off, leaving only dates with transactions", () => {
     const bare = buildRojmel(book, { nilBlocks: "none" });
     expect(bare.blocks.every((block) => !block.isNil)).toBe(true);
-    expect(bare.blocks).toHaveLength(
+    expect(new Set(bare.blocks.map((block) => block.fromDate)).size).toBe(
       Object.keys(expected.closing_balance_after_each_cashbook_date).length,
     );
     // The year still ends in the same place.
     expect(bare.blocks[bare.blocks.length - 1]!.closingBankPaise).toBe(rupeesToPaise(154));
+  });
+});
+
+describe("the આવક side", () => {
+  it("leaves a blank row after the opening balance and after the receipts", async () => {
+    const { rojmelBlockRows } = await import("../../src/shared/rojmel-rows.js");
+    const block = rojmel.blocks.find((candidate) => candidate.receiptLines.some((line) => line.source.kind === "receipt"))!;
+    const left = rojmelBlockRows(block).map((row) => row.left?.descriptionGu ?? null);
+    expect(left[0]).toBe("શ્રી ઉઘડતી સિલક");
+    expect(left[1]).toBeNull();
+    const receipts = block.receiptLines.filter((line) => line.source.kind === "receipt").length;
+    for (let index = 2; index < 2 + receipts; index += 1) expect(left[index]).not.toBeNull();
+    expect(left[2 + receipts]).toBeNull();
+  });
+});
+
+describe("one block per cheque", () => {
+  it("keeps a cheque's sub-vouchers (1/1, 1/2 ...) together in its one block", () => {
+    const blocks = rojmel.blocks.filter((block) => block.paymentLines.some((line) => line.chequeText.startsWith("103")));
+    expect(blocks).toHaveLength(1);
+    const subVouchers = blocks[0]!.paymentLines.filter((line) => /^1\/\d+ /.test(line.referenceText));
+    expect(subVouchers.length).toBe(21);
+  });
+
+  it("splits two cheques of the same date into two blocks, even under one voucher number", () => {
+    const book2 = sampleBook();
+    const second = book2.cheques.find((cheque) => cheque.chequeNo === 109)!;
+    const first = book2.cheques.find((cheque) => cheque.chequeNo === 108)!;
+    second.voucherNo = first.voucherNo;
+    const blocks = buildRojmel(book2).blocks.filter((block) => block.fromDate === second.cashbookDate);
+    expect(blocks.map((block) => block.paymentLines[0]!.chequeText.split(" ")[0])).toEqual(["108", "109"]);
+  });
+
+  it("prints the block's date once: a cheque of the same day shows only its number", () => {
+    const block = rojmel.blocks.find((candidate) => candidate.paymentLines.some((line) => line.chequeText.startsWith("103")))!;
+    const chequeLine = block.paymentLines[0]!;
+    expect(chequeLine.chequeText).toBe("103");
+    expect(chequeLine.referenceText).toBe("1");
+    // A cheque written on another day keeps its own date beside its number.
+    const later = rojmel.blocks.find((candidate) => candidate.id === "2026-03-03")!;
+    expect(later.paymentLines[0]!.chequeText).toBe("108 26/02/2026");
   });
 });

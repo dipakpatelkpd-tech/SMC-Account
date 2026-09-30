@@ -337,3 +337,25 @@ model ReportLayout {
 
   @@unique([schoolId, report])
 }
+
+// ------------------------------------------------------------- suggestions
+
+// What has been typed into each kind of field ("vendor.name", "bank.name" ...),
+// offered again the next time - see src/shared/suggestions.ts. A convenience,
+// not a record of the accounts: nothing computed reads it. Kept in the books
+// rather than on the PC so that the pen drive carries it to any other PC, and
+// encrypted with them. Not tied to the school row: it is the same list whichever
+// school's file it is saved in, and merging two schools' lists is a union.
+model Suggestion {
+  id Int @id @default(autoincrement())
+
+  field    String // the kind of field
+  valueKey String // the value folded to lower case, so one value is one row
+  value    String // as last typed
+
+  useCount   Int
+  lastUsedAt String // ISO instant
+  removedAt  String? // ISO instant; set when the value was forgotten on purpose
+
+  @@unique([field, valueKey])
+}

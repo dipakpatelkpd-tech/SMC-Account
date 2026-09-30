@@ -3,6 +3,8 @@ import { api } from "../api.js";
 import type { GrantHeadDto, ReceiptDto, ReceiptInput } from "../../shared/api.js";
 import type { Issue } from "../../engine/validation.js";
 import { Money } from "../components/Money.js";
+import { DateInput } from "../components/DateInput.js";
+import { GrantHeadSelect } from "../components/GrantHeadSelect.js";
 import { IssueList } from "../components/IssueList.js";
 import { amountToInput, formatDate, tryParseAmount } from "../format.js";
 import { useStrings, type Strings } from "../i18n/index.js";
@@ -79,6 +81,11 @@ export function Receipts({ onChanged }: { onChanged: () => void }): JSX.Element 
           receipt={editing === "new" ? null : editing}
           onCancel={() => { setEditing(null); setIssues([]); }}
           onSave={save}
+          onHeadCreated={(head) => {
+            // Straight into the list, and every figure refreshed with it.
+            setHeads((current) => [...current, head]);
+            onChanged();
+          }}
         />
       )}
 
@@ -147,12 +154,14 @@ function ReceiptForm({
   receipt,
   onCancel,
   onSave,
+  onHeadCreated,
 }: {
   t: Strings;
   heads: GrantHeadDto[];
   receipt: ReceiptDto | null;
   onCancel: () => void;
   onSave: (input: ReceiptInput, id: number | null) => Promise<void>;
+  onHeadCreated: (head: GrantHeadDto) => void;
 }): JSX.Element {
   const [date, setDate] = useState(receipt?.date ?? "");
   const [grantHeadId, setGrantHeadId] = useState(receipt?.grantHeadId ?? heads[0]?.id ?? 0);
@@ -193,17 +202,17 @@ function ReceiptForm({
       <div className="form-grid">
         <div className="field">
           <label htmlFor="date">{t.cashbookDate}</label>
-          <input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          <DateInput id="date" value={date} onChange={setDate} required />
         </div>
         <div className="field">
           <label htmlFor="head">{t.grantHead}</label>
-          <select id="head" value={grantHeadId} onChange={(e) => setGrantHeadId(Number(e.target.value))}>
-            {heads.map((head) => (
-              <option key={head.id} value={head.id}>
-                {head.nameGu}
-              </option>
-            ))}
-          </select>
+          <GrantHeadSelect
+            id="head"
+            heads={heads}
+            value={grantHeadId}
+            onChange={setGrantHeadId}
+            onCreated={onHeadCreated}
+          />
         </div>
         <div className="field">
           <label htmlFor="amount">{t.amount}</label>
@@ -219,7 +228,7 @@ function ReceiptForm({
         </div>
         <div className="field">
           <label htmlFor="from">{t.receivedFrom}</label>
-          <input id="from" value={receivedFrom} onChange={(e) => setReceivedFrom(e.target.value)} required />
+          <input id="from" data-suggest="receipt.from" value={receivedFrom} onChange={(e) => setReceivedFrom(e.target.value)} required />
         </div>
         <div className="field">
           <label htmlFor="mode">{t.mode}</label>
@@ -231,20 +240,15 @@ function ReceiptForm({
         </div>
         <div className="field">
           <label htmlFor="bank">{t.bankName}</label>
-          <input id="bank" value={bankLabel} onChange={(e) => setBankLabel(e.target.value)} required />
+          <input id="bank" data-suggest="bank.name" value={bankLabel} onChange={(e) => setBankLabel(e.target.value)} required />
         </div>
         <div className="field">
           <label htmlFor="credited">{t.creditedDate}</label>
-          <input
-            id="credited"
-            type="date"
-            value={creditedDate}
-            onChange={(e) => setCreditedDate(e.target.value)}
-          />
+          <DateInput id="credited" value={creditedDate} onChange={setCreditedDate} />
         </div>
         <div className="field">
           <label htmlFor="remarks">{t.remarks}</label>
-          <input id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+          <input id="remarks" data-suggest="receipt.remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
         </div>
       </div>
       <div className="form-actions">

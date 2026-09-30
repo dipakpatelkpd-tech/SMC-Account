@@ -31,6 +31,12 @@
  * - they are laid out for sorting and filtering - so each column names the form
  * column it shows (`layout`), and each row carries the same key as on the form.
  * Padding and row heights are Excel's own to decide.
+ *
+ * The cash book is the exception to "laid out for sorting": its sheet is the
+ * printed રોજમેળ itself - the two halves side by side, block by block, page by
+ * page with the same page numbers the ledger refers to - because that is the
+ * sheet a school prints. Every sheet carries a print setup: the paper, the
+ * orientation of its printed form, one page wide, the heading rows repeated.
  */
 import ExcelJS from "exceljs";
 import type { Annexure9, Annexure10, DayBalance, Ledger } from "../engine/types.js";
@@ -51,7 +57,10 @@ import type {
 import { formatDate } from "../lib/dates.js";
 import {
   EXCEL_TITLE_PART,
+  LANDSCAPE_REPORTS,
   NO_FILL,
+  PAPER_MM,
+  columnWidths,
   PT_PER_MM,
   REPORT_DEFAULTS,
   ROW_KEYS,
@@ -66,6 +75,7 @@ import {
   type ReportLayout,
 } from "../shared/report-layout.js";
 import { rojmelBlockRows } from "../shared/rojmel-rows.js";
+import type { RojmelBlock, RojmelLine } from "../engine/rojmel.js";
 
 /** Rupees, as a number. Paise are integers; Excel gets the decimal. */
 function rupees(paise: number): number {
@@ -128,6 +138,47 @@ function argb(hex: string): string {
   return `FF${hex.slice(1).toUpperCase()}`;
 }
 
+const MM_PER_INCH = 25.4;
+
+/**
+ * How a sheet prints: Legal paper in its form's orientation, one page wide,
+ * the heading rows repeated on every page.
+ *
+ * An .xlsx can only name a paper size, not give one, and there is no "Indian
+ * Legal" among Excel's names - so the sheet asks for Legal (215.9 x 355.6mm)
+ * and keeps its print inside the 215 x 345mm of the Indian sheet: the far edge
+ * of the long side gets the extra 10.6mm as margin. Printed on either paper,
+ * nothing is cut.
+ */
+function printSetup(worksheet: ExcelJS.Worksheet, landscape: boolean, repeatRows?: string): void {
+  const edge = 5 / MM_PER_INCH;
+  const spare = (355.6 - PAPER_MM.long) / MM_PER_INCH;
+  worksheet.pageSetup = {
+    ...worksheet.pageSetup,
+    paperSize: 5 as ExcelJS.PaperSize, // Legal
+    orientation: landscape ? "landscape" : "portrait",
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+    margins: {
+      left: edge,
+      right: landscape ? edge + spare : edge,
+      top: edge,
+      bottom: landscape ? edge : edge + spare,
+      header: 0,
+      footer: 0,
+    },
+    ...(repeatRows ? { printTitlesRow: repeatRows } : {}),
+  };
+}
+
+const THIN: Partial<ExcelJS.Borders> = {
+  top: { style: "thin" },
+  left: { style: "thin" },
+  bottom: { style: "thin" },
+  right: { style: "thin" },
+};
+
 /**
  * One sheet: a title block, a header row, then the rows.
  *
@@ -158,12 +209,14 @@ function sheet(
     views: [{ state: "frozen", ySplit: 2 }],
   });
 
-  worksheet.addRow([titleGu]).font = headFont;
+  const titleRow = worksheet.addRow([titleGu]);
+  titleRow.font = headFont;
+  titleRow.alignment = { horizontal: "center", vertical: "middle" };
   worksheet.mergeCells(1, 1, 1, Math.max(1, columns.length));
 
   const header = worksheet.addRow(columns.map((column) => column.header));
   header.font = headFont;
-  header.alignment = { vertical: "middle", wrapText: true };
+  header.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
 
   // Where each keyed row landed, for the styles below.
   const placed: { excelRow: number; key: string | null; side: "r" | "p" | undefined }[] = [
@@ -196,6 +249,25 @@ function sheet(
   worksheet.getRow(1).font = headFont;
   worksheet.getRow(2).font = headFont;
 
+  // Ruled like the printed form, so it prints as one - before the school's
+  // own styles, which win. Figures and dates in
+  // Calibri, as the client's workbook has them: a Gujarati face's Latin digits
+  // are not on every PC.
+  const latinText = /^[\d\s/.,\-–]+$/;
+  for (let rowNo = 2; rowNo <= worksheet.rowCount; rowNo += 1) {
+    const row = worksheet.getRow(rowNo);
+    if (row.cellCount === 0) continue;
+    for (let col = 1; col <= columns.length; col += 1) {
+      const target = row.getCell(col);
+      target.border = THIN;
+      const value = target.value;
+      const figure = typeof value === "number" || (typeof value === "string" && latinText.test(value));
+      // Unless the school chose a face for the whole report.
+      if (rowNo > 2 && figure && layout.font === undefined) {
+        target.font = { ...target.font, name: "Calibri" };
+      }
+    }
+  }
   /** One cell as the school's layout has it. Blank (NO_FILL) is Excel's default. */
   const apply = (cell: ExcelJS.Cell, style: CellStyle): void => {
     if (style.fill && style.fill !== NO_FILL) {
@@ -238,6 +310,9 @@ function sheet(
     }
   }
 
+  const landscape = look ? LANDSCAPE_REPORTS.has(look.report) : columns.length > 5;
+  printSetup(worksheet, landscape, "1:2");
+
   return worksheet;
 }
 
@@ -248,105 +323,250 @@ function titleOf(school: SchoolDto, yearLabel: string, reportGu: string): string
 
 // ------------------------------------------------------------------- sheets
 
+/** The rojmel's columns in print order: REPORT_COLUMNS.rojmel. */
+const ROJMEL_HEADINGS: [id: string, heading: string][] = [
+  ["r.date", "તારીખ"],
+  ["r.detail", "આવકની વિગત"],
+  ["r.ref", "પહોંચ નંબર અને તારીખ"],
+  ["r.cheque", "ચેક નં તારીખ ડી.ડી.નં તારીખ"],
+  ["r.class", "વર્ગીકરણ રજી.નો પાન નં"],
+  ["r.cash", "રોકડ"],
+  ["r.bank", "બેન્ક"],
+  ["r.total", "કુલ રકમ"],
+  ["p.detail", "જાવક ની વિગત"],
+  ["p.ref", "વાઉચર નંબર અને તારીખ"],
+  ["p.cheque", "ચેક નં તારીખ"],
+  ["p.class", "વર્ગીકરણ રજી.નો પાન નં"],
+  ["p.cash", "રોકડ"],
+  ["p.bank", "બેન્ક"],
+  ["p.total", "કુલ રકમ"],
+];
+
+/** The footer rows' colours, as printed: only the words and the amounts. */
+const ROJMEL_FOOTER_FILL = { spent: "FFFDEEE4", closing: "FFFDF6E3", grand: "FFEAF3EA" } as const;
+
+/**
+ * The cash book as the printed form: the આવક and જાવક halves side by side,
+ * block after block, each printed page starting a new Excel page with its title,
+ * the Cash Book band and the column headings - so it prints like the PDF, with
+ * the same page numbers.
+ */
 function rojmelSheet(
   workbook: ExcelJS.Workbook,
   school: SchoolDto,
-  yearLabel: string,
+  _yearLabel: string,
   rojmel: Rojmel,
   layout: ReportLayout,
 ): void {
-  const rows: Row[] = [];
+  const defaultPt = REPORT_DEFAULTS.rojmel.sizePt;
+  const excelSize = (pt: number): number => Math.round(((pt * REPORT_FONT_SIZE) / defaultPt) * 2) / 2;
+  const fontName = fontFamily(layout.font);
+  const size = layout.sizePt === undefined ? REPORT_FONT_SIZE : excelSize(layout.sizePt);
+  const font: Partial<ExcelJS.Font> = { name: fontName, size };
+  const bold: Partial<ExcelJS.Font> = { ...font, bold: true };
+  // Figures, dates and numbers in Calibri, as the client's ROJMED sheet has
+  // them: a Gujarati face's Latin digits are not on every PC. A face the
+  // school chose for the whole report is used for them too.
+  const latin: Partial<ExcelJS.Font> = { name: layout.font === undefined ? "Calibri" : fontName, size };
+  const latinBold: Partial<ExcelJS.Font> = { ...latin, bold: true };
+  const last = ROJMEL_HEADINGS.length;
+  const colOf = new Map(ROJMEL_HEADINGS.map(([id], index) => [id, index + 1]));
+
+  const worksheet = workbook.addWorksheet("રોજમેળ");
+  // The printed proportions, in Excel's character widths: about 190 across -
+  // what one page's rows need to fill a landscape sheet once fit-to-width has
+  // brought it to the paper.
+  const widths = columnWidths("rojmel", layout);
+  ROJMEL_HEADINGS.forEach(([id], index) => {
+    worksheet.getColumn(index + 1).width = Math.round((widths[id] ?? 5) * 19) / 10;
+  });
+
+  const keyed: { row: ExcelJS.Row; key: string }[] = [];
+  const cell = (row: ExcelJS.Row, id: string): ExcelJS.Cell => row.getCell(colOf.get(id)!);
+  const money = (target: ExcelJS.Cell, paise: number | null): void => {
+    target.value = paise === null ? null : rupees(paise);
+    target.numFmt = "0.00";
+    target.font = latin;
+    target.alignment = { horizontal: "right", vertical: "middle" };
+  };
+  const ruled = (row: ExcelJS.Row): void => {
+    for (let col = 1; col <= last; col += 1) {
+      const target = row.getCell(col);
+      target.border = THIN;
+      if (!target.font) target.font = font;
+    }
+    // The heavy rule down the middle, between આવક and જાવક.
+    const middle = cell(row, "p.detail");
+    middle.border = { ...THIN, left: { style: "medium" } };
+  };
+  const text = (target: ExcelJS.Cell, value: string, shrink = true): void => {
+    target.value = value;
+    target.alignment = { horizontal: "center", vertical: "middle", shrinkToFit: shrink, wrapText: !shrink };
+  };
+
+  const half = (row: ExcelJS.Row, side: "r" | "p", line: RojmelLine | null): void => {
+    if (!line) return;
+    if (side === "r") {
+      text(cell(row, "r.date"), line.dateText, false);
+      cell(row, "r.date").font = latin;
+    }
+    text(cell(row, `${side}.detail`), line.descriptionGu);
+    const ref = cell(row, `${side}.ref`);
+    text(ref, line.referenceText);
+    ref.font = latin;
+    // "1/3 11/07/24": the voucher number bold, the date not.
+    const space = line.referenceText.indexOf(" ");
+    if (side === "p" && line.referenceText !== "") {
+      ref.value = {
+        richText:
+          space > 0
+            ? [
+                { text: line.referenceText.slice(0, space), font: latinBold },
+                { text: line.referenceText.slice(space), font: latin },
+              ]
+            : [{ text: line.referenceText, font: latinBold }],
+      };
+    }
+    text(cell(row, `${side}.cheque`), line.chequeText);
+    cell(row, `${side}.cheque`).font = latin;
+    if (!line.headingOnly) {
+      money(cell(row, `${side}.cash`), line.cashPaise);
+      money(cell(row, `${side}.bank`), line.bankPaise);
+      money(cell(row, `${side}.total`), line.totalPaise);
+    }
+  };
+
+  const footer = (
+    block: RojmelBlock,
+    which: "spent" | "closing" | "grand",
+    labelGu: string,
+    figures: [number, number, number],
+    receiptTotals?: [number, number, number],
+  ): void => {
+    const row = worksheet.addRow([]);
+    row.height = 21;
+    ruled(row);
+    const fill: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: ROJMEL_FOOTER_FILL[which] } };
+    const label = cell(row, "p.detail");
+    text(label, labelGu);
+    const painted = [label];
+    (["cash", "bank", "total"] as const).forEach((column, index) => {
+      money(cell(row, `p.${column}`), figures[index]!);
+      painted.push(cell(row, `p.${column}`));
+      if (receiptTotals) {
+        money(cell(row, `r.${column}`), receiptTotals[index]!);
+        painted.push(cell(row, `r.${column}`));
+      }
+    });
+    for (const target of painted) {
+      target.fill = fill;
+      target.font = target === label ? bold : latinBold;
+    }
+    keyed.push({ row, key: ROW_KEYS.rojmelFooter(block.id, which) });
+  };
 
   for (const page of rojmel.pages) {
+    const title = worksheet.addRow([school.smcLabelGu]);
+    worksheet.mergeCells(title.number, 1, title.number, last);
+    title.font = bold;
+    title.alignment = { horizontal: "center", vertical: "middle" };
+    title.height = 24;
+    keyed.push({ row: title, key: "" });
+
+    const band = worksheet.addRow([]);
+    band.height = 20;
+    const bandCell = (from: number, to: number, value: string, argbFill: string): void => {
+      worksheet.mergeCells(band.number, from, band.number, to);
+      const target = band.getCell(from);
+      target.value = value;
+      target.font = bold;
+      target.alignment = { horizontal: "center", vertical: "middle" };
+      target.fill = { type: "pattern", pattern: "solid", fgColor: { argb: argbFill } };
+      target.border = THIN;
+    };
+    bandCell(1, colOf.get("r.total")!, "આવક            ( Cash Book )", "FFEEF2EA");
+    bandCell(colOf.get("p.detail")!, colOf.get("p.cash")!, "( કેશ બુક )            જાવક", "FFEEF2EA");
+    bandCell(colOf.get("p.bank")!, last, `પાના.નંબર   ${page.pageNo}`, "FFF6EEF2");
+
+    const head = worksheet.addRow(ROJMEL_HEADINGS.map(([, heading]) => heading));
+    head.height = 80;
+    ruled(head);
+    head.eachCell((target) => {
+      target.font = bold;
+      target.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    });
+    keyed.push({ row: head, key: ROW_KEYS.head });
+
     for (const block of page.blocks) {
-      if (block.isNil) {
-        rows.push({
-          cells: [
-            page.pageNo,
-            block.fromDate === block.toDate
-              ? date(block.fromDate)
-              : `${date(block.fromDate)} – ${date(block.toDate)}`,
-            "કોઈ નાણાંકીય વ્યવહાર કરેલ નથી",
-            "",
-            "",
-            "",
-            null,
-            null,
-            null,
-          ],
-        });
-        continue;
+      for (const tableRow of rojmelBlockRows(block)) {
+        const row = worksheet.addRow([]);
+        // The first row holds the date, which may be a range on three lines.
+        row.height = tableRow.left?.dateText.includes("TO") ? 44 : 21;
+        ruled(row);
+        half(row, "r", tableRow.left);
+        half(row, "p", tableRow.right);
+        keyed.push({ row, key: tableRow.key });
+        const gap = layout.rowGapsMm[tableRow.key];
+        if (gap) worksheet.addRow([]).height = Math.round(gap * PT_PER_MM * 10) / 10;
       }
+      footer(block, "spent", "શ્રી ખર્ચખાતે", [block.spentCashPaise, block.spentBankPaise, block.spentTotalPaise]);
+      footer(
+        block,
+        "closing",
+        "શ્રી બંધ સિલક",
+        [block.closingCashPaise, block.closingBankPaise, block.closingTotalPaise],
+        [block.receiptTotalCashPaise, block.receiptTotalBankPaise, block.receiptTotalTotalPaise],
+      );
+      footer(block, "grand", "શ્રી કુલ", [
+        block.spentCashPaise + block.closingCashPaise,
+        block.spentBankPaise + block.closingBankPaise,
+        block.spentCashPaise + block.closingCashPaise + block.spentBankPaise + block.closingBankPaise,
+      ]);
+      // The blank band between blocks.
+      worksheet.addRow([]).height = 8;
+    }
 
-      // Which row of the printed block each line sits on - the key a layout
-      // uses for it (shared/rojmel-rows.ts).
-      const keyOf = new Map<unknown, string>();
-      for (const row of rojmelBlockRows(block)) {
-        if (row.left) keyOf.set(row.left, row.key);
-        if (row.right) keyOf.set(row.right, row.key);
-      }
+    // Each printed page is an Excel page.
+    worksheet.getRow(worksheet.rowCount).addPageBreak();
+  }
 
-      // The printed form is two columns side by side; a spreadsheet reads far
-      // better as one column with the side named, and it can then be filtered.
-      for (const [sideGu, side, lines] of [
-        ["જમા", "r", block.receiptLines],
-        ["ઉધાર", "p", block.paymentLines],
-      ] as const) {
-        for (const line of lines) {
-          rows.push({
-            key: keyOf.get(line) ?? null,
-            side,
-            cells: [
-              page.pageNo,
-              line.dateText,
-              line.descriptionGu,
-              sideGu,
-              line.referenceText,
-              line.chequeText,
-              line.headingOnly ? null : rupees(line.cashPaise),
-              line.headingOnly ? null : rupees(line.bankPaise),
-              line.headingOnly ? null : rupees(line.totalPaise),
-            ],
-          });
-        }
-      }
+  const closing = worksheet.addRow([rojmel.closingSentenceGu]);
+  worksheet.mergeCells(closing.number, 1, closing.number, last);
+  closing.font = bold;
+  closing.alignment = { horizontal: "center" };
 
-      rows.push({
-        key: ROW_KEYS.rojmelFooter(block.fromDate, "closing"),
-        side: "p",
-        cells: [
-          page.pageNo,
-          "",
-          "શ્રી બંધ સિલક",
-          "",
-          "",
-          "",
-          rupees(block.closingCashPaise),
-          rupees(block.closingBankPaise),
-          rupees(block.closingTotalPaise),
-        ],
-      });
+  // The school's own layout: highlights, bold, fonts, sizes, alignment.
+  const titleStyle = layout.styles[targetKey({ kind: "part", part: EXCEL_TITLE_PART.rojmel })];
+  for (const { row, key } of keyed) {
+    if (key === "") {
+      if (titleStyle) applyStyle(row.getCell(1), titleStyle, excelSize);
+      continue;
+    }
+    const rowHeight = layout.styles[targetKey({ kind: "row", row: key })]?.heightMm;
+    if (rowHeight !== undefined) row.height = Math.round(rowHeight * PT_PER_MM * 10) / 10;
+    for (const [id] of ROJMEL_HEADINGS) {
+      const style = styleAt(layout, key, id);
+      if (Object.keys(style).length > 0) applyStyle(cell(row, id), style, excelSize);
     }
   }
 
-  sheet(
-    workbook,
-    "રોજમેળ",
-    titleOf(school, yearLabel, "રોજમેળ"),
-    [
-      { header: "પાનું", width: 7 },
-      { header: "તારીખ", width: 12, sided: "date" },
-      { header: "વિગત", width: 46, sided: "detail" },
-      { header: "બાજુ", width: 8 },
-      { header: "પહોંચ / વાઉચર", width: 16, sided: "ref" },
-      { header: "ચેક નં. તારીખ", width: 16, sided: "cheque" },
-      { header: "રોકડ", width: 13, money: true, sided: "cash" },
-      { header: "બેન્ક", width: 13, money: true, sided: "bank" },
-      { header: "કુલ", width: 13, money: true, sided: "total" },
-    ],
-    rows,
-    { report: "rojmel", layout },
-  );
+  printSetup(worksheet, true);
+}
+
+/** One cell as a school's layout has it. Blank (NO_FILL) is Excel's default. */
+function applyStyle(cell: ExcelJS.Cell, style: CellStyle, excelSize: (pt: number) => number): void {
+  if (style.fill && style.fill !== NO_FILL) {
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: argb(style.fill) } };
+  }
+  if (style.bold !== undefined || style.font || style.sizePt !== undefined) {
+    cell.font = {
+      ...cell.font,
+      ...(style.font ? { name: fontFamily(style.font) } : {}),
+      ...(style.sizePt !== undefined ? { size: excelSize(style.sizePt) } : {}),
+      ...(style.bold !== undefined ? { bold: style.bold } : {}),
+    };
+  }
+  if (style.align) cell.alignment = { ...cell.alignment, horizontal: style.align };
 }
 
 function ledgerSheets(
@@ -423,7 +643,8 @@ function grantRegisterSheet(
       { header: "હુકમ તારીખ", width: 12, layout: "order" },
       { header: "મળેલ રકમ", width: 13, money: true, layout: "amount" },
       { header: "ખર્ચેલ રકમ", width: 13, money: true, layout: "spent" },
-      { header: "બચત રહેલ", width: 13, money: true, layout: "saving" },
+      { header: "બચત રહેલ ગ્રાન્ટ", width: 13, money: true, layout: "saving" },
+      { header: "રીમાર્કસ", width: 18, layout: "remarks" },
     ],
     register.map((row, index) => ({
       key: ROW_KEYS.receipt(row.receipt.id),
@@ -437,6 +658,7 @@ function grantRegisterSheet(
         rupees(row.receipt.amountPaise),
         rupees(row.spentPaise),
         rupees(row.savingPaise),
+        row.receipt.remarksGu ?? "",
       ],
     })),
     { report: "grantRegister", layout },

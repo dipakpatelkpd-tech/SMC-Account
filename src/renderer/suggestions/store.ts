@@ -1,102 +1,94 @@
 /**
  * What has been typed into each kind of field before, for suggesting it again.
  *
- * Kept on the PC (localStorage), not in a school's books: the suggestions are a
- * convenience for whoever types, shared by every school and every account on
- * this PC - a vendor typed for one school is offered for the next. They never
- * travel on the pen drive or to the cloud, and losing them loses nothing.
+ * Held in memory only. Nothing is written to this PC: the lists are saved in the
+ * school's own database (the Suggestion table, see sync.ts), so they are as
+ * private as the books - encrypted with them - and travel on the pen drive to
+ * any other PC. The store is what the running app suggests from; a school being
+ * opened merges its saved list in, and what is typed here is merged back out.
  *
  * A field's KIND is its key: "bill.vendor", "cheque.payee", "school.name" - by
  * meaning, so two screens asking for the same thing share one list.
  *
- * Pure apart from the Storage it is given, so the ranking is tested in Node.
+ * Pure, so the ranking is tested in Node.
  */
+import {
+  MAX_VALUE_LENGTH,
+  fingerprint,
+  fold,
+  mergeRows,
+  normalise,
+  weight,
+  type SuggestionRow,
+} from "../../shared/suggestions.js";
 
-export interface Entry {
-  value: string;
-  /** How many times it was entered or chosen. */
-  count: number;
-  /** When it was last used, ms since the epoch. */
-  last: number;
-}
-
-type Data = Record<string, Entry[]>;
-
-export const STORAGE_KEY = "smc.suggestions.v1";
-
-/** Per kind of field: plenty for a school's vendors, bounded all the same. */
-export const MAX_PER_FIELD = 150;
-const MAX_VALUE_LENGTH = 300;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** The same text, however it was typed: NFC, trimmed, spaces collapsed. */
-export function normalise(value: string): string {
-  return value.normalize("NFC").replace(/\s+/g, " ").trim();
-}
-
-/** Latin letters compare without case; Gujarati has none. */
-function fold(value: string): string {
-  return normalise(value).toLocaleLowerCase("en");
-}
-
-/** Used often and lately ranks first; a week's age halves the weight. */
-function weight(entry: Entry, now: number): number {
-  return entry.count / (1 + Math.max(0, now - entry.last) / (7 * DAY_MS));
-}
+export { normalise };
 
 export class SuggestionStore {
-  constructor(
-    private readonly storage: Pick<Storage, "getItem" | "setItem"> | null,
-    private readonly now: () => number = Date.now,
-  ) {}
+  private rows: SuggestionRow[] = [];
+  private readonly listeners = new Set<() => void>();
 
-  private read(): Data {
-    try {
-      const raw = this.storage?.getItem(STORAGE_KEY);
-      const parsed: unknown = raw ? JSON.parse(raw) : {};
-      return parsed !== null && typeof parsed === "object" ? (parsed as Data) : {};
-    } catch {
-      // Unreadable (or no storage at all): start again rather than fail a form.
-      return {};
-    }
+  constructor(private readonly now: () => number = Date.now) {}
+
+  /** Called after something is typed or forgotten here - not after a merge. */
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => void this.listeners.delete(listener);
   }
 
-  private write(data: Data): void {
-    try {
-      this.storage?.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch {
-      // Storage full or blocked: suggestions are a convenience, not a record.
-    }
+  private changed(): void {
+    for (const listener of this.listeners) listener();
+  }
+
+  /** Forget everything held here - the next person to sign in starts afresh. */
+  clear(): void {
+    this.rows = [];
+  }
+
+  /** Everything held, forgotten values included, to be saved or merged elsewhere. */
+  export(): SuggestionRow[] {
+    return this.rows.map((row) => ({ ...row }));
+  }
+
+  /** Take in another copy of the lists. Returns whether anything changed. */
+  merge(other: readonly SuggestionRow[]): boolean {
+    const before = fingerprint(this.rows);
+    this.rows = mergeRows(this.rows, other, this.now());
+    return fingerprint(this.rows) !== before;
+  }
+
+  private find(field: string, value: string): SuggestionRow | undefined {
+    const wanted = fold(value);
+    return this.rows.find((row) => row.field === field && fold(row.value) === wanted);
   }
 
   /** Remember a value entered in a field of this kind. */
   record(field: string, value: string): void {
     const clean = normalise(value);
     if (clean === "" || clean.length > MAX_VALUE_LENGTH) return;
-    const data = this.read();
-    const list = Array.isArray(data[field]) ? data[field]! : [];
     const now = this.now();
-    const existing = list.find((entry) => fold(entry.value) === fold(clean));
+    const existing = this.find(field, clean);
     if (existing) {
       existing.value = clean; // the latest spelling
-      existing.count += 1;
+      // Used again after being forgotten: a new start, not the old count.
+      existing.count = existing.removed === undefined ? existing.count + 1 : 1;
       existing.last = now;
+      delete existing.removed;
     } else {
-      list.push({ value: clean, count: 1, last: now });
+      this.rows.push({ field, value: clean, count: 1, last: now });
     }
-    // Over the limit: the least used and least recent go first.
-    list.sort((a, b) => weight(b, now) - weight(a, now));
-    data[field] = list.slice(0, MAX_PER_FIELD);
-    this.write(data);
+    // Past the limits the least used go first, as when merging.
+    this.rows = mergeRows(this.rows, [], now);
+    this.changed();
   }
 
   /** Forget one suggestion - a typo, or something that should not be offered. */
   remove(field: string, value: string): void {
-    const data = this.read();
-    const list = data[field];
-    if (!Array.isArray(list)) return;
-    data[field] = list.filter((entry) => fold(entry.value) !== fold(value));
-    this.write(data);
+    const existing = this.find(field, value);
+    if (!existing || existing.removed !== undefined) return;
+    // Kept as forgotten, so merging with another copy does not bring it back.
+    existing.removed = Math.max(this.now(), existing.last);
+    this.changed();
   }
 
   /**
@@ -105,8 +97,6 @@ export class SuggestionStore {
    * use. Nothing identical to what is already typed.
    */
   suggest(field: string, typed: string, limit = 8): string[] {
-    const list = this.read()[field];
-    if (!Array.isArray(list)) return [];
     const query = fold(typed);
     const now = this.now();
     const rank = (value: string): number => {
@@ -117,11 +107,12 @@ export class SuggestionStore {
       if (folded.split(/[\s/,.\-()]+/).some((word) => word.startsWith(query))) return 1;
       return folded.includes(query) ? 2 : -1;
     };
-    return list
-      .map((entry) => ({ entry, rank: rank(entry.value) }))
+    return this.rows
+      .filter((row) => row.field === field && row.removed === undefined)
+      .map((row) => ({ row, rank: rank(row.value) }))
       .filter((item) => item.rank >= 0)
-      .sort((a, b) => a.rank - b.rank || weight(b.entry, now) - weight(a.entry, now))
+      .sort((a, b) => a.rank - b.rank || weight(b.row, now) - weight(a.row, now))
       .slice(0, limit)
-      .map((item) => item.entry.value);
+      .map((item) => item.row.value);
   }
 }
