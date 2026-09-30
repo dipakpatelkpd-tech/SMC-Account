@@ -74,3 +74,38 @@ describe("endOfMonth", () => {
     expect(endOfMonth("2024-02-01")).toBe("2024-02-29"); // leap year
   });
 });
+
+describe("dates as typed, day first", async () => {
+  const { parseTypedDate, maskTypedDate } = await import("../src/lib/dates.js");
+
+  it("reads DD/MM/YYYY and its common variants", () => {
+    expect(parseTypedDate("09/06/2025")).toBe("2025-06-09");
+    expect(parseTypedDate("9/6/2025")).toBe("2025-06-09");
+    expect(parseTypedDate("9-6-25")).toBe("2025-06-09");
+    expect(parseTypedDate("09.06.2025")).toBe("2025-06-09");
+    expect(parseTypedDate("09062025")).toBe("2025-06-09");
+    expect(parseTypedDate(" 31/03/2026 ")).toBe("2026-03-31");
+  });
+
+  it("never reads month first, and refuses dates that do not exist", () => {
+    expect(parseTypedDate("05/06/2025")).toBe("2025-06-05");
+    expect(parseTypedDate("31/02/2025")).toBeNull();
+    expect(parseTypedDate("13/13/2025")).toBeNull();
+    expect(parseTypedDate("2025-06-09")).toBeNull();
+    expect(parseTypedDate("09/06")).toBeNull();
+    expect(parseTypedDate("")).toBeNull();
+  });
+
+  it("puts the slashes in while digits are typed", () => {
+    expect(maskTypedDate("0")).toBe("0");
+    expect(maskTypedDate("0906")).toBe("09/06");
+    expect(maskTypedDate("090620")).toBe("09/06/20");
+    expect(maskTypedDate("0906202512")).toBe("09/06/2025");
+    expect(maskTypedDate("9/6/25")).toBe("9/6/25");
+    // Typing on after the mask's own slashes.
+    expect(maskTypedDate("09/062")).toBe("09/06/2");
+    expect(maskTypedDate("09/06/20251")).toBe("09/06/2025");
+    expect(maskTypedDate("09/")).toBe("09/");
+    expect(maskTypedDate("09/0")).toBe("09/0");
+  });
+});

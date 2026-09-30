@@ -753,6 +753,17 @@ export class AccountsService implements BooksApi {
       );
     }
 
+    const openings = input.openings ?? {};
+    for (const [headId, paise] of Object.entries(openings)) {
+      if (!Number.isInteger(paise) || paise < 0) {
+        return fail(
+          "negative_opening_balance",
+          "ઉઘડતી સિલક ઋણ ન હોઈ શકે",
+          `opening balance for grant head ${headId} must be a whole number of paise, not negative`,
+        );
+      }
+    }
+
     if (preview.existingLabels.includes(label)) {
       return fail(
         "year_exists",
@@ -793,8 +804,9 @@ export class AccountsService implements BooksApi {
           data: {
             financialYearId: next.id,
             grantHeadId: head.id,
+            // This year's બંધ સિલક, unless the school changed it on the way.
             // Cash is zero: closing cash is refused above, so all of it is bank.
-            bankPaise: closingByHead.get(head.id) ?? 0,
+            bankPaise: openings[head.id] ?? closingByHead.get(head.id) ?? 0,
             cashPaise: 0,
           },
         });

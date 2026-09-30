@@ -52,8 +52,16 @@ export interface Strings {
   amount: string;
   remarks: string;
   suggestRemove: string;
+  phoneticOn: string;
+  phoneticOff: string;
+  phoneticTitle: string;
+  phoneticHelp: string;
+  phoneticHelpNote: string;
   suggestHelp: string;
   grantHead: string;
+  grantHeadNewOption: string;
+  grantHeadNewPlaceholder: string;
+  grantHeadNewAdd: string;
   bank: string;
   cash: string;
   none: string;
@@ -334,6 +342,9 @@ export interface Strings {
   yearEndClosingSection: (label: string, date: string) => string;
   yearEndClosing: string;
   yearEndNextOpening: string;
+  yearEndNextOpeningHint: string;
+  yearEndOpeningChanged: string;
+  yearEndOpeningReset: string;
   yearEndCloseSection: string;
   yearNextLabel: string;
   yearLabelTaken: string;
@@ -503,7 +514,15 @@ export const gu: Strings = {
   date: "તારીખ",
   amount: "રકમ",
   remarks: "રીમાર્કસ",
+  grantHeadNewOption: "+ નવો ગ્રાન્ટ હેડ (કસ્ટમ)…",
+  grantHeadNewPlaceholder: "નવા ગ્રાન્ટ હેડનું નામ",
+  grantHeadNewAdd: "ઉમેરો",
   suggestRemove: "આ સૂચન ભૂલી જાઓ (Shift+Delete)",
+  phoneticOn: "ગુજરાતી ટાઇપિંગ ચાલુ",
+  phoneticOff: "ગુજરાતી ટાઇપિંગ બંધ",
+  phoneticTitle: "ચાલુ હોય ત્યારે અંગ્રેજી અક્ષરોથી ગુજરાતી (યુનિકોડ) લખાય: shaaLaa → શાળા",
+  phoneticHelp: "કઈ કી થી કયો અક્ષર",
+  phoneticHelpNote: "વ્યંજન પછી a લખો તો પૂરો અક્ષર (ka → ક), નહીં તો જોડાક્ષર (gr → ગ્ર). રકમ, તારીખ અને નંબરના ખાનાં અંગ્રેજીમાં જ રહે છે.",
   suggestHelp: "↑↓ પસંદ કરો · Tab / Enter ભરો · Esc બંધ",
   grantHead: "ગ્રાન્ટ હેડ",
   bank: "બેન્ક",
@@ -786,6 +805,10 @@ export const gu: Strings = {
   yearEndClosingSection: (label, date) => `${label} ની બંધ સિલક (${date})`,
   yearEndClosing: "બંધ સિલક",
   yearEndNextOpening: "આવતા વર્ષની ઉઘડતી સિલક",
+  yearEndNextOpeningHint:
+    "બંધ સિલક આપોઆપ આવતા વર્ષની શરૂ સિલક બને છે. જરૂર હોય તો અહીં રકમ બદલી શકો છો; વર્ષ બંધ થયા પછી પણ \"ઉઘડતી સિલક\" પાના પર બદલી શકાશે.",
+  yearEndOpeningChanged: "બદલેલ",
+  yearEndOpeningReset: "બંધ સિલક પ્રમાણે કરો",
   yearEndCloseSection: "નવું વર્ષ શરૂ કરો",
   yearNextLabel: "નવું નાણાકીય વર્ષ",
   yearLabelTaken: "આ વર્ષ પહેલેથી છે.",
@@ -959,7 +982,15 @@ export const en: Strings = {
   date: "Date",
   amount: "Amount",
   remarks: "Remarks",
+  grantHeadNewOption: "+ New grant head (custom)…",
+  grantHeadNewPlaceholder: "Name of the new grant head",
+  grantHeadNewAdd: "Add",
   suggestRemove: "Forget this suggestion (Shift+Delete)",
+  phoneticOn: "Gujarati typing on",
+  phoneticOff: "Gujarati typing off",
+  phoneticTitle: "When on, English letters type Gujarati (Unicode): shaaLaa → શાળા",
+  phoneticHelp: "Which keys give which letters",
+  phoneticHelpNote: "Two consonants in a row join (gr → ગ્ર); a word can end in a consonant (kharch → ખર્ચ). Amount, date and number boxes stay in English.",
   suggestHelp: "↑↓ choose · Tab / Enter fill in · Esc close",
   grantHead: "Grant head",
   bank: "Bank",
@@ -1243,6 +1274,10 @@ export const en: Strings = {
   yearEndClosingSection: (label, date) => `Closing balances for ${label} (${date})`,
   yearEndClosing: "Closing balance",
   yearEndNextOpening: "Next year's opening",
+  yearEndNextOpeningHint:
+    "Each closing balance becomes next year's opening balance by itself. Change an amount here if you need to; it can still be changed on the Opening balances screen after the year is closed.",
+  yearEndOpeningChanged: "changed",
+  yearEndOpeningReset: "Use the closing balance",
   yearEndCloseSection: "Start the next year",
   yearNextLabel: "New financial year",
   yearLabelTaken: "That year already exists.",

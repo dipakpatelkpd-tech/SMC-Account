@@ -5,7 +5,7 @@ import type { FinancialYearDto, YearEndPreviewDto } from "../../shared/api.js";
 import type { Issue } from "../../engine/validation.js";
 import { IssueList } from "../components/IssueList.js";
 import { Money } from "../components/Money.js";
-import { formatDate } from "../format.js";
+import { amountToInput, formatDate, tryParseAmount } from "../format.js";
 import { useStrings } from "../i18n/index.js";
 
 /**
@@ -29,6 +29,8 @@ export function YearEnd(): JSX.Element {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [failure, setFailure] = useState<string | null>(null);
+  // Next year's opening per head, as typed; starts as this year's closing.
+  const [openings, setOpenings] = useState<Record<number, string>>({});
 
   useEffect(() => {
     void (async () => {
@@ -40,6 +42,9 @@ export function YearEnd(): JSX.Element {
         setPreview(nextPreview);
         setYears(nextYears);
         setNextLabel(nextPreview.suggestedNextLabel);
+        setOpenings(
+          Object.fromEntries(nextPreview.rows.map((row) => [row.grantHeadId, amountToInput(row.closingPaise)])),
+        );
       } catch (cause) {
         setFailure(cause instanceof Error ? cause.message : String(cause));
       } finally {
@@ -59,6 +64,17 @@ export function YearEnd(): JSX.Element {
 
   if (loading || !preview) return <div className="state">{t.calculating}</div>;
 
+  // What each head will open with, or null where the typed amount is not one.
+  const openingOf = (row: YearEndPreviewDto["rows"][number]): number | null => {
+    const typed = openings[row.grantHeadId];
+    return typed === undefined ? row.closingPaise : tryParseAmount(typed);
+  };
+  const openingsValid = preview.rows.every((row) => {
+    const paise = openingOf(row);
+    return paise !== null && paise >= 0;
+  });
+  const totalOpening = preview.rows.reduce((sum, row) => sum + (openingOf(row) ?? 0), 0);
+
   const labelValid = /^\d{4}-\d{2}$/.test(nextLabel.trim());
   const labelTaken = preview.existingLabels.includes(nextLabel.trim());
   const closed = preview.year.status !== "OPEN";
@@ -68,6 +84,7 @@ export function YearEnd(): JSX.Element {
     !labelTaken &&
     preview.blocking.length === 0 &&
     preview.cashPaise === 0 &&
+    openingsValid &&
     !busy;
 
   async function closeYear(): Promise<void> {
@@ -75,7 +92,13 @@ export function YearEnd(): JSX.Element {
     if (!window.confirm(t.yearConfirmClose(preview!.year.label, nextLabel.trim()))) return;
 
     setBusy(true);
-    const result = await api.closeYear({ nextLabel: nextLabel.trim() });
+    // Only the heads the school changed; the rest carry their closing over.
+    const changed = Object.fromEntries(
+      preview!.rows
+        .filter((row) => openingOf(row) !== row.closingPaise)
+        .map((row) => [row.grantHeadId, openingOf(row)!]),
+    );
+    const result = await api.closeYear({ nextLabel: nextLabel.trim(), openings: changed });
     setBusy(false);
     if (!result.ok) {
       setIssues(result.issues);
@@ -120,28 +143,66 @@ export function YearEnd(): JSX.Element {
             </tr>
           </thead>
           <tbody>
-            {preview.rows.map((row) => (
-              <tr key={row.headCode}>
-                <td>{row.headNameGu}</td>
-                <td className="num">
-                  <Money paise={row.closingPaise} />
-                </td>
-                <td className="num">
-                  <Money paise={row.closingPaise} />
-                </td>
-              </tr>
-            ))}
+            {preview.rows.map((row) => {
+              const paise = openingOf(row);
+              const changed = paise !== row.closingPaise;
+              return (
+                <tr key={row.headCode}>
+                  <td>{row.headNameGu}</td>
+                  <td className="num">
+                    <Money paise={row.closingPaise} />
+                  </td>
+                  <td className="num">
+                    {closed ? (
+                      <Money paise={row.closingPaise} />
+                    ) : (
+                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", alignItems: "center" }}>
+                        {changed && paise !== null && (
+                          <button
+                            type="button"
+                            className="ghost small"
+                            title={t.yearEndOpeningReset}
+                            onClick={() =>
+                              setOpenings((current) => ({
+                                ...current,
+                                [row.grantHeadId]: amountToInput(row.closingPaise),
+                              }))
+                            }
+                          >
+                            {t.yearEndOpeningChanged} ↺
+                          </button>
+                        )}
+                        <input
+                          className="num-input"
+                          inputMode="decimal"
+                          style={{
+                            width: 130,
+                            textAlign: "right",
+                            borderColor: paise === null || paise < 0 ? "var(--error-line)" : undefined,
+                          }}
+                          value={openings[row.grantHeadId] ?? ""}
+                          onChange={(event) =>
+                            setOpenings((current) => ({ ...current, [row.grantHeadId]: event.target.value }))
+                          }
+                        />
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
             <tr className="total-row">
               <td>{t.total}</td>
               <td className="num">
                 <Money paise={preview.totalClosingPaise} />
               </td>
               <td className="num">
-                <Money paise={preview.totalClosingPaise} />
+                <Money paise={closed ? preview.totalClosingPaise : totalOpening} />
               </td>
             </tr>
           </tbody>
         </table>
+        {!closed && <p className="muted">{t.yearEndNextOpeningHint}</p>}
       </section>
 
       <section className="card">

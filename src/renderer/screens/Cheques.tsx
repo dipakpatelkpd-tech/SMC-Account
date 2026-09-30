@@ -4,6 +4,7 @@ import type { BillDto, ChequeDto, ChequeInput, GrantHeadDto } from "../../shared
 import type { Issue } from "../../engine/validation.js";
 import type { ChequeType } from "../../lib/types.js";
 import { Money } from "../components/Money.js";
+import { DateInput } from "../components/DateInput.js";
 import { IssueList } from "../components/IssueList.js";
 import { chequeTypeLabels, amountToInput, formatDate, tryParseAmount } from "../format.js";
 import { useStrings, type Strings } from "../i18n/index.js";
@@ -301,32 +302,15 @@ function ChequeForm({
         </div>
         <div className="field">
           <label htmlFor="cdate">{t.chequeDate}</label>
-          <input
-            id="cdate"
-            type="date"
-            value={chequeDate}
-            onChange={(e) => setChequeDate(e.target.value)}
-            required
-          />
+          <DateInput id="cdate" value={chequeDate} onChange={setChequeDate} required />
         </div>
         <div className="field">
           <label htmlFor="cbdate">{t.cashbookDate}</label>
-          <input
-            id="cbdate"
-            type="date"
-            value={cashbookDate}
-            onChange={(e) => setCashbookDate(e.target.value)}
-            required
-          />
+          <DateInput id="cbdate" value={cashbookDate} onChange={setCashbookDate} required />
         </div>
         <div className="field">
           <label htmlFor="cashed">{t.cashedDate}</label>
-          <input
-            id="cashed"
-            type="date"
-            value={cashedDate}
-            onChange={(e) => setCashedDate(e.target.value)}
-          />
+          <DateInput id="cashed" value={cashedDate} onChange={setCashedDate} />
         </div>
         <div className="field">
           <label htmlFor="payee">{t.payee}</label>

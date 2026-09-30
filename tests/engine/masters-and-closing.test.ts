@@ -258,3 +258,30 @@ describe("closing the year", () => {
     if (!missing.ok) expect(missing.issues[0]!.code).toBe("unknown_year");
   });
 });
+
+describe("changing next year's openings while closing", () => {
+  it("opens with the amounts the school typed, and the closing balance everywhere else", async () => {
+    const year = await prisma.financialYear.findFirstOrThrow({ where: { label: "2027-28" } });
+    const books = new AccountsService(prisma, year.id);
+    const preview = await books.getYearEndPreview();
+    const changed = preview.rows.find((row) => row.headCode === "SWACHHATA")!;
+
+    const refused = await books.closeYear({ nextLabel: "2028-29", openings: { [changed.grantHeadId]: -5 } });
+    expect(refused.ok).toBe(false);
+
+    const result = await books.closeYear({
+      nextLabel: "2028-29",
+      openings: { [changed.grantHeadId]: rupeesToPaise(1500) },
+    });
+    expect(result.ok, JSON.stringify(result)).toBe(true);
+    if (!result.ok) return;
+
+    const openings = await new AccountsService(prisma, result.data.id).listOpeningBalances();
+    for (const opening of openings) {
+      const closing = preview.rows.find((row) => row.headCode === opening.headCode)!;
+      expect(opening.bankPaise, opening.headCode).toBe(
+        opening.headCode === "SWACHHATA" ? rupeesToPaise(1500) : closing.closingPaise,
+      );
+    }
+  });
+});

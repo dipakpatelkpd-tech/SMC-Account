@@ -213,6 +213,12 @@ export interface YearEndPreviewDto {
 
 export interface CloseYearInput {
   nextLabel: string;
+  /**
+   * Next year's opening balance per grant head id, in paise, where the school
+   * changed it. A head not listed opens with its closing balance - the બંધ સિલક
+   * carries over by itself.
+   */
+  openings?: Record<number, number>;
 }
 
 // -------------------------------------------------------------------- setup

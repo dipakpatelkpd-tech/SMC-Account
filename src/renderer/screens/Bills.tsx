@@ -3,6 +3,8 @@ import { api } from "../api.js";
 import type { BillDto, BillInput, GrantHeadDto } from "../../shared/api.js";
 import type { Issue } from "../../engine/validation.js";
 import { Money } from "../components/Money.js";
+import { DateInput } from "../components/DateInput.js";
+import { GrantHeadSelect } from "../components/GrantHeadSelect.js";
 import { IssueList } from "../components/IssueList.js";
 import { amountToInput, formatDate, tryParseAmount } from "../format.js";
 import { useStrings, type Strings } from "../i18n/index.js";
@@ -84,6 +86,11 @@ export function Bills({ onChanged }: { onChanged: () => void }): JSX.Element {
           nextVoucher={(vouchers[vouchers.length - 1] ?? 0) + 1}
           onCancel={() => { setEditing(null); setIssues([]); }}
           onSave={save}
+          onHeadCreated={(head) => {
+            // Straight into the list, and every figure refreshed with it.
+            setHeads((current) => [...current, head]);
+            onChanged();
+          }}
         />
       )}
 
@@ -178,6 +185,7 @@ function BillForm({
   nextVoucher,
   onCancel,
   onSave,
+  onHeadCreated,
 }: {
   t: Strings;
   heads: GrantHeadDto[];
@@ -185,6 +193,7 @@ function BillForm({
   nextVoucher: number;
   onCancel: () => void;
   onSave: (input: BillInput, id: number | null) => Promise<void>;
+  onHeadCreated: (head: GrantHeadDto) => void;
 }): JSX.Element {
   const [voucherNo, setVoucherNo] = useState(String(bill?.voucherNo ?? nextVoucher));
   const [billNo, setBillNo] = useState(bill?.billNo ?? "");
@@ -259,23 +268,17 @@ function BillForm({
         </div>
         <div className="field">
           <label htmlFor="billdate">{t.billDate}</label>
-          <input
-            id="billdate"
-            type="date"
-            value={billDate}
-            onChange={(e) => setBillDate(e.target.value)}
-            required
-          />
+          <DateInput id="billdate" value={billDate} onChange={setBillDate} required />
         </div>
         <div className="field">
           <label htmlFor="head">{t.grantHead}</label>
-          <select id="head" value={grantHeadId} onChange={(e) => setGrantHeadId(Number(e.target.value))}>
-            {heads.map((head) => (
-              <option key={head.id} value={head.id}>
-                {head.nameGu}
-              </option>
-            ))}
-          </select>
+          <GrantHeadSelect
+            id="head"
+            heads={heads}
+            value={grantHeadId}
+            onChange={setGrantHeadId}
+            onCreated={onHeadCreated}
+          />
         </div>
         <div className="field">
           <label htmlFor="desc">{t.billDescription}</label>

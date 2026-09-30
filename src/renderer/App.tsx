@@ -17,6 +17,7 @@ import { Login } from "./screens/Login.js";
 import { Schools } from "./screens/Schools.js";
 import { BackupBadge } from "./components/BackupBadge.js";
 import { Suggestions } from "./components/Suggestions.js";
+import { PhoneticTyping } from "./components/PhoneticTyping.js";
 import { flushSuggestions, startSuggestionSync } from "./suggestions/sync.js";
 import { LanguageProvider, useStrings } from "./i18n/index.js";
 import { PrintRoot, printableReportFromHash } from "./print/PrintRoot.js";
@@ -57,6 +58,8 @@ export function App(): JSX.Element {
       <Root />
       {/* Once, above every screen: it watches whichever text box has focus. */}
       <Suggestions />
+      {/* Gujarati from English letters, in every text box (Ctrl+G). */}
+      <PhoneticTyping />
     </LanguageProvider>
   );
 }
