@@ -13,7 +13,7 @@
  * appears on, which only exists once the rojmel is paginated; pass a `pageOf`
  * resolver then and the rows fill in.
  */
-import { withNa } from "../lib/gujarati.js";
+import { paidForGu } from "../lib/gujarati.js";
 import { add, paise, type Paise, ZERO } from "../lib/money.js";
 import { chequeAllocation } from "./allocation.js";
 import type { Ledger, LedgerRow, YearBook } from "./types.js";
@@ -124,7 +124,7 @@ function receiptDescription(headCode: string): string {
  * not the cheque's full four-head purpose line. So the text is built from the
  * bills of THIS head within that cheque.
  *
- * It always reads "<what>ના ચુકવ્યા વા.મુજબ" - the ના as the client asked for it
+ * It always reads "<what>ના નાણાં ચુકવ્યા વા.મુજબ", as the client asked for it
  * on every such line.
  */
 function chequeDescriptionFor(cheque: YearBook["cheques"][number], headCode: string): string {
@@ -143,6 +143,6 @@ function chequeDescriptionFor(cheque: YearBook["cheques"][number], headCode: str
   // cheque's own purpose rather than printing an empty cell.
   if (descriptions.length === 0) return cheque.purposeGu;
 
-  // "... સરભરા ખર્ચના ચુકવ્યા વા.મુજબ": every such line reads with ના.
-  return `${withNa(descriptions.join(", "))} ચુકવ્યા વા.મુજબ`;
+  // "... સરભરા ખર્ચના નાણાં ચુકવ્યા વા.મુજબ".
+  return `${paidForGu(descriptions.join(", "))} વા.મુજબ`;
 }

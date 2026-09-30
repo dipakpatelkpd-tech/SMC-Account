@@ -109,3 +109,13 @@ describe("dates as typed, day first", async () => {
     expect(maskTypedDate("09/0")).toBe("09/0");
   });
 });
+
+describe("payment wording", async () => {
+  const { paidForGu } = await import("../src/lib/gujarati.js");
+
+  it("reads <what>ના નાણાં ચુકવ્યા, once, however the description ends", () => {
+    expect(paidForGu("વાલી સંમેલન સરભરા ખર્ચ")).toBe("વાલી સંમેલન સરભરા ખર્ચના નાણાં ચુકવ્યા");
+    expect(paidForGu("બાળમેળો મટરીયલ્સના")).toBe("બાળમેળો મટરીયલ્સના નાણાં ચુકવ્યા");
+    expect(paidForGu("સરભરા ખર્ચના નાણાં ")).toBe("સરભરા ખર્ચના નાણાં ચુકવ્યા");
+  });
+});

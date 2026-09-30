@@ -28,10 +28,19 @@ export function inDigits(text: string, style: DigitStyle): string {
 
 /**
  * "વાલી સંમેલન સરભરા ખર્ચ" -> "વાલી સંમેલન સરભરા ખર્ચના": what was paid for, as
- * it reads before "ચુકવ્યા" ("... ખર્ચના ચુકવ્યા વા.મુજબ"). Text that already
- * ends in ના is left alone.
+ * it reads before "નાણાં ચુકવ્યા". Text that already ends in ના is left alone.
  */
 export function withNa(text: string): string {
   const trimmed = text.trim();
   return trimmed.endsWith("ના") ? trimmed : `${trimmed}ના`;
+}
+
+/**
+ * "વાલી સંમેલન સરભરા ખર્ચ" -> "વાલી સંમેલન સરભરા ખર્ચના નાણાં ચુકવ્યા": the
+ * wording of every payment line, as the client asked for it - ના, then નાણાં
+ * (the money), then ચુકવ્યા. Text that already says "...ના નાણાં" gets it once.
+ */
+export function paidForGu(text: string): string {
+  const trimmed = text.trim().replace(/\s*નાણાં$/, "");
+  return `${withNa(trimmed)} નાણાં ચુકવ્યા`;
 }

@@ -20,7 +20,7 @@
  * every entry, so `pageResolver()` here is what fills in those references.
  */
 import { add, paise, sum, type Paise, ZERO } from "../lib/money.js";
-import { withNa } from "../lib/gujarati.js";
+import { paidForGu } from "../lib/gujarati.js";
 import { addDays, endOfMonth, formatDate, formatDateShort } from "../lib/dates.js";
 import { billNet, chequeAllocation, chequeAmount } from "./allocation.js";
 import { openingBank, openingCash } from "./balances.js";
@@ -388,7 +388,7 @@ function activeBlock(
       paymentLines.push({
         side: "payment",
         dateText: "",
-        descriptionGu: `${cheque.payeeGu}ને ${withNa(cheque.purposeGu)} ચુકવ્યા વા.મુજબ`,
+        descriptionGu: `${cheque.payeeGu}ને ${paidForGu(cheque.purposeGu)} વા.મુજબ`,
         referenceText: "",
         chequeText: "",
         cashPaise: ZERO,
