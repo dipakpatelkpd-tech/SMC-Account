@@ -102,13 +102,13 @@ export function RojmelSheet({
 
 function Block({ block }: { block: RojmelBlock }): JSX.Element {
   const footer = (which: "spent" | "closing" | "grand"): string => ROW_KEYS.rojmelFooter(block.id, which);
-  // A row the school gave a height keeps it; the others grow to fill the sheet
-  // (PrintRoot, spreadBlocks).
+  // A row the school gave its own height keeps it on every page; the others
+  // grow to fill their sheet (PrintRoot, spreadBlocks). The whole report's row
+  // height is only where the others start from: they still fill the sheet.
   const layout = useReportLayout()?.layout;
   const heightSet = (row: string, group: string): boolean =>
     layout !== undefined &&
-    (layout.rowHeightMm !== undefined ||
-      layout.styles[targetKey({ kind: "row", row })]?.heightMm !== undefined ||
+    (layout.styles[targetKey({ kind: "row", row })]?.heightMm !== undefined ||
       layout.styles[targetKey({ kind: "row", row: group })]?.heightMm !== undefined);
 
   return (

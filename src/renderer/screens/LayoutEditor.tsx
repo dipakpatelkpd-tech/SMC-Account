@@ -677,7 +677,26 @@ export function LayoutEditor({
   const defaults = REPORT_DEFAULTS[report];
   const column = cellSelection ? columns.find((each) => each.id === cellSelection.anchor.col) : undefined;
   const part = selection?.kind === "part" ? REPORT_PARTS[report].find((each) => each.id === selection.part) : undefined;
-  const heightAllowed = targets.length > 0 && targets.every((target) => target.kind === "row" || target.kind === "part");
+  // A row's height, as Excel has it: whatever is selected in a row - one cell
+  // or a range - sets the height of its whole row, and that row in every block.
+  const heightTargets: LayoutTarget[] =
+    selection?.kind === "part"
+      ? [{ kind: "part", part: selection.part }]
+      : cellSelection
+        ? [
+            ...new Set(
+              cellSelection.cells
+                .map((cell) => cell.group ?? cell.row)
+                .filter((row): row is string => row !== null && row !== "head"),
+            ),
+          ].map((row): LayoutTarget => ({ kind: "row", row }))
+        : [];
+  const heightNow = heightTargets[0] ? draft.styles[targetKey(heightTargets[0])]?.heightMm : undefined;
+  const setHeight = (heightMm: number | undefined): void => {
+    let next = draft;
+    for (const target of heightTargets) next = withStyle(next, target, { heightMm });
+    change(next);
+  };
   const gapKey = cellSelection ? (cellSelection.anchor.group ?? cellSelection.anchor.row) : null;
   const needsSelection = reportMode ? t.excelNeedsSelection : undefined;
 
@@ -877,17 +896,17 @@ export function LayoutEditor({
               onChange={(widthMm) => apply({ widthMm })}
             />
           )}
-          {heightAllowed && (
+          {heightTargets.length > 0 && (
             <MiniStepper
               label={`${t.layoutThisRowHeight} (${t.mm})`}
-              value={own.heightMm}
+              value={heightNow}
               placeholder={
                 selection?.kind === "part" ? selection.heightMm : (cellSelection?.anchor.rowMm ?? undefined)
               }
               step={0.5}
               min={2}
               max={80}
-              onChange={(heightMm) => apply({ heightMm })}
+              onChange={setHeight}
             />
           )}
           {cellSelection?.anchor.gapAllowed && gapKey !== null && (
@@ -901,7 +920,7 @@ export function LayoutEditor({
             />
           )}
           {!cellSelection && !part && <span className="ribbon-hint">{t.excelCellsHint}</span>}
-          {cellSelection && effectiveScope !== "row" && (
+          {heightTargets.length > 0 && cellSelection?.anchor.group && (
             <span className="ribbon-hint">{t.excelRowHeightHint}</span>
           )}
         </div>

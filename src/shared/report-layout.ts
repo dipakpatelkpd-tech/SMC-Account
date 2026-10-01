@@ -1011,7 +1011,8 @@ export function layoutCss(report: PrintableReportId, layout: ReportLayout, root:
   }
   if (layout.rowHeightMm !== undefined) {
     rules.push(
-      `${table} > tbody > tr:not(.layout-gap):not(.block-gap) > td { height: ${layout.rowHeightMm}mm; }`,
+      // :where keeps this weaker than a row's (or its group's) own height.
+      `${table} > tbody > :where(tr:not(.layout-gap):not(.block-gap)) > td { height: ${layout.rowHeightMm}mm; }`,
     );
   }
   if (layout.align) {
