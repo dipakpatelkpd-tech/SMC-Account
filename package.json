@@ -1,6 +1,8 @@
 {
   "name": "smc-accounts",
   "version": "0.2.0",
+  "description": "SMC grant accounts and audit registers",
+  "author": "SMC Accounts",
   "private": true,
   "type": "module",
   "main": "out/main/index.js",
@@ -112,12 +114,19 @@
           ]
         }
       ],
-      "artifactName": "SMC-Accounts-${version}-setup.${ext}"
+      "artifactName": "SMC-Accounts-${version}-setup.${ext}",
+      "icon": "build/icon.png"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "perMachine": false
+      "perMachine": false,
+      "include": "build/installer.nsh",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SMC Accounts",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
     },
     "linux": {
       "target": [
@@ -129,6 +138,13 @@
       {
         "from": "prisma/migrations",
         "to": "prisma/migrations",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "build/fonts/licences",
+        "to": "font-licences",
         "filter": [
           "**/*"
         ]

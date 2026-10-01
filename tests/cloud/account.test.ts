@@ -14,7 +14,7 @@ import { cleanUpTemp, tempDir } from "./helpers.js";
 
 afterAll(cleanUpTemp);
 
-function world(options: { accessTokenSeconds?: number } = {}) {
+function world(options: { accessTokenSeconds?: number; approveNewAccounts?: boolean } = {}) {
   const codes: { email: string; code: string; purpose: string }[] = [];
   let offline = false;
   let now = Date.parse("2026-06-01T10:00:00Z");
@@ -23,6 +23,7 @@ function world(options: { accessTokenSeconds?: number } = {}) {
     onCode: (email, code, purpose) => codes.push({ email, code, purpose }),
     isOffline: () => offline,
     accessTokenSeconds: options.accessTokenSeconds,
+    approveNewAccounts: options.approveNewAccounts,
     now: () => now,
   });
   const pc = (dir = tempDir("pc")) => ({ dir, account: new Account(cloud, dir, PLAIN_BOX, () => now) });
@@ -158,5 +159,40 @@ describe("school keys on a PC", () => {
     await expect(stranger.account.keyFor("5f8a1f2e-0000-4000-8000-000000000002")).rejects.toMatchObject({
       code: "not-found",
     });
+  });
+});
+
+describe("approval by the software's owner", () => {
+  it("lets no account in until the owner approves it, and keeps nothing on the PC meanwhile", async () => {
+    const w = world({ approveNewAccounts: false });
+    const pc = w.pc();
+    await pc.account.signUp("head@school.in", "correct horse 1");
+    await expect(pc.account.verifySignUp("head@school.in", w.lastCode())).rejects.toMatchObject({
+      code: "not-approved",
+    });
+    expect(pc.account.user).toBeNull();
+    expect(existsSync(path.join(pc.dir, "session.bin"))).toBe(false);
+    await expect(pc.account.signIn("head@school.in", "correct horse 1")).rejects.toMatchObject({ code: "not-approved" });
+
+    w.cloud.setApproved("head@school.in", true);
+    expect((await pc.account.signIn("head@school.in", "correct horse 1")).email).toBe("head@school.in");
+    expect(await pc.account.stillApproved()).toBe(true);
+  });
+
+  it("signs the PC out when the owner withdraws the account - but not merely for being offline", async () => {
+    const w = world({ approveNewAccounts: false });
+    const pc = w.pc();
+    await pc.account.signUp("head@school.in", "correct horse 1");
+    w.cloud.setApproved("head@school.in", true);
+    await pc.account.verifySignUp("head@school.in", w.lastCode());
+
+    w.setOffline(true);
+    expect(await pc.account.stillApproved()).toBe(true);
+    expect(pc.account.user).not.toBeNull();
+
+    w.setOffline(false);
+    w.cloud.setApproved("head@school.in", false);
+    expect(await pc.account.stillApproved()).toBe(false);
+    expect(pc.account.user).toBeNull();
   });
 });

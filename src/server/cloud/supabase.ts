@@ -140,6 +140,16 @@ export class SupabaseCloud implements CloudBackend {
     if (error) throw authFailure(error);
   }
 
+  async isApproved(session: CloudSession): Promise<boolean> {
+    const { data, error, status } = await this.as(session)
+      .from("account_access")
+      .select("approved")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+    if (error) throw dataFailure(error, status);
+    return (data as { approved?: boolean } | null)?.approved === true;
+  }
+
   // ---------------------------------------------------------------- schools
 
   async listProfiles(session: CloudSession): Promise<CloudProfile[]> {

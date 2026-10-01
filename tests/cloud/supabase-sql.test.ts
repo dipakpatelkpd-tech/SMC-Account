@@ -18,6 +18,10 @@ const MIGRATION = readFileSync(
   path.join(process.cwd(), "supabase", "migrations", "0001_smc_cloud.sql"),
   "utf8",
 );
+const APPROVAL = readFileSync(
+  path.join(process.cwd(), "supabase", "migrations", "0002_account_approval.sql"),
+  "utf8",
+);
 
 /** What a fresh Supabase project provides before our migration runs. */
 const SUPABASE_BASICS = `
@@ -74,7 +78,10 @@ beforeAll(async () => {
   db = new PGlite();
   await db.exec(SUPABASE_BASICS);
   await db.exec(MIGRATION);
+  await db.exec(APPROVAL);
   await db.query("insert into auth.users (id, email) values ($1, 'a@x.in'), ($2, 'b@x.in')", [A, B]);
+  // The owner approves both, as in the dashboard.
+  await db.query("update public.account_access set approved = true where user_id in ($1, $2)", [A, B]);
   await as("authenticated", A, "select * from public.create_profile($1, 'બેટાવાડા', '241602', $2)", [
     schoolA,
     key(),
@@ -92,6 +99,7 @@ afterAll(async () => {
 describe("the migration", () => {
   it("can be run a second time without harm", async () => {
     await expect(db.exec(MIGRATION)).resolves.toBeDefined();
+    await expect(db.exec(APPROVAL)).resolves.toBeDefined();
   });
 
   it("makes a private backups bucket", async () => {
@@ -190,5 +198,65 @@ describe("someone who is not signed in", () => {
       as("anon", null, "select * from public.create_profile($1, 'x', '1', $2)", [randomUUID(), key()]),
     ).rejects.toThrow(/permission denied/);
     expect((await as("anon", null, "select * from storage.objects")).rows).toEqual([]);
+  });
+});
+
+describe("approving accounts", () => {
+  const C = randomUUID();
+  const schoolC = randomUUID();
+
+  beforeAll(async () => {
+    // A new sign-up: the trigger makes its row, not approved.
+    await db.query("insert into auth.users (id, email) values ($1, 'c@x.in')", [C]);
+  });
+
+  it("makes every new account's row unapproved, and shows an account only its own", async () => {
+    expect((await as("authenticated", C, "select email, approved from public.account_access")).rows).toEqual([
+      { email: "c@x.in", approved: false },
+    ]);
+    expect((await as("authenticated", C, "select public.is_approved() as ok")).rows).toEqual([{ ok: false }]);
+    expect((await as("authenticated", A, "select public.is_approved() as ok")).rows).toEqual([{ ok: true }]);
+  });
+
+  it("refuses an unapproved account every school, key, backup and file", async () => {
+    await expect(
+      as("authenticated", C, "select * from public.create_profile($1, 'x', '777', $2)", [schoolC, key()]),
+    ).rejects.toThrow(/row-level security/);
+    await expect(
+      as("authenticated", C, "insert into storage.objects (bucket_id, name) values ('backups', $1)", [`${C}/${schoolC}/x.smcbak`]),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it("will not let an account approve itself", async () => {
+    await expect(
+      as("authenticated", C, "update public.account_access set approved = true where user_id = $1", [C]),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      as("authenticated", C, "insert into public.account_access (user_id, approved) values ($1, true)", [randomUUID()]),
+    ).rejects.toThrow(/permission denied/);
+  });
+
+  it("lets an account in once the owner approves it, and out again when withdrawn", async () => {
+    await db.query("update public.account_access set approved = true where user_id = $1", [C]);
+    await as("authenticated", C, "select * from public.create_profile($1, 'x', '777', $2)", [schoolC, key()]);
+    expect((await as("authenticated", C, "select id from public.profiles")).rows).toEqual([{ id: schoolC }]);
+
+    await db.query("update public.account_access set approved = false where user_id = $1", [C]);
+    expect((await as("authenticated", C, "select id from public.profiles")).rows).toEqual([]);
+    expect((await as("authenticated", C, "select profile_id from public.profile_keys")).rows).toEqual([]);
+  });
+
+  it("approves the accounts that existed before the gate was added", async () => {
+    const fresh = new PGlite();
+    try {
+      await fresh.exec(SUPABASE_BASICS);
+      await fresh.exec(MIGRATION);
+      const old = randomUUID();
+      await fresh.query("insert into auth.users (id, email) values ($1, 'old@x.in')", [old]);
+      await fresh.exec(APPROVAL);
+      expect((await fresh.query("select approved from public.account_access")).rows).toEqual([{ approved: true }]);
+    } finally {
+      await fresh.close();
+    }
   });
 });

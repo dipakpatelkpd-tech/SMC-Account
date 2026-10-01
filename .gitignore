@@ -12,7 +12,11 @@ node_modules/
 release/
 out/
 dist/
-build/
+# build/ holds installer inputs that ARE kept: the fonts, the NSIS script, the icon.
+build/*
+!build/fonts/
+!build/installer.nsh
+!build/icon.png
 .next/
 .preview/
 

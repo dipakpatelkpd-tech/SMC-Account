@@ -277,6 +277,10 @@ export class AppController {
     const user = account?.user;
     if (!account || !user) return { schools: [], cloudReachable: false, legacyBooks: null };
 
+    // An account its owner has withdrawn is signed out here; the next state
+    // check shows the login, which then says why.
+    if (!(await account.stillApproved())) return { schools: [], cloudReachable: false, legacyBooks: null };
+
     let inCloud: CloudProfile[] | null = null;
     try {
       inCloud = await account.withSession((session) => account.backend.listProfiles(session));
@@ -433,6 +437,9 @@ export class AppController {
     const account = this.account;
     const user = account?.user;
     if (!account || !user) return failure(ISSUES.notSignedIn());
+    if (!(await account.stillApproved())) {
+      return failure(cloudIssue(new CloudError("not-approved", "approval withdrawn"), "openSchool"));
+    }
 
     await this.closeSchool();
 
@@ -992,6 +999,13 @@ function cloudIssue(error: unknown, where: string): Issue {
       );
     case "session-expired":
       return issue("session_expired", "લૉગિનની મુદત પૂરી થઈ. ફરી લૉગિન કરો.", "Your login has ended. Please log in again.", detail);
+    case "not-approved":
+      return issue(
+        "not_approved",
+        "આ ખાતું હજુ મંજૂર થયું નથી. સોફ્ટવેર આપનારને આ ઈમેલ જણાવીને ખાતું મંજૂર કરાવો, પછી ફરી લૉગિન કરો.",
+        "This account has not been approved yet. Ask the software's provider to approve this email, then log in again.",
+        detail,
+      );
     case "not-found":
       return issue(
         "not_found",

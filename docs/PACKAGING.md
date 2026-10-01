@@ -24,12 +24,22 @@ npm run pack:win
 That is: build the Electron bundles, put the **Windows** better-sqlite3 binary in
 place, and run electron-builder. The result lands in `release/`.
 
-On this Linux machine the last step needs **wine**, because the NSIS installer is
-a Windows executable that has to be built with Windows tools:
+**On a Windows PC** nothing else is needed: `git pull`, `npm install`,
+`npm run pack:win`.
+
+**On Linux** the last step needs **wine**, 64-bit (to stamp the icon and version
+into the .exe) and 32-bit (electron-builder runs the 32-bit installer stub once to
+extract the uninstaller):
 
 ```bash
-sudo apt install wine64
+sudo dpkg --add-architecture i386 && sudo apt update
+sudo apt install --no-install-recommends wine64 wine32:i386
+# Ubuntu 24.04 puts the loaders in /usr/lib/wine without a `wine` command:
+sudo ln -sf /usr/lib/wine/wine /usr/local/bin/wine
 ```
+
+If a build stopped at the installer step, `npx electron-builder --win --prepackaged
+release/win-unpacked` finishes it without rebuilding everything.
 
 Without wine everything up to the installer still works, and
 `release/win-unpacked/` holds a complete, runnable Windows application folder —
@@ -91,6 +101,26 @@ Windows, and the list of schools it has seen); the books are in
 database found at `%APPDATA%\smc-accounts\smc-accounts.db` is offered, after login,
 for moving into a school folder; it is renamed, never deleted.
 
+## Fonts installed with the app
+
+The installer also installs the Gujarati fonts the reports offer (Anek Gujarati,
+Baloo Bhai 2, Farsan, Hind Vadodara, Kumar One, Kumar One Outline, Mogra, Mukta
+Vaani, Noto Sans/Serif Gujarati, Rasa, Shrikhand — 23 files in `build/fonts/`), so
+the Excel files the app exports look right in Excel and Word too. The app itself
+does not need them: its reports carry their own copies.
+
+- They go in for the **current Windows user**
+  (`%LOCALAPPDATA%\Microsoft\Windows\Fonts`, registered under HKCU) — no
+  administrator password, Windows 10 1809 or later.
+- A font already there is left as it is. Uninstalling the app leaves the fonts,
+  because other documents may now use them.
+- The variable-weight downloads were cut into static Regular/Bold files, which
+  older Office versions handle. `build/installer.nsh` is generated from the folder:
+  after adding or removing a font, run `python3 scripts/installer-fonts.py`
+  (needs `pip install fonttools`). The OFL licences ship in
+  `resources/font-licences/`.
+- Windows' own Shruti and Nirmala UI are already on every PC and are not shipped.
+
 ## What is in the installer
 
 - `SMC Accounts.exe` plus Electron's runtime (~370 MB unpacked, ~120 MB
@@ -101,19 +131,18 @@ for moving into a school folder; it is renamed, never deleted.
   has to sit on the real filesystem rather than inside the archive.
 - `resources/prisma/migrations/`: the schema, applied to each school's database
   when it is opened.
+- The 23 Gujarati fonts and their licences (above).
+- Nothing else from the project: no CLAUDE.md, docs, samples, reference files,
+  tests or `.env` — `build.files` in package.json packs only `out/` and the
+  runtime dependencies.
 - The Supabase URL and publishable key, compiled into the main bundle. Nothing
   secret: the publishable key identifies the project, and the database's own rules
   (supabase/migrations/0001_smc_cloud.sql) decide what it may do.
 
 ## Still to do
 
-- **No application icon.** electron-builder says `default Electron icon is used`.
-  Put a 256×256 `icon.png` (or `icon.ico`) in `build/` and it is picked up
-  automatically.
+- **The icon is a placeholder** (`build/icon.png`, a ledger on teal). Replace it
+  with any 512×512 PNG and rebuild.
 - **The installer is unsigned.** Windows SmartScreen will warn the first few
   people who run it. Signing needs a code-signing certificate; without one, tell
   the school to choose "More info → Run anyway".
-- **This project is not under version control.** During one packaging run
-  `package.json` was overwritten with a stripped copy (no scripts, no build
-  config) and had to be rebuilt by hand. `git init` would make that a one-command
-  recovery.
