@@ -76,6 +76,20 @@ against real PostgreSQL on every test run):
   written, stays, and a school's key can never be replaced;
 - somebody who is not signed in can do nothing at all.
 
+### 4b. Only accounts you approve — run the second script once
+
+1. **SQL Editor** → **New query**, paste **all** of
+   `supabase/migrations/0002_account_approval.sql`, press **Run**.
+2. **Table Editor** now lists **`account_access`**: one row per account, with an
+   **approved** tick box.
+
+From then on a new account can sign up and confirm its email, but the app tells
+it *આ ખાતું હજુ મંજૂર થયું નથી…* and stays on the login screen until you approve
+it (see "Approving an account" below). The database itself refuses an unapproved
+account every school, key and backup, so this holds whatever copy of the app is
+used. Accounts that already existed when the script ran are approved
+automatically, so nobody already using the app is locked out.
+
 ## 5. Email: the code template and a real sender
 
 The app confirms email addresses and resets passwords with a **6-digit code**
@@ -180,7 +194,9 @@ npm run dev
 The yellow *Development cloud* note on the login screen is gone: the app now uses
 your project.
 
-1. **Create an account** with your own email; the code arrives; enter it.
+1. **Create an account** with your own email; the code arrives; enter it. If the
+   account was made after step 4b, the app says it is waiting for approval: tick
+   **approved** for it in **Table Editor → account_access**, then log in again.
 2. **New school** → **Choose location…** → pick a pen drive → fill in the form → **Start**.
 3. **Settings → Back up now.**
 4. In Supabase: **Table Editor → backups** has a row, and **Storage → backups** has a
@@ -218,6 +234,19 @@ closed, and on **Back up now** — typically a few backups on a working day, so
 roughly 10–100 MB a school a year. Backups are never deleted automatically; that
 is the point of them.
 
+## Approving an account
+
+1. The client installs the app and chooses **Create account**, enters the code
+   from the email, and sees "waiting for approval". They tell you their email.
+2. Supabase dashboard → **Table Editor** → **`account_access`**.
+3. Find the row with that email, tick **approved** (set it to `true`), **Save**.
+4. The client presses **Log in** again. That is all.
+
+To **withdraw** an account, untick **approved**. The next time that PC lists or
+opens a school with the internet on, the app signs it out and forgets the login
+on that PC. (With the internet off the app keeps working on the pen drive, as it
+always does.) The **note** column is yours for remarks such as the school's name.
+
 ## Looking after it
 
 - **The secret key and the database password never leave the dashboard.** The
@@ -236,6 +265,7 @@ is the point of them.
 
 | Symptom | Likely cause |
 |---|---|
+| "આ ખાતું હજુ મંજૂર થયું નથી" after logging in | The account is not ticked **approved** in `account_access` |
 | App says it was built without its cloud settings | `.env` lacked the two lines when the installer was built |
 | "No internet connection" on a PC that is online | wrong URL in `.env`, or the project is paused |
 | The code email never arrives | built-in sender (step 5): the address is not in your organisation, or the hourly limit is used up |

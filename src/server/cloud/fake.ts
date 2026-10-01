@@ -37,6 +37,8 @@ const stateSchema = z.object({
       salt: z.string(),
       hash: z.string(),
       confirmed: z.boolean(),
+      /** Whether the owner let this account use the app. Absent: as `approveNewAccounts` says. */
+      approved: z.boolean().optional(),
     }),
   ),
   codes: z.array(
@@ -79,6 +81,12 @@ export interface FakeCloudOptions {
   isOffline?: () => boolean;
   /** How long an access token lasts, in seconds. Supabase's default is an hour. */
   accessTokenSeconds?: number;
+  /**
+   * Whether an account may use the app without its owner approving it. The
+   * development cloud says yes, so a developer is not locked out of their own
+   * machine; tests of the approval gate say no and call `setApproved`.
+   */
+  approveNewAccounts?: boolean;
   now?: () => number;
 }
 
@@ -178,6 +186,21 @@ export class FakeCloud implements CloudBackend {
     const next = this.issueSession(state, user.id, user.email);
     this.write(state);
     return next;
+  }
+
+  async isApproved(session: CloudSession): Promise<boolean> {
+    const { state, userId } = this.authorised(session);
+    const user = state.users.find((item) => item.id === userId);
+    return user?.approved ?? this.options.approveNewAccounts ?? true;
+  }
+
+  /** The owner approving (or withdrawing) an account by hand, as in the Supabase dashboard. */
+  setApproved(email: string, approved: boolean): void {
+    const state = this.read();
+    const user = state.users.find((item) => item.email === normalise(email));
+    if (!user) throw new Error(`no account ${email}`);
+    user.approved = approved;
+    this.write(state);
   }
 
   async signOut(session: CloudSession): Promise<void> {

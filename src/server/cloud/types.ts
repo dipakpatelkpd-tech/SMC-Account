@@ -71,6 +71,8 @@ export type CloudErrorCode =
   | "rate-limited"
   /** The saved login is no longer valid; the user has to log in again. */
   | "session-expired"
+  /** The account exists but its owner has not (or no longer) let it use the app. */
+  | "not-approved"
   | "not-found"
   | "server";
 
@@ -100,6 +102,14 @@ export interface CloudBackend {
   completePasswordReset(email: string, code: string, newPassword: string): Promise<CloudSession>;
   refresh(session: CloudSession): Promise<CloudSession>;
   signOut(session: CloudSession): Promise<void>;
+  /**
+   * Whether the software's owner has let this account use the app. Accounts
+   * start unapproved; the owner approves them by hand in the cloud
+   * (docs/SUPABASE_SETUP.md, "Approving an account"). The cloud's own rules
+   * refuse an unapproved account everything, so this is only how the app
+   * finds out to say so.
+   */
+  isApproved(session: CloudSession): Promise<boolean>;
 
   // ---------------------------------------------------------------- schools
   listProfiles(session: CloudSession): Promise<CloudProfile[]>;

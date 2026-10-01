@@ -103,17 +103,17 @@ export class Account {
   // --------------------------------------------------------------- sign in
 
   async signIn(email: string, password: string): Promise<CloudUser> {
-    return this.adopt(await this.backend.signIn(email, password));
+    return this.adopt(await this.approved(await this.backend.signIn(email, password)));
   }
 
   /** Returns the user when the account is usable at once, null when a code was emailed. */
   async signUp(email: string, password: string): Promise<CloudUser | null> {
     const { session } = await this.backend.signUp(email, password);
-    return session ? this.adopt(session) : null;
+    return session ? this.adopt(await this.approved(session)) : null;
   }
 
   async verifySignUp(email: string, code: string): Promise<CloudUser> {
-    return this.adopt(await this.backend.verifySignUp(email, code));
+    return this.adopt(await this.approved(await this.backend.verifySignUp(email, code)));
   }
 
   requestPasswordReset(email: string): Promise<void> {
@@ -121,7 +121,26 @@ export class Account {
   }
 
   async completePasswordReset(email: string, code: string, password: string): Promise<CloudUser> {
-    return this.adopt(await this.backend.completePasswordReset(email, code, password));
+    return this.adopt(await this.approved(await this.backend.completePasswordReset(email, code, password)));
+  }
+
+  /**
+   * Whether the account signed in here is still approved. Asked whenever the
+   * school list is shown or a school opened, so an account the owner withdraws
+   * is signed out on its next use. Offline the answer cannot be had, and the
+   * books stay usable: the cloud refuses the account everything anyway.
+   * Returns false - having signed this PC out - when it is no longer approved.
+   */
+  async stillApproved(): Promise<boolean> {
+    if (!this.session) return false;
+    try {
+      const approved = await this.withSession((session) => this.backend.isApproved(session));
+      if (!approved) this.forgetLocally();
+      return approved;
+    } catch (error) {
+      if (error instanceof CloudError && error.code === "session-expired") return false;
+      return true;
+    }
   }
 
   /**
@@ -212,6 +231,21 @@ export class Account {
       if (error instanceof CloudError && error.code === "session-expired") this.forgetLocally();
       throw error;
     }
+  }
+
+  /**
+   * Let a fresh session in only when the owner has approved the account;
+   * otherwise end it at once and say so. Nothing is stored on this PC for an
+   * account that is not approved.
+   */
+  private async approved(session: CloudSession): Promise<CloudSession> {
+    if (await this.backend.isApproved(session)) return session;
+    try {
+      await this.backend.signOut(session);
+    } catch {
+      // The session dies with its expiry anyway.
+    }
+    throw new CloudError("not-approved", `account ${session.user.email} is not approved`);
   }
 
   private adopt(session: CloudSession): CloudUser {
