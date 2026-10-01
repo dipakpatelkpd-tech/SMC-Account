@@ -72,6 +72,8 @@ import type {
   OpeningBalanceDto,
   OpeningBalanceInput,
   ReceiptDto,
+  BankChargeDto,
+  BankChargeInput,
   PrintableReportId,
   ReceiptInput,
   ReconciliationDto,
@@ -664,7 +666,9 @@ export class AccountsService implements BooksApi {
    *
    * The closing balance per head comes from Annexure 10, which is the statement
    * the school submits - so the opening balances of the next year are, by
-   * construction, the figures they already signed for.
+   * construction, the figures they already signed for - less the bank charges
+   * laid on each head, which Annexure 10 does not show but which did leave the
+   * bank. Without that, next year would open with more in the bank than there is.
    */
   async getYearEndPreview(): Promise<YearEndPreviewDto> {
     const book = await this.book();
@@ -673,6 +677,12 @@ export class AccountsService implements BooksApi {
     const heads = await this.listGrantHeads();
     const idByCode = new Map(heads.map((head) => [head.code, head.id]));
     const years = await this.listFinancialYears();
+    const charged = new Map<string, number>();
+    for (const charge of book.bankCharges) {
+      charged.set(charge.headCode, (charged.get(charge.headCode) ?? 0) + charge.amountPaise);
+    }
+    const closingOf = (headCode: string, closingPaise: number): number =>
+      closingPaise - (charged.get(headCode) ?? 0);
 
     return {
       year,
@@ -683,9 +693,9 @@ export class AccountsService implements BooksApi {
         grantHeadId: idByCode.get(row.headCode) ?? 0,
         headCode: row.headCode,
         headNameGu: row.nameGu,
-        closingPaise: row.closingPaise,
+        closingPaise: closingOf(row.headCode, row.closingPaise),
       })),
-      totalClosingPaise: statement.totals.closingPaise,
+      totalClosingPaise: statement.totals.closingPaise - [...charged.values()].reduce((a, b) => a + b, 0),
       blocking: validate(book).issues.filter((issue) => issue.severity === "error"),
     };
   }
@@ -937,6 +947,81 @@ export class AccountsService implements BooksApi {
   private checkReceipt(input: ReceiptInput): ApiResult<never> | null {
     if (input.amountPaise <= 0) {
       return fail("receipt_amount_not_positive", "રકમ શૂન્યથી વધુ હોવી જોઈએ", "receipt amount must be positive");
+    }
+    return null;
+  }
+
+  // ---------------------------------------------------------- bank charges
+
+  /**
+   * Money the bank took out of the account itself. No cheque, no voucher: it is
+   * shown in the rojmel and its head's ledger, and nowhere else.
+   */
+  async listBankCharges(): Promise<BankChargeDto[]> {
+    const charges = await this.prisma.bankCharge.findMany({
+      where: { financialYearId: this.financialYearId },
+      include: { grantHead: true },
+      orderBy: [{ date: "asc" }, { id: "asc" }],
+    });
+    return charges.map(bankChargeToDto);
+  }
+
+  async createBankCharge(input: BankChargeInput): Promise<ApiResult<BankChargeDto>> {
+    const frozen = await this.refuseIfClosed();
+    if (frozen) return frozen;
+    const invalid = this.checkBankCharge(input);
+    if (invalid) return invalid;
+
+    const created = await this.prisma.bankCharge.create({
+      data: {
+        financialYearId: this.financialYearId,
+        date: input.date,
+        grantHeadId: input.grantHeadId,
+        amountPaise: input.amountPaise,
+        descriptionGu: input.descriptionGu.trim(),
+        remarksGu: input.remarksGu?.trim() || null,
+      },
+      include: { grantHead: true },
+    });
+    return { ok: true, data: bankChargeToDto(created) };
+  }
+
+  async updateBankCharge(id: number, input: BankChargeInput): Promise<ApiResult<BankChargeDto>> {
+    const frozen = await this.refuseIfClosed();
+    if (frozen) return frozen;
+    const invalid = this.checkBankCharge(input);
+    if (invalid) return invalid;
+
+    const updated = await this.prisma.bankCharge.update({
+      where: { id },
+      data: {
+        date: input.date,
+        grantHeadId: input.grantHeadId,
+        amountPaise: input.amountPaise,
+        descriptionGu: input.descriptionGu.trim(),
+        remarksGu: input.remarksGu?.trim() || null,
+      },
+      include: { grantHead: true },
+    });
+    return { ok: true, data: bankChargeToDto(updated) };
+  }
+
+  async deleteBankCharge(id: number): Promise<ApiResult<null>> {
+    const frozen = await this.refuseIfClosed();
+    if (frozen) return frozen;
+    await this.prisma.bankCharge.delete({ where: { id } });
+    return { ok: true, data: null };
+  }
+
+  private checkBankCharge(input: BankChargeInput): ApiResult<never> | null {
+    if (!Number.isInteger(input.amountPaise) || input.amountPaise <= 0) {
+      return fail("charge_amount_not_positive", "રકમ શૂન્યથી વધુ હોવી જોઈએ", "bank charge amount must be positive");
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+      return fail("charge_date_invalid", "તારીખ માન્ય નથી", `bank charge date "${input.date}" is not a date`);
+    }
+    if (input.descriptionGu.trim() === "") {
+      return fail("charge_description_missing", "વિગત લખવી જરૂરી છે", "bank charge description is required");
     }
     return null;
   }
@@ -1616,6 +1701,26 @@ function nextYearLabel(label: string): string {
 
 function bookSchoolToDto(book: YearBook): SchoolDto {
   return { ...book.school };
+}
+
+function bankChargeToDto(charge: {
+  id: number;
+  date: string;
+  grantHeadId: number;
+  amountPaise: number;
+  descriptionGu: string;
+  remarksGu: string | null;
+  grantHead: { nameGu: string };
+}): BankChargeDto {
+  return {
+    id: charge.id,
+    date: charge.date,
+    grantHeadId: charge.grantHeadId,
+    headNameGu: charge.grantHead.nameGu,
+    amountPaise: charge.amountPaise,
+    descriptionGu: charge.descriptionGu,
+    remarksGu: charge.remarksGu,
+  };
 }
 
 function receiptToDto(receipt: {

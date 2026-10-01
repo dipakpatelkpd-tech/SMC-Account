@@ -573,7 +573,35 @@ table.form.reconciliation tr.grand td {
   margin: 2.5mm 0 0;
 }
 
-/* One account to a landscape sheet at 14pt (KhatavahiPage.tsx). */
+/* Four accounts to a landscape sheet, two across and two down
+   (KhatavahiPage.tsx). The gap between the two columns is KHATAVAHI_GAP_MM
+   in shared/report-layout.ts, which the editor's column widths are worked
+   out from. */
+/* The title at the head of the sheet, the four accounts, and the title again
+   at its foot, as the client's book prints it. */
+.khatavahi-sheet {
+  display: flex;
+  flex-direction: column;
+}
+
+.khatavahi-sheet .khatavahi-title.foot {
+  margin-top: auto;
+}
+
+.khatavahi-grid {
+  display: flex;
+  align-items: flex-start;
+  gap: 4mm;
+}
+
+.khatavahi-column {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+}
+
 .account-head {
   margin-bottom: 1.5mm;
 }

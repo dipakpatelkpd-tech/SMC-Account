@@ -4,6 +4,7 @@ import type { PrintableReportId } from "../../shared/api.js";
 import {
   REPORT_COLUMNS,
   fontsUsed,
+  rowGapMm,
   type ReportLayout,
 } from "../../shared/report-layout.js";
 
@@ -46,10 +47,10 @@ export function LayoutColGroup(): JSX.Element | null {
   );
 }
 
-/** The blank band a school asked for after one row, or nothing. */
-export function GapRow({ rowKey }: { rowKey: string }): JSX.Element | null {
+/** The blank band a school asked for after one row - or after its group's - or nothing. */
+export function GapRow({ rowKey, group = null }: { rowKey: string; group?: string | null }): JSX.Element | null {
   const value = useReportLayout();
-  const mm = value?.layout.rowGapsMm[rowKey];
+  const mm = value ? rowGapMm(value.layout, rowKey, group) : undefined;
   if (!value || !mm) return null;
   return (
     <tr className="layout-gap" data-gap-for={rowKey}>

@@ -23,6 +23,12 @@ import "@fontsource/baloo-bhai-2/400.css";
 import "@fontsource/baloo-bhai-2/700.css";
 import "@fontsource/rasa/400.css";
 import "@fontsource/rasa/700.css";
+// Display faces, one weight each: a bold title is drawn bold by the browser.
+import "@fontsource/mogra/400.css";
+import "@fontsource/farsan/400.css";
+import "@fontsource/kumar-one/400.css";
+import "@fontsource/kumar-one-outline/400.css";
+import "@fontsource/shrikhand/400.css";
 import "./styles.css";
 
 const container = document.getElementById("root");

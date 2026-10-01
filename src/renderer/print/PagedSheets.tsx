@@ -28,6 +28,8 @@ const SAFETY_PX = 4;
 export interface PagedRow {
   /** The row's layout key (ROW_KEYS): what a highlight or a gap is attached to. */
   key: string;
+  /** The same row in every block (ROW_GROUPS), when the report has blocks. */
+  group?: string;
   className?: string;
   /** The row's <td> cells. */
   cells: ReactNode;
@@ -218,10 +220,10 @@ export function PagedSheets(props: PagedSheetsProps): JSX.Element {
   const className = `sheet${props.landscape ? " landscape" : ""}`;
   const entry = (row: PagedRow): JSX.Element => (
     <Fragment key={row.key}>
-      <tr data-paged-row="" data-row={row.key} className={row.className}>
+      <tr data-paged-row="" data-row={row.key} data-row-group={row.group} className={row.className}>
         {row.cells}
       </tr>
-      <GapRow rowKey={row.key} />
+      <GapRow rowKey={row.key} group={row.group ?? null} />
     </Fragment>
   );
   const block = (kind: "head" | "foot" | "every", content: ReactNode): JSX.Element | null =>

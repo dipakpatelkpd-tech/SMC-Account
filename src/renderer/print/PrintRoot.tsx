@@ -139,22 +139,26 @@ function fitCells(): void {
 const SPREAD_SAFETY_PX = 4;
 
 /**
- * Share a rojmel sheet's spare height among the gaps BETWEEN its blocks, so two
- * blocks spread down the page evenly instead of leaving the space at the
- * bottom. The gap after a sheet's last block keeps its size; a sheet with one
- * block is left as it is. Everything is read first and written after, so the
- * sheets are laid out once.
+ * Fill each rojmel sheet with its rows. The space a sheet has left over goes
+ * into the height of its rows - shared evenly among them - rather than into the
+ * gaps between its blocks, which keep their small fixed size. Sheet by sheet:
+ * a sheet with more room gets taller rows, a fuller one shorter rows.
+ *
+ * A row whose height the school set (for that row, its group, or every row of
+ * the report) is left as set: RojmelPage marks it data-fixed-height.
+ *
+ * Everything is read first and written after, so the sheets are laid out once;
+ * a second pass takes up what rounding and cell padding left.
  */
 function spreadBlocks(): void {
   for (const cell of document.querySelectorAll<HTMLElement>(".print-root [data-spread]")) {
     cell.style.height = "";
-    cell.style.padding = "";
     cell.removeAttribute("data-spread");
   }
-  const sheets = document.querySelectorAll<HTMLElement>(".print-root > .sheet[data-spread-blocks]:not([aria-hidden])");
-  const plans = [...sheets].map((sheet) => {
-    const gaps = [...sheet.querySelectorAll<HTMLElement>("tr.block-gap > td")].slice(0, -1);
-    // Measured sizes are zoomed; the sheet's own CSS sizes are not.
+  const sheets = [
+    ...document.querySelectorAll<HTMLElement>(".print-root > .sheet[data-spread-blocks]:not([aria-hidden])"),
+  ];
+  const plan = (sheet: HTMLElement): { cells: { cell: HTMLElement; px: number }[]; room: number } => {
     const zoom = sheetZoom(sheet);
     // How far the content reaches - the sheet's own box is never shorter than
     // the paper, so its height says nothing about the space left inside it.
@@ -166,17 +170,27 @@ function spreadBlocks(): void {
           (child.getBoundingClientRect().bottom - top) / zoom + parseFloat(getComputedStyle(child).marginBottom),
       ),
     );
-    const room = parseFloat(getComputedStyle(sheet).minHeight) - used - SPREAD_SAFETY_PX;
-    return { gaps: gaps.map((cell) => ({ cell, px: cell.getBoundingClientRect().height / zoom })), room };
-  });
-  for (const { gaps, room } of plans) {
-    if (gaps.length === 0 || room <= 0) continue;
-    const extra = room / gaps.length;
-    for (const { cell, px } of gaps) {
-      // No padding: the height set is then the row's whole height.
-      cell.style.padding = "0";
-      cell.style.height = `${px + extra}px`;
-      cell.setAttribute("data-spread", "");
+    const rows = [
+      ...sheet.querySelectorAll<HTMLElement>("table.rojmel > tbody > tr[data-row]:not([data-fixed-height])"),
+    ];
+    return {
+      cells: rows.flatMap((row) => {
+        const cell = row.querySelector<HTMLElement>(":scope > td");
+        return cell ? [{ cell, px: row.getBoundingClientRect().height / zoom }] : [];
+      }),
+      room: parseFloat(getComputedStyle(sheet).minHeight) - used - SPREAD_SAFETY_PX,
+    };
+  };
+  for (let pass = 0; pass < 2; pass += 1) {
+    const plans = sheets.map(plan);
+    for (const { cells, room } of plans) {
+      // Nothing to share, or (second pass) close enough.
+      if (cells.length === 0 || Math.abs(room) < 1 || (pass === 0 && room <= 0)) continue;
+      const extra = room / cells.length;
+      for (const { cell, px } of cells) {
+        cell.style.height = `${Math.max(1, px + extra)}px`;
+        cell.setAttribute("data-spread", "");
+      }
     }
   }
 }

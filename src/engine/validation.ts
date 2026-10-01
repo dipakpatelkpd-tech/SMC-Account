@@ -128,6 +128,9 @@ export function validate(book: YearBook): ValidationResult {
       if (receipt.headCode === head.code) dates.add(receipt.date);
     }
     for (const cheque of book.cheques) dates.add(cheque.cashbookDate);
+    for (const charge of book.bankCharges) {
+      if (charge.headCode === head.code) dates.add(charge.date);
+    }
 
     for (const date of [...dates].sort()) {
       const balance = headBalanceOn(book, head.code, date);
@@ -185,6 +188,16 @@ export function validate(book: YearBook): ValidationResult {
         "cashed_before_cheque_date",
         `ચેક ${cheque.chequeNo}: વટાવ્યાં તારીખ ચેકની તારીખ પહેલાંની છે`,
         `cheque ${cheque.chequeNo}: encashed ${cheque.cashedDate} precedes cheque date ${cheque.chequeDate}`,
+      );
+    }
+  }
+
+  for (const charge of book.bankCharges) {
+    if (!isWithin(charge.date, book.year.startDate, book.year.endDate)) {
+      warn(
+        "bank_charge_outside_year",
+        `બેન્ક ચાર્જ ${formatAmount(charge.amountPaise)} ની તારીખ ${formatDate(charge.date)} આ વર્ષની બહાર છે`,
+        `bank charge ${charge.id} dated ${charge.date} is outside ${book.year.label}`,
       );
     }
   }

@@ -103,6 +103,22 @@ export interface BookCheque {
   typedAllocation: { headCode: string; amountPaise: Paise }[];
 }
 
+/**
+ * Money the bank took out of the account itself - a service charge - with no
+ * cheque and no voucher. It leaves the bank in the rojmel and is a debit in
+ * its head's ledger; no register, voucher, પત્રક-D or Annexure 10 shows it.
+ */
+export interface BookBankCharge {
+  id: string;
+  /** Cash-book date. */
+  date: string;
+  headCode: string;
+  amountPaise: Paise;
+  /** What the rojmel and the ledger print, e.g. "બેન્ક ચાર્જ". */
+  descriptionGu: string;
+  remarksGu: string | null;
+}
+
 export interface BookReconciliation {
   /** B - cheques issued but not yet encashed. */
   chequesIssuedNotCashedPaise: Paise;
@@ -126,6 +142,8 @@ export interface YearBook {
   receipts: BookReceipt[];
   bills: BookBill[];
   cheques: BookCheque[];
+  /** In date order. */
+  bankCharges: BookBankCharge[];
   reconciliation: BookReconciliation | null;
 }
 

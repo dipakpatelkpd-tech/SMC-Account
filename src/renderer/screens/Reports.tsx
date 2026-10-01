@@ -233,6 +233,7 @@ export function Reports(): JSX.Element {
         <LayoutEditor
           key={tab}
           report={tab}
+          reportLabel={labelFor(tab, t)}
           onDirtyChange={setLayoutDirty}
           onClose={() => {
             setEditing(false);

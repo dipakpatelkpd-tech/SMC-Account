@@ -526,6 +526,55 @@ entry in `.claude/launch.json`) now stubs enough of the API for the whole
 interface, so the editor can be used at `http://localhost:8801/#reports`; layouts
 saved there live in the page's memory only.
 
+## Bank charges, the 2 x 2 ledger and filled rojmel pages (October 2026)
+
+**Bank charges** (`BankCharge`, migration 0004) are money the bank takes from
+the account itself: no cheque, no voucher. The school picks the grant head.
+On the client's instruction a charge shows in the rojmel (bank side, no voucher
+or cheque number) and in its head's ledger only - not in the cheque, bill or
+grant registers, the vouchers, પત્રક-D, or Annexure 10. It still leaves the
+bank, so the balances, the head's overdraft check and Annexure 9's cash-book
+figure include it. Because Annexure 10 leaves it out, **year closing subtracts
+each head's charges from its Annexure 10 closing** when it sets next year's
+openings; otherwise the new year would open with more in the bank than there is.
+
+**The ledger prints four accounts to a sheet**, two across and two down, as the
+client's book does. Which four share a sheet and which sits on top is chosen by
+length (`shared/ledger-layout.ts`); the four always stay on their sheet, and a
+grid taller than the sheet is zoomed down until it fits. The Excel export still
+gives each account its own sheet.
+
+**A rojmel sheet's spare height goes into its rows**, sheet by sheet, not into
+the gap between its blocks, which keeps its small fixed size. A row whose
+height the school set keeps it on every page.
+
+**Row groups.** A change made to "the whole row" in the layout editor is kept
+against the row's place in its block (`ROW_GROUPS`: row n of every rojmel block,
+of every ledger account, of every voucher; each footer), so it applies to that
+row in every block, in print and in Excel. A single cell is still that cell.
+
+## The Excel-style layout editor (October 2026)
+
+At the client's request "ગોઠવણી બદલો" opens over the whole window shaped like
+Excel: tabs (Home, Page Layout, Whole report, View), a ribbon, a name box, the
+report as the sheet, a status bar. Only what a printed register needs is there
+- no formulas, charts or data editing; every figure is still computed.
+
+What a cell, row (group), column or heading can now carry, in the preview, the
+PDF, the print and Excel alike: italic, underline, vertical alignment, wrap or
+one line, inner spacing, and Excel's borders edge by edge (thin, medium, thick,
+dashed, dotted, double, or none - "none" is `border-style: hidden`, so it takes
+the line away even where the form or the next cell draws one). A heading's
+border and padding stay on the heading; its text settings reach what is inside.
+Shift+click selects a range, Ctrl+click adds cells; "Outside borders" draws only
+the range's rim. Excel has no cell padding, so inner spacing is print-only.
+
+Every colour choice uses one palette (`shared/excel-palette.ts`,
+`components/ColourPalette.tsx`): Excel's ten theme colours with five shades each,
+lightest to darkest, computed as Excel computes its tints and shades in HSL;
+the standard colours; recent ones; and "More colours…" for any colour by square,
+hue strip, hex or RGB.
+
 ## Still open with the client
 
 0. **Report sizes.** Confirm with the client that the rojmel at its own

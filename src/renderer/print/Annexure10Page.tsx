@@ -5,7 +5,7 @@ import { formatAmount } from "../../lib/money.js";
 import { toGujaratiDigits } from "../../lib/gujarati.js";
 import { PagedSheets } from "./PagedSheets.js";
 import { ROW_KEYS } from "../../shared/report-layout.js";
-import { bankShortName } from "./AnnexureBanner.js";
+import { AnnexureBanner } from "./AnnexureBanner.js";
 
 /**
  * પરિશિષ્ટ ૧૦ — the annual grant statement (SPEC 6.9).
@@ -37,7 +37,6 @@ export function Annexure10Page({
   /** "2025-26" as the form writes it: ૨૦૨૫ / ૨૦૨૬ */
   const yearLabel = toGujaratiDigits(`${year.startDate.slice(0, 4)} / ${year.endDate.slice(0, 4)}`);
 
-  const [programmeLine1 = "", programmeLine2 = ""] = school.programmeGu.split(/\s*\/\s*|\n/);
   const totals = report.totals;
 
   /** The year's last day as the heading writes it, "૩૧/૦૩/૨૬" - never a fixed year. */
@@ -50,44 +49,7 @@ export function Annexure10Page({
   return (
     <PagedSheets
       landscape={false}
-      head={() => (
-        <table className="banner" data-part="banner">
-          <tbody>
-            <tr>
-              <td colSpan={4} className="banner-title">
-                {programmeLine1}
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={4}>{programmeLine2}</td>
-            </tr>
-            <tr>
-              <td colSpan={4}>પરિશિષ્ટ –: ૧૦</td>
-            </tr>
-            <tr>
-              <td colSpan={4}>વર્ષ –: {yearLabel}</td>
-            </tr>
-            <tr>
-              <td className="label">શાળાનું નામ –:</td>
-              <td className="value">{school.nameGu}</td>
-              <td className="label">ડાયસ કોડ–:</td>
-              <td className="value">{school.diseCode}</td>
-            </tr>
-            <tr>
-              <td className="label">કલસ્ટર –:</td>
-              <td className="value">{school.clusterGu}</td>
-              <td className="label">તાલુકો–:</td>
-              <td className="value">{school.talukaGu}</td>
-            </tr>
-            <tr>
-              <td className="label">{bankShortName(school.bankNameGu)} ખાતા નંબર –:</td>
-              <td className="value" colSpan={3}>
-                {school.bankAccountNo}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      )}
+      head={() => <AnnexureBanner school={school} year={year} numberGu="૧૦" />}
       tableClassName="form annexure10"
       thead={
         <tr data-row="head">

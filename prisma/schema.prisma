@@ -105,6 +105,7 @@ model FinancialYear {
   receipts         Receipt[]
   bills            Bill[]
   cheques          Cheque[]
+  bankCharges      BankCharge[]
   reconciliation   BankReconciliation?
 
   createdAt DateTime @default(now())
@@ -129,6 +130,7 @@ model GrantHead {
   receipts         Receipt[]
   bills            Bill[]
   allocations      ChequeAllocation[]
+  bankCharges      BankCharge[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -276,6 +278,28 @@ model Cheque {
 
   @@unique([financialYearId, chequeNo])
   @@index([financialYearId, cashbookDate])
+}
+
+// Money the bank takes out of the account itself - a service charge, SMS
+// charges - with no cheque and no voucher. The school says which grant head it
+// is charged to. It appears in the rojmel and that head's ledger only: not in
+// the cheque, bill or grant registers, the vouchers, પત્રક-D or Annexure 10.
+model BankCharge {
+  id              Int           @id @default(autoincrement())
+  financialYearId Int
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+  grantHeadId     Int
+  grantHead       GrantHead     @relation(fields: [grantHeadId], references: [id])
+
+  date          String // cash-book date, ISO
+  amountPaise   Int
+  descriptionGu String // "બેન્ક ચાર્જ", as it prints
+  remarksGu     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([financialYearId, date])
 }
 
 // Rows exist ONLY for GRANT_RETURN cheques, where the split per head is typed by

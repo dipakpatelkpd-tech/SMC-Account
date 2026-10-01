@@ -221,9 +221,38 @@ describe("the stylesheet", () => {
     expect(reportLayoutSchema.safeParse({ ...layout, lineColour: "blue" }).success).toBe(false);
   });
 
+  it("draws Excel's borders edge by edge, with italic, underline, vertical alignment and wrapping", () => {
+    const layout = withStyle(emptyLayout(), { kind: "cell", row: "cheque:7", col: "amount" }, {
+      italic: true,
+      underline: true,
+      vAlign: "top",
+      wrap: false,
+      paddingXMm: 2,
+      borders: { top: { style: "thick", colour: "#c00000" }, left: { style: "dashed" }, bottom: { style: "none" } },
+    });
+    const css = layoutCss("chequeRegister", layout, "#r");
+    expect(css).toContain("font-style: italic");
+    expect(css).toContain("text-decoration: underline");
+    expect(css).toContain("vertical-align: top");
+    expect(css).toContain("white-space: nowrap");
+    expect(css).toContain("padding-left: 2mm");
+    expect(css).toContain("border-top: 2.2pt solid #c00000");
+    expect(css).toContain("border-left: 0.9pt dashed #000");
+    expect(css).toContain("border-bottom: hidden");
+    expect(reportLayoutSchema.safeParse(layout).success).toBe(true);
+    expect(reportLayoutSchema.safeParse({ ...layout, styles: { "col:amount": { borders: { top: { style: "wavy" } } } } }).success).toBe(false);
+  });
+
+  it("keeps a heading's border and padding on the heading, not on what is inside it", () => {
+    const layout = withStyle(emptyLayout(), { kind: "part", part: "title" }, { borders: { bottom: { style: "double" } }, italic: true });
+    const css = layoutCss("chequeRegister", layout, "#r");
+    expect(css).toContain('#r [data-part="title"] { border-bottom: 2.4pt double #000; }');
+    expect(css).toContain('#r [data-part="title"], #r [data-part="title"] * { font-style: italic; }');
+  });
+
   it("writes spacing and row height for the report's tables only", () => {
     const css = layoutCss("billRegister", { ...emptyLayout(), paddingXMm: 2, rowHeightMm: 9 }, "#r");
-    expect(css).toContain("#r table[data-layout] > * > tr:not(.layout-gap):not(.block-gap) > :is(td, th) { padding-left: 2mm; padding-right: 2mm; }");
+    expect(css).toContain("#r table[data-layout] :where(tr:not(.layout-gap):not(.block-gap)) > :is(td, th) { padding-left: 2mm; padding-right: 2mm; }");
     expect(css).toContain("height: 9mm");
   });
 });
@@ -304,6 +333,29 @@ describe("paper", () => {
   });
 });
 
+describe("headings on every report", () => {
+  it("can all be given a width and a height, and a title is centred at its width", () => {
+    for (const report of PRINTABLE_REPORTS) {
+      for (const part of REPORT_PARTS[report]) expect(part.sizable, `${report} ${part.id}`).toBe(true);
+    }
+    const layout = withStyle(emptyLayout(), { kind: "part", part: "title" }, { widthMm: 150, heightMm: 14 });
+    const css = layoutCss("chequeRegister", layout, "#r");
+    expect(css).toContain('#r [data-part="title"] { flex: 0 0 auto; width: 150mm; margin-left: auto; margin-right: auto;');
+    expect(css).toContain("min-height: 14mm");
+  });
+
+  it("splits the annexures' heading into its pieces, the school's name among them", () => {
+    for (const report of ["annexure9", "annexure10"] as const) {
+      expect(REPORT_PARTS[report].map((part) => part.id)).toEqual(
+        expect.arrayContaining(["banner", "bannerProgramme", "bannerNumber", "bannerYear", "bannerSchool", "bannerDetails"]),
+      );
+    }
+    // A row of the heading grows by its cells' height.
+    const css = layoutCss("annexure10", withStyle(emptyLayout(), { kind: "part", part: "bannerSchool" }, { heightMm: 12 }), "#r");
+    expect(css).toContain('#r td[data-part="bannerSchool"] { height: 12mm; }');
+  });
+});
+
 describe("headings, blank colours, alignment and height", () => {
   it("round-trip a heading part's key", () => {
     expect(parseTargetKey(targetKey({ kind: "part", part: "band" }))).toEqual({ kind: "part", part: "band" });
@@ -318,10 +370,15 @@ describe("headings, blank colours, alignment and height", () => {
       "bandPage",
       "closing",
     ]);
+    // Every heading's width can be set now; the titles are centred blocks.
+    expect(REPORT_PARTS.rojmel.filter((part) => part.block).map((part) => part.id)).toEqual(["title", "band", "closing"]);
     expect(REPORT_PARTS.rojmel.filter((part) => part.sizable).map((part) => part.id)).toEqual([
+      "title",
+      "band",
       "bandLeft",
       "bandRight",
       "bandPage",
+      "closing",
     ]);
   });
 
@@ -342,7 +399,7 @@ describe("headings, blank colours, alignment and height", () => {
     const css = layoutCss("rojmel", layout, "#r");
     expect(css).toContain('#r [data-part="band"], #r [data-part="band"] * { font-size: 16pt; }');
     expect(css).toContain('#r [data-part="band"], #r [data-part="band"] * { background: transparent; }');
-    expect(css).toContain('#r [data-part="band"]:not(table) { min-height: 12mm; }');
+    expect(css).toContain('#r [data-part="band"]:not(table):not(tr):not(td) { min-height: 12mm; }');
   });
 
   it("makes a cell blank rather than falling back to the form's colour", () => {

@@ -26,7 +26,7 @@ import { addDays, endOfMonth, formatDate, formatDateShort } from "../lib/dates.j
 import { billNet, chequeAllocation, chequeAmount } from "./allocation.js";
 import { openingBank, openingCash } from "./balances.js";
 import type { PageResolver } from "./ledger.js";
-import type { BookCheque, BookReceipt, YearBook } from "./types.js";
+import type { BookBankCharge, BookCheque, BookReceipt, YearBook } from "./types.js";
 
 /** Which side of the book a line sits on. */
 export type RojmelSide = "receipt" | "payment";
@@ -47,7 +47,13 @@ export interface RojmelLine {
   /** True when the row carries no money, e.g. the "પદર ખર્ચ" sub-heading. */
   headingOnly: boolean;
   /** Which record produced this line, for the ledger's page lookup. */
-  source: { kind: "opening" } | { kind: "receipt"; id: string } | { kind: "cheque"; chequeNo: number } | { kind: "bill"; id: string } | { kind: "none" };
+  source:
+    | { kind: "opening" }
+    | { kind: "receipt"; id: string }
+    | { kind: "cheque"; chequeNo: number }
+    | { kind: "bill"; id: string }
+    | { kind: "charge"; id: string }
+    | { kind: "none" };
 }
 
 export interface RojmelBlock {
@@ -135,8 +141,11 @@ export function buildRojmel(book: YearBook, options: RojmelOptions = {}): Rojmel
 
   const receiptsByDate = groupBy(book.receipts, (receipt) => receipt.date);
   const chequesByDate = groupBy(book.cheques, (cheque) => cheque.cashbookDate);
+  const chargesByDate = groupBy(book.bankCharges, (charge) => charge.date);
 
-  const activeDates = [...new Set([...receiptsByDate.keys(), ...chequesByDate.keys()])].sort();
+  const activeDates = [
+    ...new Set([...receiptsByDate.keys(), ...chequesByDate.keys(), ...chargesByDate.keys()]),
+  ].sort();
 
   const blocks: RojmelBlock[] = [];
   let cash = openingCash(book);
@@ -183,7 +192,8 @@ export function buildRojmel(book: YearBook, options: RojmelOptions = {}): Rojmel
     // One block per cheque: a date with two cheques prints two blocks, the
     // second opening with the first one's બંધ સિલક - as the client's ROJMED
     // sheet chains them. A cheque's bills (its sub-vouchers) stay in its block.
-    // The date's receipts go in its first block.
+    // The date's receipts - and what the bank charged that day - go in its
+    // first block.
     const cheques = [...(chequesByDate.get(date) ?? [])].sort((a, b) => a.chequeNo - b.chequeNo);
     const parts = cheques.length === 0 ? [[]] : cheques.map((cheque) => [cheque]);
     parts.forEach((cheques, part) => {
@@ -193,6 +203,7 @@ export function buildRojmel(book: YearBook, options: RojmelOptions = {}): Rojmel
           date,
           part === 0 ? (receiptsByDate.get(date) ?? []) : [],
           cheques,
+          part === 0 ? (chargesByDate.get(date) ?? []) : [],
           cash,
           bank,
           part === 0 ? date : `${date}#${part + 1}`,
@@ -262,6 +273,7 @@ function activeBlock(
   date: string,
   receipts: BookReceipt[],
   cheques: BookCheque[],
+  charges: BookBankCharge[],
   cash: Paise,
   bank: Paise,
   id: string,
@@ -433,6 +445,24 @@ function activeBlock(
     }
   }
 
+  // What the bank took itself: straight out of the bank, with no voucher and no
+  // cheque to print beside it.
+  for (const charge of charges) {
+    const head = nameByCode.get(charge.headCode) ?? charge.headCode;
+    paymentLines.push({
+      side: "payment",
+      dateText: paymentLines.length === 0 ? formatDate(date) : "",
+      descriptionGu: `${charge.descriptionGu} (${head})`,
+      referenceText: "",
+      chequeText: "",
+      cashPaise: ZERO,
+      bankPaise: charge.amountPaise,
+      totalPaise: charge.amountPaise,
+      headingOnly: false,
+      source: { kind: "charge", id: charge.id },
+    });
+  }
+
   if (paymentLines.length === 0) {
     paymentLines.push({
       side: "payment",
@@ -558,6 +588,7 @@ export function paginate(blocks: RojmelBlock[]): RojmelPage[] {
 export function pageResolver(rojmel: Rojmel): PageResolver {
   const receiptPages = new Map<string, number>();
   const chequePages = new Map<number, number>();
+  const chargePages = new Map<string, number>();
 
   for (const page of rojmel.pages) {
     for (const block of page.blocks) {
@@ -568,6 +599,9 @@ export function pageResolver(rojmel: Rojmel): PageResolver {
         if (line.source.kind === "cheque" && !chequePages.has(line.source.chequeNo)) {
           chequePages.set(line.source.chequeNo, page.pageNo);
         }
+        if (line.source.kind === "charge" && !chargePages.has(line.source.id)) {
+          chargePages.set(line.source.id, page.pageNo);
+        }
       }
     }
   }
@@ -577,6 +611,7 @@ export function pageResolver(rojmel: Rojmel): PageResolver {
   return {
     receiptPage: (id) => receiptPages.get(id) ?? null,
     chequePage: (chequeNo) => chequePages.get(chequeNo) ?? null,
+    chargePage: (id) => chargePages.get(id) ?? null,
     openingPage: () => 1,
     closingPage: () => lastPage,
   };

@@ -32,6 +32,16 @@ export interface Strings {
   navReceipts: string;
   navBills: string;
   navCheques: string;
+  navBankCharges: string;
+  bankChargesTitle: string;
+  bankChargesSubtitle: string;
+  bankChargesNote: string;
+  newBankCharge: string;
+  editBankCharge: string;
+  noBankCharges: string;
+  bankChargeDescription: string;
+  bankChargeDefaultDescription: string;
+  confirmDeleteBankCharge: (date: string, head: string) => string;
   navReports: string;
   navReconciliation: string;
   navMasters: string;
@@ -265,6 +275,67 @@ export interface Strings {
   layoutPlain: string;
   layoutRojmelNote: string;
   layoutTextColour: string;
+  excelTabHome: string;
+  excelTabPage: string;
+  excelTabView: string;
+  excelGroupClipboard: string;
+  excelGroupFont: string;
+  excelGroupAlignment: string;
+  excelGroupCells: string;
+  excelGroupColours: string;
+  excelGroupSpacing: string;
+  excelGroupReset: string;
+  excelGroupZoom: string;
+  excelRedo: string;
+  excelPainter: string;
+  excelPainterHelp: string;
+  excelPainterActive: string;
+  excelItalic: string;
+  excelUnderline: string;
+  excelGrow: string;
+  excelShrink: string;
+  excelVAlign: { top: string; middle: string; bottom: string };
+  excelWrap: string;
+  excelOneLine: string;
+  excelPaddingX: string;
+  excelPaddingY: string;
+  excelCellsHint: string;
+  excelRowHeightHint: string;
+  excelScopeRow: string;
+  excelWholeReport: string;
+  excelCellsSelected: (count: number) => string;
+  excelNeedsSelection: string;
+  excelReportModeNote: string;
+  excelBorders: string;
+  excelBorder: {
+    bottom: string;
+    top: string;
+    left: string;
+    right: string;
+    none: string;
+    all: string;
+    outside: string;
+    thickOutside: string;
+  };
+  excelLineStyle: string;
+  excelLineStyles: { thin: string; medium: string; thick: string; dashed: string; dotted: string; double: string };
+  excelLineColour: string;
+  excelPenNote: string;
+  fontRecommended: string;
+  paletteAutomatic: string;
+  paletteTheme: string;
+  paletteStandard: string;
+  paletteRecent: string;
+  paletteMore: string;
+  paletteNew: string;
+  paletteCurrent: string;
+  paletteHex: string;
+  paletteOk: string;
+  fontGalleryOpen: string;
+  fontGalleryClose: string;
+  fontGalleryOthers: string;
+  fontGalleryNote: string;
+  layoutGroupNote: string;
   layoutLineColour: string;
   layoutColourDefault: string;
   layoutColourHelp: string;
@@ -537,6 +608,17 @@ export const gu: Strings = {
   navReceipts: "ગ્રાન્ટ આવક",
   navBills: "બિલ",
   navCheques: "ચેક",
+  navBankCharges: "બેન્ક ચાર્જ",
+  bankChargesTitle: "બેન્ક ચાર્જ",
+  bankChargesSubtitle: "બેન્કે ખાતામાંથી સીધા કાપેલા નાણાં — ચેક કે વાઉચર વગર",
+  bankChargesNote:
+    "બેન્ક ચાર્જ ફક્ત રોજમેળ અને ખાતાવહીમાં આવે છે. ચેક રજીસ્ટર, બિલ રજીસ્ટર, વાઉચર, પત્રક-D કે પરિશિષ્ટ ૧૦ માં આવતો નથી, અને તેને વાઉચર નંબર નથી.",
+  newBankCharge: "+ નવો બેન્ક ચાર્જ",
+  editBankCharge: "બેન્ક ચાર્જમાં ફેરફાર",
+  noBankCharges: "હજુ કોઈ બેન્ક ચાર્જ નોંધાયો નથી.",
+  bankChargeDescription: "વિગત (રોજમેળ અને ખાતાવહીમાં છપાશે)",
+  bankChargeDefaultDescription: "બેન્ક ચાર્જ",
+  confirmDeleteBankCharge: (date, head) => `${date} નો ${head} નો બેન્ક ચાર્જ કાઢી નાખવો છે?`,
   navReports: "રિપોર્ટ",
   navReconciliation: "પરિશિષ્ટ ૯ મેળવણું",
   navMasters: "શાળા અને ગ્રાન્ટ હેડ",
@@ -764,6 +846,69 @@ export const gu: Strings = {
   layoutCellsOverflow: (count) =>
     `${count} ખાનાંમાં લખાણ કોલમ કરતાં પહોળું છે અને બાજુના ખાનામાં જાય છે. તે કોલમ પહોળી કરો.`,
   layoutTextColour: "અક્ષરનો રંગ",
+  excelTabHome: "હોમ",
+  excelTabPage: "પેજ લેઆઉટ",
+  excelTabView: "જુઓ",
+  excelGroupClipboard: "ફેરફાર",
+  excelGroupFont: "ફોન્ટ",
+  excelGroupAlignment: "ગોઠવણી",
+  excelGroupCells: "ખાનાં",
+  excelGroupColours: "રંગ",
+  excelGroupSpacing: "જગ્યા",
+  excelGroupReset: "મૂળ પ્રમાણે",
+  excelGroupZoom: "ઝૂમ",
+  excelRedo: "ફરી કરો",
+  excelPainter: "ફોર્મેટ નકલ",
+  excelPainterHelp: "પસંદ કરેલ ખાનાનું ફોર્મેટ લઈ, પછી જે ખાનું ક્લિક કરો તેને લગાવો",
+  excelPainterActive: "🖌 ફોર્મેટ નકલ ચાલુ: જે ખાનું, લાઈન કે મથાળું ક્લિક કરો તેને આ ફોર્મેટ લાગશે (Esc = રદ).",
+  excelItalic: "ત્રાંસા અક્ષર",
+  excelUnderline: "નીચે લીટી",
+  excelGrow: "અક્ષર મોટા",
+  excelShrink: "અક્ષર નાના",
+  excelVAlign: { top: "ઉપર", middle: "વચ્ચે (ઉપર-નીચે)", bottom: "નીચે" },
+  excelWrap: "લખાણ વાળો",
+  excelOneLine: "એક લાઈનમાં",
+  excelPaddingX: "↔ અંદરની જગ્યા",
+  excelPaddingY: "↕ અંદરની જગ્યા",
+  excelCellsHint: "પહોળાઈ અને ઊંચાઈ માટે ખાનું કે મથાળું પસંદ કરો.",
+  excelRowHeightHint: "લાઈનની ઊંચાઈ માટે 'લાગુ કરો' માં 'આખી લાઈન' પસંદ કરો.",
+  excelScopeRow: "આખી લાઈન (દરેક બ્લોકમાં)",
+  excelWholeReport: "આખું પત્રક",
+  excelCellsSelected: (count) => `${count} ખાનાં પસંદ`,
+  excelNeedsSelection: "પહેલાં ખાનું પસંદ કરો",
+  excelReportModeNote:
+    "કંઈ પસંદ નથી: ફોન્ટ, માપ, રંગ, ગોઠવણી અને જગ્યા આખા પત્રકને લાગશે. ખાનું ક્લિક કરો; Shift+ક્લિક = ખાનાંનો સમૂહ, Ctrl+ક્લિક = વધુ ખાનાં.",
+  excelBorders: "કિનારી (બોર્ડર)",
+  excelBorder: {
+    bottom: "નીચેની લાઈન",
+    top: "ઉપરની લાઈન",
+    left: "ડાબી લાઈન",
+    right: "જમણી લાઈન",
+    none: "કોઈ લાઈન નહીં",
+    all: "બધી લાઈન",
+    outside: "બહારની લાઈન",
+    thickOutside: "જાડી બહારની લાઈન",
+  },
+  excelLineStyle: "લાઈનનો પ્રકાર",
+  excelLineStyles: { thin: "પાતળી", medium: "મધ્યમ", thick: "જાડી", dashed: "તૂટક", dotted: "ટપકાં", double: "બેવડી" },
+  excelLineColour: "નવી લાઈનનો રંગ",
+  excelPenNote: "ઉપરના બટનથી દોરાતી લાઈન આ રંગ અને પ્રકારની હશે.",
+  fontRecommended: "ભલામણ કરેલ ફોન્ટ:",
+  paletteAutomatic: "મૂળ પ્રમાણે (ઓટોમેટિક)",
+  paletteTheme: "થીમ રંગ",
+  paletteStandard: "સામાન્ય રંગ",
+  paletteRecent: "હમણાં વાપરેલા રંગ",
+  paletteMore: "બીજા રંગ…",
+  paletteNew: "નવો",
+  paletteCurrent: "હાલનો",
+  paletteHex: "Hex",
+  paletteOk: "બરાબર",
+  fontGalleryOpen: "બીજા ફોન્ટ ▾",
+  fontGalleryClose: "ઓછા ફોન્ટ ▴",
+  fontGalleryOthers: "બીજા ફોન્ટ — મથાળા માટે સારા:",
+  fontGalleryNote:
+    "ઉપરના પાંચ ફોન્ટ ભલામણ કરેલ છે: PDF, પ્રિન્ટ અને Excel માં સ્પષ્ટ. Excel ફાઈલમાં ફોન્ટ ત્યારે જ દેખાય જ્યારે તે કમ્પ્યુટરમાં ઇન્સ્ટોલ હોય; Shruti અને Nirmala UI દરેક Windows માં હોય છે.",
+  layoutGroupNote: "આખી લાઈનનો ફેરફાર (ઊંચાઈ, રંગ, અક્ષર, પછીની જગ્યા) દરેક બ્લોક અને દરેક પાનાની આ જ લાઈનમાં લાગશે.",
   layoutLineColour: "લાઈનનો રંગ (ખાનાંની કિનારી)",
   layoutColourDefault: "મૂળ પ્રમાણે (કાળો)",
   layoutColourHelp: "↺ = મૂળ રંગ. આ ફેરફાર PDF, પ્રિન્ટ અને Excel ત્રણેયમાં આવશે.",
@@ -1045,6 +1190,17 @@ export const en: Strings = {
   navReceipts: "Grant receipts",
   navBills: "Bills",
   navCheques: "Cheques",
+  navBankCharges: "Bank charges",
+  bankChargesTitle: "Bank charges",
+  bankChargesSubtitle: "Money the bank took from the account itself — no cheque, no voucher",
+  bankChargesNote:
+    "A bank charge appears only in the rojmel and the ledger. It is not in the cheque register, the bill register, the vouchers, પત્રક-D or Annexure 10, and it has no voucher number.",
+  newBankCharge: "+ New bank charge",
+  editBankCharge: "Edit bank charge",
+  noBankCharges: "No bank charges recorded yet.",
+  bankChargeDescription: "Description (printed in the rojmel and the ledger)",
+  bankChargeDefaultDescription: "બેન્ક ચાર્જ",
+  confirmDeleteBankCharge: (date, head) => `Delete the ${head} bank charge dated ${date}?`,
   navReports: "Reports",
   navReconciliation: "Reconciliation",
   navMasters: "School & grant heads",
@@ -1274,6 +1430,69 @@ export const en: Strings = {
   layoutCellsOverflow: (count) =>
     `${count} ${count === 1 ? "cell holds" : "cells hold"} text wider than its column, running into the next cell. Widen that column.`,
   layoutTextColour: "Text colour",
+  excelTabHome: "Home",
+  excelTabPage: "Page Layout",
+  excelTabView: "View",
+  excelGroupClipboard: "Edit",
+  excelGroupFont: "Font",
+  excelGroupAlignment: "Alignment",
+  excelGroupCells: "Cells",
+  excelGroupColours: "Colours",
+  excelGroupSpacing: "Spacing",
+  excelGroupReset: "Reset",
+  excelGroupZoom: "Zoom",
+  excelRedo: "Redo",
+  excelPainter: "Format Painter",
+  excelPainterHelp: "Pick up the selected cell's formatting, then click a cell to apply it",
+  excelPainterActive: "🖌 Format Painter on: click a cell, row or heading to give it this formatting (Esc cancels).",
+  excelItalic: "Italic",
+  excelUnderline: "Underline",
+  excelGrow: "Increase font size",
+  excelShrink: "Decrease font size",
+  excelVAlign: { top: "Top", middle: "Middle", bottom: "Bottom" },
+  excelWrap: "Wrap Text",
+  excelOneLine: "One line",
+  excelPaddingX: "↔ Inner space",
+  excelPaddingY: "↕ Inner space",
+  excelCellsHint: "Select a cell or a heading for widths and heights.",
+  excelRowHeightHint: "For a row's height choose 'Whole row' under 'Apply to'.",
+  excelScopeRow: "Whole row (every block)",
+  excelWholeReport: "Whole report",
+  excelCellsSelected: (count) => `${count} cells selected`,
+  excelNeedsSelection: "Select a cell first",
+  excelReportModeNote:
+    "Nothing selected: font, size, colours, alignment and spacing apply to the whole report. Click a cell; Shift+click = a range, Ctrl+click = more cells.",
+  excelBorders: "Borders",
+  excelBorder: {
+    bottom: "Bottom Border",
+    top: "Top Border",
+    left: "Left Border",
+    right: "Right Border",
+    none: "No Border",
+    all: "All Borders",
+    outside: "Outside Borders",
+    thickOutside: "Thick Outside Borders",
+  },
+  excelLineStyle: "Line Style",
+  excelLineStyles: { thin: "Thin", medium: "Medium", thick: "Thick", dashed: "Dashed", dotted: "Dotted", double: "Double" },
+  excelLineColour: "Line Colour for new borders",
+  excelPenNote: "Borders drawn with the buttons above take this colour and style.",
+  fontRecommended: "Recommended fonts:",
+  paletteAutomatic: "Automatic",
+  paletteTheme: "Theme Colours",
+  paletteStandard: "Standard Colours",
+  paletteRecent: "Recent Colours",
+  paletteMore: "More Colours…",
+  paletteNew: "New",
+  paletteCurrent: "Current",
+  paletteHex: "Hex",
+  paletteOk: "OK",
+  fontGalleryOpen: "More fonts ▾",
+  fontGalleryClose: "Fewer fonts ▴",
+  fontGalleryOthers: "More fonts — best for titles:",
+  fontGalleryNote:
+    "The five above are recommended: clear in the PDF, the print and Excel. An Excel file shows a font only when it is installed on that PC; Shruti and Nirmala UI are on every Windows PC.",
+  layoutGroupNote: "A change to the whole row (height, colour, font, space after) applies to this same row in every block, on every page.",
   layoutLineColour: "Line colour (cell borders)",
   layoutColourDefault: "Default (black)",
   layoutColourHelp: "↺ = the default colour. The change goes into the PDF, the print and Excel.",

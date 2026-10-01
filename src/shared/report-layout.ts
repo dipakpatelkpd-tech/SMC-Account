@@ -28,20 +28,45 @@ import type { PrintableReportId } from "./api.js";
 // ------------------------------------------------------------------- fonts
 
 /**
- * The fonts a report can use. All are bundled with the app (SIL Open Font
- * License, via @fontsource) rather than taken from the PC, for the reason the
- * default one is: a PC without the font would fall back to another with other
- * widths, and the forms are paged by the width of their text.
+ * The fonts a report can use - all Unicode Gujarati, so conjuncts shape
+ * correctly in the preview, the PDF and the print (CLAUDE.md). The legacy
+ * typing fonts (LMG-Arun, Terafont, Shree-Guj and the like) are not here: they
+ * draw Gujarati letters in place of Latin ones, and the books hold real
+ * Gujarati text.
+ *
+ * Bundled with the app (SIL Open Font License, via @fontsource) rather than
+ * taken from the PC, for the reason the default one is: a PC without the font
+ * would fall back to another with other widths, and the forms are paged by the
+ * width of their text. The two `system` faces are Windows' own Gujarati fonts,
+ * on every Windows 10 and 11 PC but not bundled.
+ *
+ * `recommended`: the five that read best on a printed register, in the PDF
+ * and in Excel - plain text faces with a full set of conjuncts and clear
+ * digits. The others are display faces, best for a title or a heading.
+ * The editor shows the five first, the rest below them as a gallery.
  */
 export const LAYOUT_FONTS = [
-  { id: "noto-sans", family: "Noto Sans Gujarati", label: "Noto Sans Gujarati" },
-  { id: "noto-serif", family: "Noto Serif Gujarati", label: "Noto Serif Gujarati" },
-  { id: "hind-vadodara", family: "Hind Vadodara", label: "Hind Vadodara" },
-  { id: "mukta-vaani", family: "Mukta Vaani", label: "Mukta Vaani" },
-  { id: "anek", family: "Anek Gujarati", label: "Anek Gujarati" },
+  { id: "noto-sans", family: "Noto Sans Gujarati", label: "Noto Sans Gujarati", recommended: true },
+  { id: "hind-vadodara", family: "Hind Vadodara", label: "Hind Vadodara", recommended: true },
+  { id: "noto-serif", family: "Noto Serif Gujarati", label: "Noto Serif Gujarati", recommended: true },
+  { id: "mukta-vaani", family: "Mukta Vaani", label: "Mukta Vaani", recommended: true },
+  { id: "anek", family: "Anek Gujarati", label: "Anek Gujarati", recommended: true },
   { id: "baloo-bhai", family: "Baloo Bhai 2", label: "Baloo Bhai 2" },
   { id: "rasa", family: "Rasa", label: "Rasa" },
-] as const;
+  { id: "mogra", family: "Mogra", label: "Mogra" },
+  { id: "farsan", family: "Farsan", label: "Farsan" },
+  { id: "kumar-one", family: "Kumar One", label: "Kumar One" },
+  { id: "kumar-one-outline", family: "Kumar One Outline", label: "Kumar One Outline" },
+  { id: "shrikhand", family: "Shrikhand", label: "Shrikhand" },
+  { id: "shruti", family: "Shruti", label: "Shruti (Windows)", system: true },
+  { id: "nirmala", family: "Nirmala UI", label: "Nirmala UI (Windows)", system: true },
+] as const satisfies readonly {
+  id: string;
+  family: string;
+  label: string;
+  recommended?: boolean;
+  system?: boolean;
+}[];
 
 export type LayoutFontId = (typeof LAYOUT_FONTS)[number]["id"];
 const FONT_IDS = LAYOUT_FONTS.map((font) => font.id) as [LayoutFontId, ...LayoutFontId[]];
@@ -71,6 +96,30 @@ const bounded = <T extends z.ZodTypeAny>(key: z.ZodString, value: T) =>
     .refine((record) => Object.keys(record).length <= MAX_ENTRIES, "too many entries")
     .default({});
 
+export const V_ALIGNMENTS = ["top", "middle", "bottom"] as const;
+export type VerticalAlignment = (typeof V_ALIGNMENTS)[number];
+
+/**
+ * The line styles Excel offers for a border, and how each prints. "none" takes
+ * the line away altogether - even where the form, or the cell beside, draws one.
+ */
+export const BORDER_STYLES = ["thin", "medium", "thick", "dashed", "dotted", "double", "none"] as const;
+export type BorderStyle = (typeof BORDER_STYLES)[number];
+
+export const BORDER_CSS: Record<BorderStyle, string> = {
+  thin: "0.7pt solid",
+  medium: "1.4pt solid",
+  thick: "2.2pt solid",
+  dashed: "0.9pt dashed",
+  dotted: "1pt dotted",
+  double: "2.4pt double",
+  none: "hidden",
+};
+
+const borderEdge = z
+  .object({ style: z.enum(BORDER_STYLES), colour: hexColour.optional() })
+  .strict();
+
 export const cellStyleSchema = z
   .object({
     /** Highlight colour, "#rrggbb" - or NO_FILL for blank. */
@@ -88,10 +137,27 @@ export const cellStyleSchema = z
     colour: hexColour.optional(),
     /** Colour of the ruled lines round the cell (or heading), "#rrggbb". */
     lineColour: hexColour.optional(),
+    italic: z.boolean().optional(),
+    underline: z.boolean().optional(),
+    /** Where the text sits between the top and the bottom of its cell. */
+    vAlign: z.enum(V_ALIGNMENTS).optional(),
+    /** true: the text wraps onto more lines; false: it stays on one. */
+    wrap: z.boolean().optional(),
+    /** Space inside the cell, left and right / above and below. */
+    paddingXMm: z.number().min(0).max(15).optional(),
+    paddingYMm: z.number().min(0).max(15).optional(),
+    /** Excel's borders: each edge its own line style and colour. */
+    borders: z
+      .object({ top: borderEdge.optional(), right: borderEdge.optional(), bottom: borderEdge.optional(), left: borderEdge.optional() })
+      .strict()
+      .optional(),
   })
   .strict();
 
 export type CellStyle = z.infer<typeof cellStyleSchema>;
+export type BorderEdge = z.infer<typeof borderEdge>;
+export type BorderSide = "top" | "right" | "bottom" | "left";
+export const BORDER_SIDES: readonly BorderSide[] = ["top", "right", "bottom", "left"];
 
 // -------------------------------------------------------------- page setup
 
@@ -345,9 +411,18 @@ export const REPORT_COLUMNS: Record<PrintableReportId, ReportColumn[]> = {
 export interface ReportPart {
   id: string;
   labelGu: string;
-  /** A piece of a heading row whose width can be set, e.g. the આવક box. */
+  /**
+   * A piece whose width can be set. Every heading can be made narrower or
+   * wider: a block (`block`) is then centred on the sheet, a piece of a row of
+   * boxes (the rojmel's આવક box) takes that width beside the others.
+   */
   sizable?: boolean;
+  /** A heading that stands on its own line: centred when given a width. */
+  block?: boolean;
 }
+
+/** A title-like heading: on its own line, its width and height both settable. */
+const heading = (id: string, labelGu: string): ReportPart => ({ id, labelGu, sizable: true, block: true });
 
 /**
  * The headings and blocks around each form's table that a school can resize or
@@ -355,42 +430,47 @@ export interface ReportPart {
  */
 export const REPORT_PARTS: Record<PrintableReportId, ReportPart[]> = {
   rojmel: [
-    { id: "title", labelGu: "મથાળું (શાળાનું નામ)" },
-    { id: "band", labelGu: "આવક / જાવક પટ્ટી (આખી)" },
+    heading("title", "મથાળું (શાળાનું નામ)"),
+    heading("band", "આવક / જાવક પટ્ટી (આખી)"),
     { id: "bandLeft", labelGu: "આવક પટ્ટી (Cash Book)", sizable: true },
     { id: "bandRight", labelGu: "જાવક પટ્ટી (કેશ બુક)", sizable: true },
     { id: "bandPage", labelGu: "પાના નંબર", sizable: true },
-    { id: "closing", labelGu: "છેલ્લું વાક્ય" },
+    heading("closing", "છેલ્લું વાક્ય"),
   ],
   khatavahi: [
-    { id: "title", labelGu: "મથાળું (શાળાનું નામ)" },
-    { id: "accountKind", labelGu: "ખાતાવહી પટ્ટી" },
-    { id: "accountMeta", labelGu: "ખાતાનું નામ અને વર્ષ" },
-    { id: "footTitle", labelGu: "નીચેનું નામ" },
+    heading("title", "મથાળું (શાળાનું નામ)"),
+    heading("accountKind", "ખાતાવહી પટ્ટી"),
+    heading("accountMeta", "ખાતાનું નામ અને વર્ષ"),
+    heading("footTitle", "નીચેનું નામ"),
   ],
-  grantRegister: [{ id: "title", labelGu: "મથાળું" }],
-  chequeRegister: [{ id: "title", labelGu: "મથાળું" }],
-  billRegister: [{ id: "title", labelGu: "મથાળું" }],
+  grantRegister: [heading("title", "મથાળું")],
+  chequeRegister: [heading("title", "મથાળું")],
+  billRegister: [heading("title", "મથાળું")],
   vouchers: [
-    { id: "programme", labelGu: "મથાળું (યોજના)" },
-    { id: "meta", labelGu: "વાઉચરની વિગત" },
-    { id: "signatures", labelGu: "સહી" },
+    heading("programme", "મથાળું (યોજના)"),
+    heading("meta", "વાઉચરની વિગત"),
+    heading("signatures", "સહી"),
   ],
-  patrakD: [
-    { id: "title", labelGu: "મથાળું" },
-    { id: "meta", labelGu: "શાળાની વિગત" },
-  ],
-  annexure9: [
-    { id: "banner", labelGu: "મથાળું" },
-    { id: "heading", labelGu: "બેંક મેળવણું" },
-    { id: "signatures", labelGu: "સહી" },
-  ],
-  annexure10: [
-    { id: "banner", labelGu: "મથાળું" },
-    { id: "certificate", labelGu: "પ્રમાણપત્ર" },
-    { id: "signatures", labelGu: "સહી" },
-  ],
+  patrakD: [heading("title", "મથાળું"), heading("meta", "શાળાની વિગત")],
+  annexure9: [...annexureBannerParts(), heading("heading", "બેંક મેળવણું"), heading("signatures", "સહી")],
+  annexure10: [...annexureBannerParts(), heading("certificate", "પ્રમાણપત્ર"), heading("signatures", "સહી")],
 };
+
+/**
+ * The annexures' stacked heading, whole and piece by piece: the programme
+ * lines, the annexure's number, the year, the school's name and the rows of
+ * details under it. Listed whole first, so a piece's own choice wins.
+ */
+function annexureBannerParts(): ReportPart[] {
+  return [
+    heading("banner", "મથાળું (આખું)"),
+    heading("bannerProgramme", "યોજનાનું નામ"),
+    heading("bannerNumber", "પરિશિષ્ટ નંબર"),
+    heading("bannerYear", "વર્ષ"),
+    { id: "bannerSchool", labelGu: "શાળાનું નામ", sizable: true },
+    heading("bannerDetails", "શાળાની વિગત (કલસ્ટર, તાલુકો, ખાતા નંબર)"),
+  ];
+}
 
 /** The part the first row of the report's Excel sheet stands for - its title. */
 export const EXCEL_TITLE_PART: Record<PrintableReportId, string> = {
@@ -527,9 +607,16 @@ export function fitScalePct(report: PrintableReportId, page: PageSetup | undefin
   return Math.max(MIN_SCALE_PCT, Math.floor(fit * 100));
 }
 
-/** The printed width of the report's table: the sheet less its margins. */
+/** The gap between the ledger's two columns of accounts (print.css, .khatavahi-grid). */
+export const KHATAVAHI_GAP_MM = 4;
+
+/**
+ * The printed width of the report's table: the sheet less its margins - for
+ * the ledger, half of it, as its accounts stand two across.
+ */
 export function tableWidthMm(report: PrintableReportId, layout?: ReportLayout): number {
-  return resolvePage(report, layout?.page).contentWidthMm;
+  const width = resolvePage(report, layout?.page).contentWidthMm;
+  return report === "khatavahi" ? round3((width - KHATAVAHI_GAP_MM) / 2) : width;
 }
 
 // ---------------------------------------------------------------- row keys
@@ -554,6 +641,34 @@ export const ROW_KEYS = {
   ledgerBlank: (headCode: string, index: number): string => `${headCode}:blank:${index}`,
   ledgerClosing: (headCode: string): string => `${headCode}:closing`,
 } as const;
+
+/**
+ * Row GROUPS: the same row of every block. A report made of blocks - the
+ * rojmel's, the ledger's accounts, the vouchers - repeats the same rows in each,
+ * and a school changing "the row" means that row everywhere, as a column change
+ * already is. So a row's height, colour or font set for the whole row is kept
+ * against its group, and every block's row in that place follows it. A single
+ * cell is still that one cell.
+ *
+ * A group key is a row key that starts with "group:", so a layout keeps its
+ * one map of styles and gaps.
+ */
+export const ROW_GROUPS = {
+  prefix: "group:",
+  /** The n-th body row of every rojmel block. */
+  rojmelRow: (index: number): string => `group:rojmel:${index}`,
+  rojmelFooter: (which: "spent" | "closing" | "grand"): string => `group:rojmel:${which}`,
+  /** The n-th row of every account, blank rows included. */
+  ledgerRow: (index: number): string => `group:ledger:${index}`,
+  ledgerClosing: "group:ledger:closing",
+  /** The n-th line of every voucher. */
+  voucherLine: (index: number): string => `group:voucher:${index}`,
+  voucherTotal: "group:voucher:total",
+} as const;
+
+export function isGroupKey(row: string): boolean {
+  return row.startsWith(ROW_GROUPS.prefix);
+}
 
 /** Annexure 9's rows are fixed by the form. */
 export const ANNEXURE9_ROWS = [
@@ -623,14 +738,28 @@ export function parseTargetKey(key: string): LayoutTarget | null {
   return null;
 }
 
-/** How one cell looks: its column's style, then its row's, then its own. */
-export function styleAt(layout: ReportLayout, row: string | null, col: string | null): CellStyle {
+/**
+ * How one cell looks: its column's style, then its row group's (the same row
+ * in every block), then its own row's, then its own.
+ */
+export function styleAt(
+  layout: ReportLayout,
+  row: string | null,
+  col: string | null,
+  group: string | null = null,
+): CellStyle {
   const pick = (key: string): CellStyle => layout.styles[key] ?? {};
   return {
     ...(col !== null ? pick(targetKey({ kind: "col", col })) : {}),
+    ...(group !== null ? pick(targetKey({ kind: "row", row: group })) : {}),
     ...(row !== null ? pick(targetKey({ kind: "row", row })) : {}),
     ...(row !== null && col !== null ? pick(targetKey({ kind: "cell", row, col })) : {}),
   };
+}
+
+/** The blank space after a row: its own, else its group's. */
+export function rowGapMm(layout: ReportLayout, row: string, group: string | null = null): number | undefined {
+  return layout.rowGapsMm[row] ?? (group !== null ? layout.rowGapsMm[group] : undefined);
 }
 
 // ------------------------------------------------------------------ editing
@@ -752,16 +881,44 @@ export function fontStack(id: LayoutFontId | undefined): string {
   return [cssString(primary), ...rest.filter((entry) => entry !== cssString(primary))].join(", ");
 }
 
-function declarations(style: CellStyle): string[] {
+/** What a cell's text looks like: carried into everything inside a heading. */
+function textDeclarations(style: CellStyle): string[] {
   const out: string[] = [];
-  if (style.fill) out.push(`background: ${style.fill === NO_FILL ? "transparent" : style.fill}`);
   if (style.bold !== undefined) out.push(`font-weight: ${style.bold ? 700 : 400}`);
+  if (style.italic !== undefined) out.push(`font-style: ${style.italic ? "italic" : "normal"}`);
+  if (style.underline !== undefined) out.push(`text-decoration: ${style.underline ? "underline" : "none"}`);
   if (style.font) out.push(`font-family: ${fontStack(style.font)}`);
   if (style.sizePt !== undefined) out.push(`font-size: ${style.sizePt}pt`);
   if (style.align) out.push(`text-align: ${style.align}`);
   if (style.colour) out.push(`color: ${style.colour}`);
   if (style.lineColour) out.push(`border-color: ${style.lineColour}`);
+  if (style.wrap !== undefined) out.push(`white-space: ${style.wrap ? "normal" : "nowrap"}`);
   return out;
+}
+
+/** The box itself: its padding, vertical alignment and borders - never its contents'. */
+function boxDeclarations(style: CellStyle): string[] {
+  const out: string[] = [];
+  if (style.vAlign) out.push(`vertical-align: ${style.vAlign}`);
+  if (style.paddingXMm !== undefined) {
+    out.push(`padding-left: ${style.paddingXMm}mm`, `padding-right: ${style.paddingXMm}mm`);
+  }
+  if (style.paddingYMm !== undefined) {
+    out.push(`padding-top: ${style.paddingYMm}mm`, `padding-bottom: ${style.paddingYMm}mm`);
+  }
+  for (const side of BORDER_SIDES) {
+    const edge = style.borders?.[side];
+    if (!edge) continue;
+    if (edge.style === "none") out.push(`border-${side}: hidden`);
+    else out.push(`border-${side}: ${BORDER_CSS[edge.style]} ${edge.colour ?? style.lineColour ?? "#000"}`);
+  }
+  return out;
+}
+
+function declarations(style: CellStyle): string[] {
+  const out: string[] = [];
+  if (style.fill) out.push(`background: ${style.fill === NO_FILL ? "transparent" : style.fill}`);
+  return [...out, ...textDeclarations(style), ...boxDeclarations(style)];
 }
 
 const FLEX_ALIGN: Record<Alignment, string> = { left: "flex-start", center: "center", right: "flex-end" };
@@ -770,23 +927,32 @@ const FLEX_ALIGN: Record<Alignment, string> = { left: "flex-start", center: "cen
  * A heading part: its text properties go to everything inside it too, because
  * the form's own rules size and colour the pieces of a heading one by one.
  */
-function partRules(selector: string, style: CellStyle): string[] {
+function partRules(root: string, partId: string, style: CellStyle, part?: ReportPart): string[] {
+  const attribute = `[data-part=${cssString(partId)}]`;
+  const selector = `${root} ${attribute}`;
+  /** The part when it is this kind of element, e.g. `#r table[data-part="x"]`. */
+  const as = (tag: string): string => `${root} ${tag}${attribute}`;
   const rules: string[] = [];
   const all = `${selector}, ${selector} *`;
-  const inherited = declarations({ ...style, fill: undefined });
+  const inherited = textDeclarations(style);
   if (inherited.length > 0) rules.push(`${all} { ${inherited.join("; ")}; }`);
+  const box = boxDeclarations(style);
+  if (box.length > 0) rules.push(`${selector} { ${box.join("; ")}; }`);
   if (style.fill) {
     rules.push(`${all} { background: ${style.fill === NO_FILL ? "transparent" : style.fill}; }`);
   }
   if (style.align) rules.push(`${selector} { justify-content: ${FLEX_ALIGN[style.align]}; }`);
   if (style.widthMm !== undefined) {
-    // A piece of a heading row takes exactly this width; the others share the rest.
-    rules.push(`${selector} { flex: 0 0 auto; width: ${style.widthMm}mm; }`);
+    // A piece of a heading row takes exactly this width; the others share the
+    // rest. A heading on its own line is centred at it.
+    const centred = part?.block ? " margin-left: auto; margin-right: auto; box-sizing: border-box;" : "";
+    rules.push(`${selector} { flex: 0 0 auto; width: ${style.widthMm}mm;${centred} }`);
   }
   if (style.heightMm !== undefined) {
-    // A block grows to the height; a heading table grows each of its rows.
-    rules.push(`${selector}:not(table) { min-height: ${style.heightMm}mm; }`);
-    rules.push(`table${selector} td { height: ${style.heightMm}mm; }`);
+    // A block grows to the height; a heading table grows each of its rows, and
+    // a row or cell of one grows itself.
+    rules.push(`${selector}:not(table):not(tr):not(td) { min-height: ${style.heightMm}mm; }`);
+    rules.push(`${as("table")} td, ${as("tr")} > td, ${as("td")} { height: ${style.heightMm}mm; }`);
   }
   return rules;
 }
@@ -840,7 +1006,8 @@ export function layoutCss(report: PrintableReportId, layout: ReportLayout, root:
     padding.push(`padding-left: ${layout.paddingXMm}mm`, `padding-right: ${layout.paddingXMm}mm`);
   }
   if (padding.length > 0) {
-    rules.push(`${table} > * > tr:not(.layout-gap):not(.block-gap) > :is(td, th) { ${padding.join("; ")}; }`);
+    // :where keeps this weaker than a column's, a row's or a cell's own padding.
+    rules.push(`${table} :where(tr:not(.layout-gap):not(.block-gap)) > :is(td, th) { ${padding.join("; ")}; }`);
   }
   if (layout.rowHeightMm !== undefined) {
     rules.push(
@@ -852,6 +1019,9 @@ export function layoutCss(report: PrintableReportId, layout: ReportLayout, root:
   }
 
   const order = { part: 0, col: 1, row: 2, cell: 3 } as const;
+  // A row group before a single row, so the row's own choice wins.
+  const groupFirst = (target: LayoutTarget): number =>
+    target.kind === "row" && !isGroupKey(target.row) ? 1 : 0;
   // REPORT_PARTS lists a heading before the pieces inside it, and its rules
   // reach those pieces too: in that order a piece's own choice comes later and wins.
   const partOrder = (target: LayoutTarget): number =>
@@ -859,23 +1029,31 @@ export function layoutCss(report: PrintableReportId, layout: ReportLayout, root:
   const targets = Object.entries(layout.styles)
     .map(([key, style]) => ({ target: parseTargetKey(key), style }))
     .filter((entry): entry is { target: LayoutTarget; style: CellStyle } => entry.target !== null)
-    .sort((a, b) => order[a.target.kind] - order[b.target.kind] || partOrder(a.target) - partOrder(b.target));
+    .sort(
+      (a, b) =>
+        order[a.target.kind] - order[b.target.kind] ||
+        partOrder(a.target) - partOrder(b.target) ||
+        groupFirst(a.target) - groupFirst(b.target),
+    );
 
   for (const { target, style } of targets) {
     if (target.kind === "part") {
-      rules.push(...partRules(`${root} [data-part=${cssString(target.part)}]`, style));
+      const part = REPORT_PARTS[report].find((each) => each.id === target.part);
+      rules.push(...partRules(root, target.part, style, part));
       continue;
     }
     const body = declarations(style);
+    const rowSelector = (row: string): string =>
+      isGroupKey(row) ? `tr[data-row-group=${cssString(row)}]` : `tr[data-row=${cssString(row)}]`;
     if (target.kind === "row" && style.heightMm !== undefined) {
-      rules.push(`${table} tr[data-row=${cssString(target.row)}] > td { height: ${style.heightMm}mm; }`);
+      rules.push(`${table} ${rowSelector(target.row)} > td { height: ${style.heightMm}mm; }`);
     }
     if (body.length === 0) continue;
     const selector =
       target.kind === "col"
         ? `${table} :is(td, th)[data-col=${cssString(target.col)}]`
         : target.kind === "row"
-          ? `${table} tr[data-row=${cssString(target.row)}] > :is(td, th)`
+          ? `${table} ${rowSelector(target.row)} > :is(td, th)`
           : `${table} tr[data-row=${cssString(target.row)}] > :is(td, th)[data-col=${cssString(target.col)}]`;
     rules.push(`${selector} { ${body.join("; ")}; }`);
     // A total printed in <strong> follows its cell's choice of weight.

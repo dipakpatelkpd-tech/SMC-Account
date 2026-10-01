@@ -152,6 +152,46 @@ describe("grant heads", () => {
   });
 });
 
+describe("bank charges", () => {
+  it("are saved, show in the ledger, and close the year short by as much - not in Annexure 10", async () => {
+    const heads = await accounts.listGrantHeads();
+    const swachhata = heads.find((head) => head.code === "SWACHHATA")!;
+    const before = await accounts.getYearEndPreview();
+    const annexureBefore = await accounts.getAnnexure10();
+
+    expect((await accounts.createBankCharge({ date: "2026-05-01", grantHeadId: swachhata.id, amountPaise: 0, descriptionGu: "બેન્ક ચાર્જ" })).ok).toBe(false);
+    expect((await accounts.createBankCharge({ date: "2026-05-01", grantHeadId: swachhata.id, amountPaise: 1770, descriptionGu: "  " })).ok).toBe(false);
+
+    const created = await accounts.createBankCharge({
+      date: "2026-05-01",
+      grantHeadId: swachhata.id,
+      amountPaise: 1770,
+      descriptionGu: "બેન્ક ચાર્જ",
+    });
+    expect(created.ok, JSON.stringify(created)).toBe(true);
+    if (!created.ok) return;
+    expect(await accounts.listBankCharges()).toEqual([created.data]);
+
+    const ledgers = await accounts.getLedgers();
+    const row = ledgers.find((each) => each.headCode === "SWACHHATA")!.rows.find((each) => each.descriptionGu === "બેન્ક ચાર્જ");
+    expect(row?.debitPaise).toBe(1770);
+    expect(row?.rojmelPage).not.toBeNull();
+    expect(await accounts.getAnnexure10()).toEqual(annexureBefore);
+
+    const after = await accounts.getYearEndPreview();
+    const closing = (preview: typeof after): number => preview.rows.find((each) => each.headCode === "SWACHHATA")!.closingPaise;
+    expect(closing(after)).toBe(closing(before) - 1770);
+    expect(after.totalClosingPaise).toBe(before.totalClosingPaise - 1770);
+
+    const edited = await accounts.updateBankCharge(created.data.id, { ...created.data, amountPaise: 2000 });
+    expect(edited.ok && edited.data.amountPaise).toBe(2000);
+
+    expect((await accounts.deleteBankCharge(created.data.id)).ok).toBe(true);
+    expect(await accounts.listBankCharges()).toEqual([]);
+    expect((await accounts.getYearEndPreview()).totalClosingPaise).toBe(before.totalClosingPaise);
+  });
+});
+
 describe("the year-end preview", () => {
   it("shows next year's label and this year's closing balances", async () => {
     const preview = await accounts.getYearEndPreview();

@@ -244,4 +244,24 @@ describe("colours and page setup in the workbook", () => {
     expect(sheet.pageSetup).toMatchObject({ paperSize: 9, orientation: "portrait", scale: 80, fitToPage: false });
     saved(await accounts.saveReportLayout("chequeRegister", emptyLayout()));
   });
+
+  it("carries Excel's borders, italic, underline, vertical alignment and wrapping", async () => {
+    const layout: ReportLayout = withStyle(emptyLayout(), { kind: "col", col: "payee" }, {
+      italic: true,
+      underline: true,
+      vAlign: "top",
+      wrap: true,
+      borders: { top: { style: "thick", colour: "#c00000" }, bottom: { style: "double" }, left: { style: "none" } },
+    });
+    saved(await accounts.saveReportLayout("chequeRegister", layout));
+    const cell = (await roundTrip("chequeRegister")).worksheets[0]!.getRow(3).getCell(7);
+    expect(cell.font).toMatchObject({ italic: true, underline: true });
+    expect(cell.alignment).toMatchObject({ vertical: "top", wrapText: true });
+    expect(cell.border?.top).toMatchObject({ style: "thick", color: { argb: "FFC00000" } });
+    expect(cell.border?.bottom?.style).toBe("double");
+    expect(cell.border?.left).toBeUndefined();
+    // The edge left alone keeps the form's thin rule.
+    expect(cell.border?.right?.style).toBe("thin");
+    saved(await accounts.saveReportLayout("chequeRegister", emptyLayout()));
+  });
 });

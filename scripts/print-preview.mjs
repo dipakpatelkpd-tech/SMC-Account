@@ -104,6 +104,7 @@ html = html.replace(
     `saveReportLayout:(r,l)=>{layouts[r]=structuredClone(l);return Promise.resolve({ok:true,data:structuredClone(l)})},` +
     `exportPdf:()=>Promise.resolve({ok:true,data:null}),` +
     `printReport:()=>Promise.resolve({ok:true,data:false}),` +
+    `listBankCharges:()=>Promise.resolve([]),` +
     `exportExcel:()=>Promise.resolve({ok:true,data:null})` +
     `};</script></head>`,
 );

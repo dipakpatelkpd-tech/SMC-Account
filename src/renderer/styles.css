@@ -1766,3 +1766,755 @@ tr.clickable {
   height: 10px;
   vertical-align: 0;
 }
+
+/* The font gallery in the layout editor: tiles drawn in their own face. */
+.font-gallery-now {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.font-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.font-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+
+.font-tile:hover {
+  border-color: var(--line-strong);
+}
+
+.font-tile.chosen {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  background: var(--accent-soft);
+}
+
+.font-tile-sample {
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.font-tile-name {
+  /* The name in the interface's face, whatever the tile's own. */
+  font-family: var(--numeric);
+  font-size: 11px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ----------------------------------------------------- Excel-style editor */
+
+/* The layout editor (screens/LayoutEditor.tsx), shaped like Excel: title bar,
+   tabs, ribbon, name box, the report as the sheet, status bar. It covers the
+   whole window while it is open. */
+.excel-editor {
+  --excel-green: #217346;
+  --excel-green-dark: #185c37;
+  --ribbon-bg: #f3f3f3;
+  --ribbon-line: #d4d4d4;
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: grid;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+  background: #e6e6e6;
+  font-size: 13px;
+}
+
+.excel-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 14px;
+  background: var(--excel-green);
+  color: #fff;
+}
+
+.excel-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.excel-titlebar-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.excel-titlebar-actions .ghost {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: transparent;
+}
+
+.excel-titlebar-actions .primary {
+  background: #fff;
+  color: var(--excel-green-dark);
+  border-color: #fff;
+}
+
+.excel-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 10px;
+  background: var(--excel-green);
+}
+
+.excel-tabs button {
+  border: 0;
+  border-radius: 4px 4px 0 0;
+  background: transparent;
+  color: #fff;
+  padding: 6px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.excel-tabs button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.excel-tabs button.chosen {
+  background: var(--ribbon-bg);
+  color: var(--excel-green-dark);
+  font-weight: 600;
+}
+
+.excel-ribbon {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-height: 96px;
+  padding: 4px 6px 0;
+  background: var(--ribbon-bg);
+  border-bottom: 1px solid var(--ribbon-line);
+  /* Not scrolled: a scrolling box would clip the drop-down palettes. A narrow
+     window wraps the groups onto a second line instead. */
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 5;
+}
+
+.ribbon-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0 8px;
+  border-right: 1px solid var(--ribbon-line);
+}
+
+.ribbon-group-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  flex: 1;
+}
+
+.ribbon-group-label {
+  text-align: center;
+  font-size: 11px;
+  color: #616161;
+  padding: 2px 0 3px;
+  white-space: nowrap;
+}
+
+.ribbon-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ribbon-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ribbon-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: #1f1f1f;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ribbon-button:hover:not(:disabled) {
+  background: #e1e1e1;
+  border-color: #c8c8c8;
+}
+
+.ribbon-button.active {
+  background: #c5e0cf;
+  border-color: #8fbfa1;
+}
+
+.ribbon-button:disabled {
+  color: #a6a6a6;
+  cursor: default;
+}
+
+.ribbon-button.big {
+  flex-direction: column;
+  justify-content: center;
+  min-width: 54px;
+  min-height: 62px;
+}
+
+.ribbon-button.big .ribbon-button-icon {
+  font-size: 22px;
+}
+
+.ribbon-button-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.ribbon-button-label {
+  font-size: 12px;
+}
+
+.ribbon-hint {
+  max-width: 180px;
+  font-size: 11px;
+  color: #616161;
+  white-space: normal;
+}
+
+.ribbon-radio,
+.ribbon-check {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ribbon-radio.disabled {
+  color: #a6a6a6;
+  cursor: default;
+}
+
+.ribbon-select {
+  font-size: 13px;
+  padding: 3px 6px;
+}
+
+.mini-stepper {
+  display: grid;
+  grid-template-columns: auto 24px 56px 24px;
+  align-items: center;
+  gap: 2px;
+}
+
+.mini-stepper-label {
+  font-size: 12px;
+  color: #3a3a3a;
+  white-space: nowrap;
+  padding-right: 4px;
+}
+
+.mini-stepper input,
+.size-box input {
+  min-width: 0;
+  padding: 2px 4px;
+  font-size: 13px;
+  text-align: center;
+  height: 24px;
+  box-sizing: border-box;
+}
+
+.size-box {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.size-box input {
+  width: 52px;
+}
+
+.size-box sup,
+.size-box sub {
+  font-size: 8px;
+}
+
+/* Font box: the face's name, a drop-down gallery of tiles. */
+.font-picker {
+  position: relative;
+}
+
+.font-picker-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 190px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid #b5b5b5;
+  border-radius: 2px;
+  background: #fff;
+  color: #1f1f1f;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.font-picker-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.font-picker-popover {
+  position: absolute;
+  z-index: 950;
+  top: 30px;
+  left: 0;
+  width: 340px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #c6c6c6;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
+.font-tile.wide {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+/* Alignment glyphs: three lines, aligned as the button does. */
+.halign-icon,
+.valign-icon {
+  display: inline-block;
+  width: 14px;
+  height: 12px;
+  position: relative;
+}
+
+.halign-icon {
+  background:
+    linear-gradient(currentColor, currentColor) 0 0 / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) var(--short, 0) 5px / 60% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 10px / 100% 2px no-repeat;
+}
+
+.halign-icon.center {
+  --short: 50%;
+}
+
+.halign-icon.right {
+  --short: 100%;
+}
+
+.valign-icon {
+  border-top: 1px solid #9a9a9a;
+  border-bottom: 1px solid #9a9a9a;
+  background: linear-gradient(currentColor, currentColor) center var(--at, 50%) / 70% 3px no-repeat;
+}
+
+.valign-icon.top {
+  --at: 1px;
+}
+
+.valign-icon.bottom {
+  --at: calc(100% - 1px);
+}
+
+/* Colour buttons: the button paints, the arrow opens the palette. */
+.colour-button {
+  position: relative;
+  display: inline-flex;
+}
+
+.colour-button-main {
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 4px 1px;
+  border-radius: 3px 0 0 3px;
+}
+
+.colour-button-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.font-colour-a {
+  font-weight: 700;
+  font-family: var(--numeric);
+}
+
+.colour-button-bar {
+  display: block;
+  width: 18px;
+  height: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.colour-button-arrow {
+  padding: 2px 2px;
+  border-radius: 0 3px 3px 0;
+  font-size: 10px;
+}
+
+.palette-popover {
+  position: absolute;
+  z-index: 960;
+  top: 32px;
+  left: 0;
+  width: 236px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #c6c6c6;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  color: #1f1f1f;
+}
+
+.palette-heading {
+  margin: 6px 0 3px;
+  padding: 2px 4px;
+  background: #f0f0f0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #444;
+}
+
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 2px 3px;
+}
+
+.palette-grid.theme-top {
+  margin-bottom: 4px;
+}
+
+.palette-swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid #d0d0d0;
+  cursor: pointer;
+}
+
+.palette-swatch:hover,
+.palette-swatch.chosen {
+  outline: 2px solid #e5a100;
+  outline-offset: 0;
+  border-color: #fff;
+}
+
+.palette-swatch.automatic {
+  display: inline-block;
+  background: linear-gradient(#000, #000) center / 60% 60% no-repeat, #fff;
+  vertical-align: middle;
+}
+
+.palette-swatch.none {
+  display: inline-block;
+  vertical-align: middle;
+  background: linear-gradient(45deg, transparent 45%, #c00000 45%, #c00000 55%, transparent 55%), #fff;
+}
+
+.palette-automatic,
+.palette-more,
+.border-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.palette-automatic:hover,
+.palette-more:hover,
+.border-menu-item:hover {
+  background: #e5f1ea;
+}
+
+.palette-more {
+  margin-top: 6px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.border-menu {
+  width: 250px;
+}
+
+.border-menu-icon {
+  display: inline-block;
+  width: 18px;
+  text-align: center;
+  font-size: 15px;
+}
+
+.border-styles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.border-style {
+  height: 24px;
+  border: 1px solid #d0d0d0;
+  background: #fff;
+  cursor: pointer;
+}
+
+.border-style.chosen {
+  border-color: var(--excel-green, #217346);
+  box-shadow: 0 0 0 1px var(--excel-green, #217346);
+}
+
+.border-sample {
+  display: block;
+  width: 80%;
+  margin: 0 auto;
+  border-top: 1px solid #000;
+}
+
+.border-sample.medium {
+  border-top-width: 2px;
+}
+
+.border-sample.thick {
+  border-top-width: 3px;
+}
+
+.border-sample.dashed {
+  border-top-style: dashed;
+}
+
+.border-sample.dotted {
+  border-top: 2px dotted #000;
+}
+
+.border-sample.double {
+  border-top: 4px double #000;
+}
+
+/* Excel's "More Colours…": a square of saturation and brightness, a hue strip, numbers. */
+.custom-colour-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.custom-colour {
+  width: 420px;
+  padding: 14px 16px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
+}
+
+.custom-colour h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.custom-colour-body {
+  display: flex;
+  gap: 12px;
+}
+
+.custom-colour-square {
+  position: relative;
+  width: 200px;
+  height: 180px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.custom-colour-white,
+.custom-colour-black {
+  position: absolute;
+  inset: 0;
+}
+
+.custom-colour-white {
+  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0));
+}
+
+.custom-colour-black {
+  background: linear-gradient(to top, #000, rgba(0, 0, 0, 0));
+}
+
+.custom-colour-marker {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -6px 0 0 -6px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #000;
+  pointer-events: none;
+}
+
+.custom-colour-hue {
+  position: relative;
+  width: 18px;
+  height: 180px;
+  cursor: ns-resize;
+  touch-action: none;
+  background: linear-gradient(to bottom, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+}
+
+.custom-colour-hue-marker {
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  height: 4px;
+  margin-top: -2px;
+  border: 1px solid #000;
+  background: #fff;
+  pointer-events: none;
+}
+
+.custom-colour-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.custom-colour-fields label {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: center;
+  gap: 4px;
+}
+
+.custom-colour-fields input {
+  width: 90px;
+  padding: 2px 4px;
+}
+
+.custom-colour-compare {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #999;
+  width: 60px;
+}
+
+.custom-colour-compare span {
+  height: 24px;
+}
+
+.custom-colour-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.excel-namebar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px;
+  background: #fff;
+  border-bottom: 1px solid var(--ribbon-line);
+  min-height: 28px;
+}
+
+.excel-namebox {
+  min-width: 220px;
+  padding: 2px 8px;
+  border: 1px solid #c6c6c6;
+  font-weight: 600;
+  font-size: 12px;
+  background: #fff;
+}
+
+.excel-namebar-note {
+  font-size: 12px;
+  color: #505050;
+}
+
+.excel-sheet {
+  overflow: auto;
+  background: #e6e6e6;
+  border-radius: 0;
+  max-height: none;
+}
+
+.excel-sheet .print-root {
+  background: transparent;
+}
+
+.excel-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 3px 12px;
+  background: #f3f3f3;
+  border-top: 1px solid var(--ribbon-line);
+  font-size: 12px;
+  color: #333;
+  min-height: 24px;
+}
+
+.excel-statusbar .ok {
+  color: var(--excel-green-dark);
+  font-weight: 600;
+}
+
+.excel-statusbar .error {
+  color: #c00000;
+  font-weight: 600;
+}
+
+.excel-statusbar .warn {
+  color: #9c5700;
+}
+
+.excel-statusbar-hint {
+  flex: 1;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
