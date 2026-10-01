@@ -24,6 +24,11 @@ npm run pack:win
 That is: build the Electron bundles, put the **Windows** better-sqlite3 binary in
 place, and run electron-builder. The result lands in `release/`.
 
+**Easiest: let GitHub build it.** Every push to `main` or `main-10i69r` runs
+`.github/workflows/build-windows.yml` on a GitHub Windows machine. Open the
+repository → **Actions** → the latest *Build Windows installer* run → when it is
+green, download **SMC-Accounts-installer** at the bottom (a zip holding the .exe).
+
 **On a Windows PC** nothing else is needed: `git pull`, `npm install`,
 `npm run pack:win`.
 

@@ -97,7 +97,9 @@ export async function fetchPrebuild({ runtime, abi, platform, arch }) {
   rmSync(unpacked, { recursive: true, force: true });
   mkdirSync(unpacked, { recursive: true });
   try {
-    execFileSync("tar", ["-xzf", temporary, "-C", unpacked], { stdio: "inherit" });
+    // Relative paths from inside the cache: a Windows path such as C:\... would
+    // be read by GNU tar (Git for Windows) as a remote host.
+    execFileSync("tar", ["-xzf", `${file}.tar.gz`, "-C", file], { stdio: "inherit", cwd: CACHE_DIR });
     const extracted = path.join(unpacked, "build", "Release", "better_sqlite3.node");
     if (!existsSync(extracted)) {
       throw new Error(`${file}.tar.gz did not contain build/Release/better_sqlite3.node`);

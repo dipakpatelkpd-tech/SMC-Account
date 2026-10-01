@@ -1,0 +1,48 @@
+# Builds the Windows installer (SMC-Accounts-<version>-setup.exe) on GitHub's own
+# Windows machine, so no wine is needed.
+#
+# It runs by itself on every push to main or main-10i69r. To run it by hand:
+# GitHub -> the repository -> Actions -> "Build Windows installer" -> Run
+# workflow (that button appears once this file is on main). When a run turns
+# green, open it and download "SMC-Accounts-installer" at the bottom of the
+# page (a zip holding the .exe).
+#
+# The Supabase URL and publishable key are built in from the tracked .env.
+name: Build Windows installer
+
+on:
+  push:
+    branches: [main, main-10i69r]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check the cloud settings are present
+        shell: bash
+        run: |
+          grep -q '^MAIN_VITE_SUPABASE_URL=.\+' .env
+          grep -q '^MAIN_VITE_SUPABASE_PUBLISHABLE_KEY=.\+' .env
+
+      - name: Build the installer
+        run: npm run pack:win -- --publish never
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: SMC-Accounts-installer
+          path: release/*-setup.exe
+          if-no-files-found: error
+          retention-days: 30
