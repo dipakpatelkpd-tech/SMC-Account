@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import type { AppStateDto, DashboardDto, OpenSchoolDto, SetupStateDto, UserDto } from "../shared/api.js";
 import { Dashboard } from "./screens/Dashboard.js";
 import { Receipts } from "./screens/Receipts.js";
+import { BankCharges } from "./screens/BankCharges.js";
 import { Bills } from "./screens/Bills.js";
 import { Cheques } from "./screens/Cheques.js";
 import { OpeningBalances } from "./screens/OpeningBalances.js";
@@ -35,6 +36,7 @@ const SCREENS = [
   { id: "receipts", group: "data" },
   { id: "bills", group: "data" },
   { id: "cheques", group: "data" },
+  { id: "bankCharges", group: "data" },
   { id: "reconciliation", group: "data" },
   { id: "reports", group: "printing" },
   { id: "masters", group: "settings" },
@@ -330,6 +332,7 @@ function Shell({
         {screen === "receipts" && <Receipts onChanged={refresh} />}
         {screen === "bills" && <Bills onChanged={refresh} />}
         {screen === "cheques" && <Cheques onChanged={refresh} />}
+        {screen === "bankCharges" && <BankCharges onChanged={refresh} />}
         {screen === "reconciliation" && <Reconciliation onChanged={refresh} />}
         {screen === "reports" && <Reports />}
         {screen === "masters" && <Masters onChanged={refresh} />}
@@ -356,6 +359,8 @@ function screenLabel(id: ScreenId, t: ReturnType<typeof useStrings>): string {
       return t.navBills;
     case "cheques":
       return t.navCheques;
+    case "bankCharges":
+      return t.navBankCharges;
     case "reconciliation":
       return t.navReconciliation;
     case "reports":
@@ -448,6 +453,14 @@ function NavIcon({ id }: { id: ScreenId }): JSX.Element {
           <line x1="2" y1="10" x2="22" y2="10" />
           <line x1="6" y1="16" x2="10" y2="16" />
           <line x1="14" y1="16" x2="18" y2="16" />
+        </svg>
+      );
+    case "bankCharges":
+      return (
+        <svg className="nav-item-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 21h18" />
+          <path d="M5 21V9l7-5 7 5v12" />
+          <line x1="9" y1="14" x2="15" y2="14" />
         </svg>
       );
     case "reconciliation":

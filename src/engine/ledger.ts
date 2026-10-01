@@ -2,7 +2,8 @@
  * ખાતાવહી - the ledger, one account per grant head (SPEC 6.2).
  *
  * Rows in date order: the opening balance as a credit, each receipt of the head
- * as a credit, each cheque's share of the head as a debit, then a closing row
+ * as a credit, each cheque's share of the head as a debit, each bank charge laid
+ * on the head as a debit, then a closing row
  * carrying Σ credits, Σ debits and the balance.
  *
  * The running balance prints in જમા બાકી while it is positive and in ઉધાર બાકી
@@ -22,6 +23,7 @@ import type { Ledger, LedgerRow, YearBook } from "./types.js";
 export interface PageResolver {
   receiptPage(receiptId: string): number | null;
   chequePage(chequeNo: number): number | null;
+  chargePage(chargeId: string): number | null;
   openingPage(): number | null;
   closingPage(): number | null;
 }
@@ -69,6 +71,17 @@ export function ledger(book: YearBook, headCode: string, options: LedgerOptions 
       descriptionGu: chequeDescriptionFor(cheque, headCode),
       creditPaise: ZERO,
       debitPaise: share,
+    });
+  }
+
+  // 4. What the bank took from this head itself - no cheque, no voucher.
+  for (const charge of book.bankCharges.filter((candidate) => candidate.headCode === headCode)) {
+    entries.push({
+      date: charge.date,
+      rojmelPage: pages?.chargePage(charge.id) ?? null,
+      descriptionGu: charge.descriptionGu,
+      creditPaise: ZERO,
+      debitPaise: charge.amountPaise,
     });
   }
 

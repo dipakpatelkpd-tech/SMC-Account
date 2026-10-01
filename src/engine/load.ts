@@ -27,6 +27,7 @@ export async function loadYearBook(prisma: PrismaClient, financialYearId: number
         },
         orderBy: { chequeNo: "asc" },
       },
+      bankCharges: { include: { grantHead: true }, orderBy: [{ date: "asc" }, { id: "asc" }] },
       reconciliation: true,
     },
   });
@@ -151,6 +152,15 @@ export async function loadYearBook(prisma: PrismaClient, financialYearId: number
       .sort(byBillOrder),
 
     cheques,
+
+    bankCharges: year.bankCharges.map((charge) => ({
+      id: String(charge.id),
+      date: charge.date,
+      headCode: charge.grantHead.code,
+      amountPaise: paise(charge.amountPaise),
+      descriptionGu: charge.descriptionGu,
+      remarksGu: charge.remarksGu,
+    })),
 
     reconciliation: year.reconciliation
       ? {

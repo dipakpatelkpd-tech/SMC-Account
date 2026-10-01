@@ -32,6 +32,16 @@ export interface Strings {
   navReceipts: string;
   navBills: string;
   navCheques: string;
+  navBankCharges: string;
+  bankChargesTitle: string;
+  bankChargesSubtitle: string;
+  bankChargesNote: string;
+  newBankCharge: string;
+  editBankCharge: string;
+  noBankCharges: string;
+  bankChargeDescription: string;
+  bankChargeDefaultDescription: string;
+  confirmDeleteBankCharge: (date: string, head: string) => string;
   navReports: string;
   navReconciliation: string;
   navMasters: string;
@@ -265,6 +275,7 @@ export interface Strings {
   layoutPlain: string;
   layoutRojmelNote: string;
   layoutTextColour: string;
+  layoutGroupNote: string;
   layoutLineColour: string;
   layoutColourDefault: string;
   layoutColourHelp: string;
@@ -537,6 +548,17 @@ export const gu: Strings = {
   navReceipts: "ગ્રાન્ટ આવક",
   navBills: "બિલ",
   navCheques: "ચેક",
+  navBankCharges: "બેન્ક ચાર્જ",
+  bankChargesTitle: "બેન્ક ચાર્જ",
+  bankChargesSubtitle: "બેન્કે ખાતામાંથી સીધા કાપેલા નાણાં — ચેક કે વાઉચર વગર",
+  bankChargesNote:
+    "બેન્ક ચાર્જ ફક્ત રોજમેળ અને ખાતાવહીમાં આવે છે. ચેક રજીસ્ટર, બિલ રજીસ્ટર, વાઉચર, પત્રક-D કે પરિશિષ્ટ ૧૦ માં આવતો નથી, અને તેને વાઉચર નંબર નથી.",
+  newBankCharge: "+ નવો બેન્ક ચાર્જ",
+  editBankCharge: "બેન્ક ચાર્જમાં ફેરફાર",
+  noBankCharges: "હજુ કોઈ બેન્ક ચાર્જ નોંધાયો નથી.",
+  bankChargeDescription: "વિગત (રોજમેળ અને ખાતાવહીમાં છપાશે)",
+  bankChargeDefaultDescription: "બેન્ક ચાર્જ",
+  confirmDeleteBankCharge: (date, head) => `${date} નો ${head} નો બેન્ક ચાર્જ કાઢી નાખવો છે?`,
   navReports: "રિપોર્ટ",
   navReconciliation: "પરિશિષ્ટ ૯ મેળવણું",
   navMasters: "શાળા અને ગ્રાન્ટ હેડ",
@@ -764,6 +786,7 @@ export const gu: Strings = {
   layoutCellsOverflow: (count) =>
     `${count} ખાનાંમાં લખાણ કોલમ કરતાં પહોળું છે અને બાજુના ખાનામાં જાય છે. તે કોલમ પહોળી કરો.`,
   layoutTextColour: "અક્ષરનો રંગ",
+  layoutGroupNote: "આખી લાઈનનો ફેરફાર (ઊંચાઈ, રંગ, અક્ષર, પછીની જગ્યા) દરેક બ્લોક અને દરેક પાનાની આ જ લાઈનમાં લાગશે.",
   layoutLineColour: "લાઈનનો રંગ (ખાનાંની કિનારી)",
   layoutColourDefault: "મૂળ પ્રમાણે (કાળો)",
   layoutColourHelp: "↺ = મૂળ રંગ. આ ફેરફાર PDF, પ્રિન્ટ અને Excel ત્રણેયમાં આવશે.",
@@ -1045,6 +1068,17 @@ export const en: Strings = {
   navReceipts: "Grant receipts",
   navBills: "Bills",
   navCheques: "Cheques",
+  navBankCharges: "Bank charges",
+  bankChargesTitle: "Bank charges",
+  bankChargesSubtitle: "Money the bank took from the account itself — no cheque, no voucher",
+  bankChargesNote:
+    "A bank charge appears only in the rojmel and the ledger. It is not in the cheque register, the bill register, the vouchers, પત્રક-D or Annexure 10, and it has no voucher number.",
+  newBankCharge: "+ New bank charge",
+  editBankCharge: "Edit bank charge",
+  noBankCharges: "No bank charges recorded yet.",
+  bankChargeDescription: "Description (printed in the rojmel and the ledger)",
+  bankChargeDefaultDescription: "બેન્ક ચાર્જ",
+  confirmDeleteBankCharge: (date, head) => `Delete the ${head} bank charge dated ${date}?`,
   navReports: "Reports",
   navReconciliation: "Reconciliation",
   navMasters: "School & grant heads",
@@ -1274,6 +1308,7 @@ export const en: Strings = {
   layoutCellsOverflow: (count) =>
     `${count} ${count === 1 ? "cell holds" : "cells hold"} text wider than its column, running into the next cell. Widen that column.`,
   layoutTextColour: "Text colour",
+  layoutGroupNote: "A change to the whole row (height, colour, font, space after) applies to this same row in every block, on every page.",
   layoutLineColour: "Line colour (cell borders)",
   layoutColourDefault: "Default (black)",
   layoutColourHelp: "↺ = the default colour. The change goes into the PDF, the print and Excel.",

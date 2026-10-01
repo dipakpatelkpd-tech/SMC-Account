@@ -526,6 +526,33 @@ entry in `.claude/launch.json`) now stubs enough of the API for the whole
 interface, so the editor can be used at `http://localhost:8801/#reports`; layouts
 saved there live in the page's memory only.
 
+## Bank charges, the 2 x 2 ledger and filled rojmel pages (October 2026)
+
+**Bank charges** (`BankCharge`, migration 0004) are money the bank takes from
+the account itself: no cheque, no voucher. The school picks the grant head.
+On the client's instruction a charge shows in the rojmel (bank side, no voucher
+or cheque number) and in its head's ledger only - not in the cheque, bill or
+grant registers, the vouchers, પત્રક-D, or Annexure 10. It still leaves the
+bank, so the balances, the head's overdraft check and Annexure 9's cash-book
+figure include it. Because Annexure 10 leaves it out, **year closing subtracts
+each head's charges from its Annexure 10 closing** when it sets next year's
+openings; otherwise the new year would open with more in the bank than there is.
+
+**The ledger prints four accounts to a sheet**, two across and two down, as the
+client's book does. Which four share a sheet and which sits on top is chosen by
+length (`shared/ledger-layout.ts`); the four always stay on their sheet, and a
+grid taller than the sheet is zoomed down until it fits. The Excel export still
+gives each account its own sheet.
+
+**A rojmel sheet's spare height goes into its rows**, sheet by sheet, not into
+the gap between its blocks, which keeps its small fixed size. A row whose
+height the school set keeps it on every page.
+
+**Row groups.** A change made to "the whole row" in the layout editor is kept
+against the row's place in its block (`ROW_GROUPS`: row n of every rojmel block,
+of every ledger account, of every voucher; each footer), so it applies to that
+row in every block, in print and in Excel. A single cell is still that cell.
+
 ## Still open with the client
 
 0. **Report sizes.** Confirm with the client that the rojmel at its own

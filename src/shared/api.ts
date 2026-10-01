@@ -96,6 +96,17 @@ export interface ReceiptDto {
   remarksGu: string | null;
 }
 
+/** Money the bank took itself, with no cheque or voucher: rojmel and ledger only. */
+export interface BankChargeDto {
+  id: number;
+  date: string;
+  grantHeadId: number;
+  headNameGu: string;
+  amountPaise: number;
+  descriptionGu: string;
+  remarksGu: string | null;
+}
+
 export interface BillDto {
   id: number;
   voucherNo: number;
@@ -265,6 +276,14 @@ export interface ReceiptInput {
   allotmentOrderDate?: string | null;
   depositedDate?: string | null;
   creditedDate?: string | null;
+  remarksGu?: string | null;
+}
+
+export interface BankChargeInput {
+  date: string;
+  grantHeadId: number;
+  amountPaise: number;
+  descriptionGu: string;
   remarksGu?: string | null;
 }
 
@@ -550,6 +569,11 @@ export interface BooksApi {
   updateReceipt(id: number, input: ReceiptInput): Promise<ApiResult<ReceiptDto>>;
   deleteReceipt(id: number): Promise<ApiResult<null>>;
 
+  listBankCharges(): Promise<BankChargeDto[]>;
+  createBankCharge(input: BankChargeInput): Promise<ApiResult<BankChargeDto>>;
+  updateBankCharge(id: number, input: BankChargeInput): Promise<ApiResult<BankChargeDto>>;
+  deleteBankCharge(id: number): Promise<ApiResult<null>>;
+
   // bills
   listBills(): Promise<BillDto[]>;
   createBill(input: BillInput): Promise<ApiResult<BillDto>>;
@@ -689,6 +713,9 @@ export const MUTATING_METHODS = [
   "createReceipt",
   "updateReceipt",
   "deleteReceipt",
+  "createBankCharge",
+  "updateBankCharge",
+  "deleteBankCharge",
   "createBill",
   "updateBill",
   "deleteBill",
@@ -719,6 +746,10 @@ export const API_METHODS = [
   "createReceipt",
   "updateReceipt",
   "deleteReceipt",
+  "listBankCharges",
+  "createBankCharge",
+  "updateBankCharge",
+  "deleteBankCharge",
   "listBills",
   "createBill",
   "updateBill",

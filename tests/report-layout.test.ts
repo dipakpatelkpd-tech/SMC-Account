@@ -304,6 +304,29 @@ describe("paper", () => {
   });
 });
 
+describe("headings on every report", () => {
+  it("can all be given a width and a height, and a title is centred at its width", () => {
+    for (const report of PRINTABLE_REPORTS) {
+      for (const part of REPORT_PARTS[report]) expect(part.sizable, `${report} ${part.id}`).toBe(true);
+    }
+    const layout = withStyle(emptyLayout(), { kind: "part", part: "title" }, { widthMm: 150, heightMm: 14 });
+    const css = layoutCss("chequeRegister", layout, "#r");
+    expect(css).toContain('#r [data-part="title"] { flex: 0 0 auto; width: 150mm; margin-left: auto; margin-right: auto;');
+    expect(css).toContain("min-height: 14mm");
+  });
+
+  it("splits the annexures' heading into its pieces, the school's name among them", () => {
+    for (const report of ["annexure9", "annexure10"] as const) {
+      expect(REPORT_PARTS[report].map((part) => part.id)).toEqual(
+        expect.arrayContaining(["banner", "bannerProgramme", "bannerNumber", "bannerYear", "bannerSchool", "bannerDetails"]),
+      );
+    }
+    // A row of the heading grows by its cells' height.
+    const css = layoutCss("annexure10", withStyle(emptyLayout(), { kind: "part", part: "bannerSchool" }, { heightMm: 12 }), "#r");
+    expect(css).toContain('#r td[data-part="bannerSchool"] { height: 12mm; }');
+  });
+});
+
 describe("headings, blank colours, alignment and height", () => {
   it("round-trip a heading part's key", () => {
     expect(parseTargetKey(targetKey({ kind: "part", part: "band" }))).toEqual({ kind: "part", part: "band" });
@@ -318,10 +341,15 @@ describe("headings, blank colours, alignment and height", () => {
       "bandPage",
       "closing",
     ]);
+    // Every heading's width can be set now; the titles are centred blocks.
+    expect(REPORT_PARTS.rojmel.filter((part) => part.block).map((part) => part.id)).toEqual(["title", "band", "closing"]);
     expect(REPORT_PARTS.rojmel.filter((part) => part.sizable).map((part) => part.id)).toEqual([
+      "title",
+      "band",
       "bandLeft",
       "bandRight",
       "bandPage",
+      "closing",
     ]);
   });
 
@@ -342,7 +370,7 @@ describe("headings, blank colours, alignment and height", () => {
     const css = layoutCss("rojmel", layout, "#r");
     expect(css).toContain('#r [data-part="band"], #r [data-part="band"] * { font-size: 16pt; }');
     expect(css).toContain('#r [data-part="band"], #r [data-part="band"] * { background: transparent; }');
-    expect(css).toContain('#r [data-part="band"]:not(table) { min-height: 12mm; }');
+    expect(css).toContain('#r [data-part="band"]:not(table):not(tr):not(td) { min-height: 12mm; }');
   });
 
   it("makes a cell blank rather than falling back to the form's colour", () => {

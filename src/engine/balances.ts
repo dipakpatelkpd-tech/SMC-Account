@@ -3,6 +3,7 @@
  *
  * SPEC section 5:
  *   bank after d = opening bank + Σ receipts ≤ d − Σ cheques (by cash-book date) ≤ d
+ *                                − Σ bank charges ≤ d
  *   cash after d = opening cash + Σ reimbursement cheques ≤ d
  *                              − Σ their bills paid in cash ≤ d
  *
@@ -36,6 +37,7 @@ export function cashbookDates(book: YearBook): string[] {
   const dates = new Set<string>();
   for (const receipt of book.receipts) dates.add(receipt.date);
   for (const cheque of book.cheques) dates.add(cheque.cashbookDate);
+  for (const charge of book.bankCharges) dates.add(charge.date);
   return [...dates].sort();
 }
 
@@ -49,6 +51,11 @@ export function balanceOn(book: YearBook, date: string): DayBalance {
     book.cheques.filter((cheque) => cheque.cashbookDate <= date).map(chequeAmount),
   );
 
+  // What the bank took itself: no cheque, straight out of the account.
+  const chargesOut = sum(
+    book.bankCharges.filter((charge) => charge.date <= date).map((charge) => charge.amountPaise),
+  );
+
   // A reimbursement withdraws to the head teacher's hand, then pays each bill in
   // cash the same day.
   const reimbursements = book.cheques.filter(
@@ -57,7 +64,7 @@ export function balanceOn(book: YearBook, date: string): DayBalance {
   const cashIn = sum(reimbursements.map(chequeAmount));
   const cashOut = sum(reimbursements.flatMap((cheque) => cheque.bills.map(billNet)));
 
-  const bankPaise = paise(openingBank(book) + receiptsIn - chequesOut);
+  const bankPaise = paise(openingBank(book) + receiptsIn - chequesOut - chargesOut);
   const cashPaise = paise(openingCash(book) + cashIn - cashOut);
 
   return { date, bankPaise, cashPaise, totalPaise: add(bankPaise, cashPaise) };
@@ -75,7 +82,8 @@ export function yearEndBalance(book: YearBook): DayBalance {
 
 /**
  * A head's running balance at the end of `date`, used by the validation warning
- * for a head that goes overdrawn. Opening + its receipts − its share of cheques.
+ * for a head that goes overdrawn. Opening + its receipts − its share of cheques
+ * − the bank charges laid on it.
  */
 export function headBalanceOn(book: YearBook, headCode: string, date: string): Paise {
   const opening = book.opening.get(headCode);
@@ -91,6 +99,9 @@ export function headBalanceOn(book: YearBook, headCode: string, date: string): P
   for (const cheque of book.cheques) {
     if (cheque.cashbookDate > date) continue;
     out = add(out, chequeAllocation(cheque).get(headCode) ?? ZERO);
+  }
+  for (const charge of book.bankCharges) {
+    if (charge.headCode === headCode && charge.date <= date) out = add(out, charge.amountPaise);
   }
 
   return paise(openingTotal + received - out);

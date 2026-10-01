@@ -73,6 +73,8 @@ type Selection =
       col: string;
       /** Null for a row that has no key: a blank padding row of the rojmel. */
       row: string | null;
+      /** The same row in every block (ROW_GROUPS), for a report made of blocks. */
+      group: string | null;
       /** Whether a blank band can be printed after this row. */
       gapAllowed: boolean;
       /** How tall the row is now, in mm: where "+" and "−" start from. */
@@ -332,6 +334,7 @@ export function LayoutEditor({
     }
     const tr = cell.closest("tr");
     const row = tr?.dataset["row"] ?? null;
+    const group = tr?.dataset["rowGroup"] ?? null;
     const gapAllowed =
       row !== null &&
       tr !== null &&
@@ -341,6 +344,7 @@ export function LayoutEditor({
       kind: "cell",
       col: cell.dataset["col"] ?? "",
       row,
+      group,
       gapAllowed,
       rowMm: tr ? pxToMm(unzoomed(tr, tr.getBoundingClientRect().height)) : null,
     });
@@ -436,9 +440,11 @@ export function LayoutEditor({
     } else if (selection) {
       const col = `[data-col=${cssString(selection.col)}]`;
       const row = selection.row !== null ? `tr[data-row=${cssString(selection.row)}]` : null;
+      const wholeRow =
+        selection.group !== null ? `tr[data-row-group=${cssString(selection.group)}]` : row;
       const tint = "box-shadow: inset 0 0 0 100vmax rgba(31, 111, 235, 0.10);";
       if (scope === "col" || row === null) rules.push(`${root} :is(td, th)${col} { ${tint} }`);
-      else if (scope === "row") rules.push(`${root} ${row} > :is(td, th) { ${tint} }`);
+      else if (scope === "row") rules.push(`${root} ${wholeRow} > :is(td, th) { ${tint} }`);
       if (row !== null) {
         rules.push(`${root} ${row} > :is(td, th)${col} { outline: 2px solid #1f6feb; outline-offset: -2px; }`);
       }
@@ -471,12 +477,15 @@ export function LayoutEditor({
         : effectiveScope === "col" || cellSelection.row === null
           ? { kind: "col", col: cellSelection.col }
           : effectiveScope === "row"
-            ? { kind: "row", row: cellSelection.row }
+            ? // The whole row is that row in every block, where the report has blocks.
+              { kind: "row", row: cellSelection.group ?? cellSelection.row }
             : { kind: "cell", row: cellSelection.row, col: cellSelection.col };
   const own: CellStyle = target ? (draft.styles[targetKey(target)] ?? {}) : {};
   const shown: CellStyle = cellSelection
-    ? styleAt(draft, cellSelection.row, cellSelection.col)
+    ? styleAt(draft, cellSelection.row, cellSelection.col, cellSelection.group)
     : own;
+  // The space after a row goes with its group too: every block's row in that place.
+  const gapKey = cellSelection ? (cellSelection.group ?? cellSelection.row) : null;
   // Height belongs to a whole row or a heading, never one cell or a column.
   const heightAllowed = target?.kind === "row" || target?.kind === "part";
   const setStyle = (patch: Partial<Record<keyof CellStyle, unknown>>): void => {
@@ -726,17 +735,20 @@ export function LayoutEditor({
 
               {styleControls}
 
-              {cellSelection.gapAllowed && cellSelection.row !== null && (
+              {cellSelection.gapAllowed && gapKey !== null && (
                 <Field label={`${t.layoutGapAfter} (${t.mm})`}>
                   <Stepper
-                    value={draft.rowGapsMm[cellSelection.row]}
+                    value={draft.rowGapsMm[gapKey]}
                     placeholder={0}
                     step={1}
                     min={0}
                     max={80}
-                    onChange={(mm) => change(withRowGap(draft, cellSelection.row!, mm ?? null))}
+                    onChange={(mm) => change(withRowGap(draft, gapKey, mm ?? null))}
                   />
                 </Field>
+              )}
+              {cellSelection.group !== null && (effectiveScope === "row" || cellSelection.gapAllowed) && (
+                <p className="layout-hint">{t.layoutGroupNote}</p>
               )}
             </>
           )}

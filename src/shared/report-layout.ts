@@ -345,9 +345,18 @@ export const REPORT_COLUMNS: Record<PrintableReportId, ReportColumn[]> = {
 export interface ReportPart {
   id: string;
   labelGu: string;
-  /** A piece of a heading row whose width can be set, e.g. the આવક box. */
+  /**
+   * A piece whose width can be set. Every heading can be made narrower or
+   * wider: a block (`block`) is then centred on the sheet, a piece of a row of
+   * boxes (the rojmel's આવક box) takes that width beside the others.
+   */
   sizable?: boolean;
+  /** A heading that stands on its own line: centred when given a width. */
+  block?: boolean;
 }
+
+/** A title-like heading: on its own line, its width and height both settable. */
+const heading = (id: string, labelGu: string): ReportPart => ({ id, labelGu, sizable: true, block: true });
 
 /**
  * The headings and blocks around each form's table that a school can resize or
@@ -355,42 +364,47 @@ export interface ReportPart {
  */
 export const REPORT_PARTS: Record<PrintableReportId, ReportPart[]> = {
   rojmel: [
-    { id: "title", labelGu: "મથાળું (શાળાનું નામ)" },
-    { id: "band", labelGu: "આવક / જાવક પટ્ટી (આખી)" },
+    heading("title", "મથાળું (શાળાનું નામ)"),
+    heading("band", "આવક / જાવક પટ્ટી (આખી)"),
     { id: "bandLeft", labelGu: "આવક પટ્ટી (Cash Book)", sizable: true },
     { id: "bandRight", labelGu: "જાવક પટ્ટી (કેશ બુક)", sizable: true },
     { id: "bandPage", labelGu: "પાના નંબર", sizable: true },
-    { id: "closing", labelGu: "છેલ્લું વાક્ય" },
+    heading("closing", "છેલ્લું વાક્ય"),
   ],
   khatavahi: [
-    { id: "title", labelGu: "મથાળું (શાળાનું નામ)" },
-    { id: "accountKind", labelGu: "ખાતાવહી પટ્ટી" },
-    { id: "accountMeta", labelGu: "ખાતાનું નામ અને વર્ષ" },
-    { id: "footTitle", labelGu: "નીચેનું નામ" },
+    heading("title", "મથાળું (શાળાનું નામ)"),
+    heading("accountKind", "ખાતાવહી પટ્ટી"),
+    heading("accountMeta", "ખાતાનું નામ અને વર્ષ"),
+    heading("footTitle", "નીચેનું નામ"),
   ],
-  grantRegister: [{ id: "title", labelGu: "મથાળું" }],
-  chequeRegister: [{ id: "title", labelGu: "મથાળું" }],
-  billRegister: [{ id: "title", labelGu: "મથાળું" }],
+  grantRegister: [heading("title", "મથાળું")],
+  chequeRegister: [heading("title", "મથાળું")],
+  billRegister: [heading("title", "મથાળું")],
   vouchers: [
-    { id: "programme", labelGu: "મથાળું (યોજના)" },
-    { id: "meta", labelGu: "વાઉચરની વિગત" },
-    { id: "signatures", labelGu: "સહી" },
+    heading("programme", "મથાળું (યોજના)"),
+    heading("meta", "વાઉચરની વિગત"),
+    heading("signatures", "સહી"),
   ],
-  patrakD: [
-    { id: "title", labelGu: "મથાળું" },
-    { id: "meta", labelGu: "શાળાની વિગત" },
-  ],
-  annexure9: [
-    { id: "banner", labelGu: "મથાળું" },
-    { id: "heading", labelGu: "બેંક મેળવણું" },
-    { id: "signatures", labelGu: "સહી" },
-  ],
-  annexure10: [
-    { id: "banner", labelGu: "મથાળું" },
-    { id: "certificate", labelGu: "પ્રમાણપત્ર" },
-    { id: "signatures", labelGu: "સહી" },
-  ],
+  patrakD: [heading("title", "મથાળું"), heading("meta", "શાળાની વિગત")],
+  annexure9: [...annexureBannerParts(), heading("heading", "બેંક મેળવણું"), heading("signatures", "સહી")],
+  annexure10: [...annexureBannerParts(), heading("certificate", "પ્રમાણપત્ર"), heading("signatures", "સહી")],
 };
+
+/**
+ * The annexures' stacked heading, whole and piece by piece: the programme
+ * lines, the annexure's number, the year, the school's name and the rows of
+ * details under it. Listed whole first, so a piece's own choice wins.
+ */
+function annexureBannerParts(): ReportPart[] {
+  return [
+    heading("banner", "મથાળું (આખું)"),
+    heading("bannerProgramme", "યોજનાનું નામ"),
+    heading("bannerNumber", "પરિશિષ્ટ નંબર"),
+    heading("bannerYear", "વર્ષ"),
+    { id: "bannerSchool", labelGu: "શાળાનું નામ", sizable: true },
+    heading("bannerDetails", "શાળાની વિગત (કલસ્ટર, તાલુકો, ખાતા નંબર)"),
+  ];
+}
 
 /** The part the first row of the report's Excel sheet stands for - its title. */
 export const EXCEL_TITLE_PART: Record<PrintableReportId, string> = {
@@ -527,9 +541,16 @@ export function fitScalePct(report: PrintableReportId, page: PageSetup | undefin
   return Math.max(MIN_SCALE_PCT, Math.floor(fit * 100));
 }
 
-/** The printed width of the report's table: the sheet less its margins. */
+/** The gap between the ledger's two columns of accounts (print.css, .khatavahi-grid). */
+export const KHATAVAHI_GAP_MM = 4;
+
+/**
+ * The printed width of the report's table: the sheet less its margins - for
+ * the ledger, half of it, as its accounts stand two across.
+ */
 export function tableWidthMm(report: PrintableReportId, layout?: ReportLayout): number {
-  return resolvePage(report, layout?.page).contentWidthMm;
+  const width = resolvePage(report, layout?.page).contentWidthMm;
+  return report === "khatavahi" ? round3((width - KHATAVAHI_GAP_MM) / 2) : width;
 }
 
 // ---------------------------------------------------------------- row keys
@@ -554,6 +575,34 @@ export const ROW_KEYS = {
   ledgerBlank: (headCode: string, index: number): string => `${headCode}:blank:${index}`,
   ledgerClosing: (headCode: string): string => `${headCode}:closing`,
 } as const;
+
+/**
+ * Row GROUPS: the same row of every block. A report made of blocks - the
+ * rojmel's, the ledger's accounts, the vouchers - repeats the same rows in each,
+ * and a school changing "the row" means that row everywhere, as a column change
+ * already is. So a row's height, colour or font set for the whole row is kept
+ * against its group, and every block's row in that place follows it. A single
+ * cell is still that one cell.
+ *
+ * A group key is a row key that starts with "group:", so a layout keeps its
+ * one map of styles and gaps.
+ */
+export const ROW_GROUPS = {
+  prefix: "group:",
+  /** The n-th body row of every rojmel block. */
+  rojmelRow: (index: number): string => `group:rojmel:${index}`,
+  rojmelFooter: (which: "spent" | "closing" | "grand"): string => `group:rojmel:${which}`,
+  /** The n-th row of every account, blank rows included. */
+  ledgerRow: (index: number): string => `group:ledger:${index}`,
+  ledgerClosing: "group:ledger:closing",
+  /** The n-th line of every voucher. */
+  voucherLine: (index: number): string => `group:voucher:${index}`,
+  voucherTotal: "group:voucher:total",
+} as const;
+
+export function isGroupKey(row: string): boolean {
+  return row.startsWith(ROW_GROUPS.prefix);
+}
 
 /** Annexure 9's rows are fixed by the form. */
 export const ANNEXURE9_ROWS = [
@@ -623,14 +672,28 @@ export function parseTargetKey(key: string): LayoutTarget | null {
   return null;
 }
 
-/** How one cell looks: its column's style, then its row's, then its own. */
-export function styleAt(layout: ReportLayout, row: string | null, col: string | null): CellStyle {
+/**
+ * How one cell looks: its column's style, then its row group's (the same row
+ * in every block), then its own row's, then its own.
+ */
+export function styleAt(
+  layout: ReportLayout,
+  row: string | null,
+  col: string | null,
+  group: string | null = null,
+): CellStyle {
   const pick = (key: string): CellStyle => layout.styles[key] ?? {};
   return {
     ...(col !== null ? pick(targetKey({ kind: "col", col })) : {}),
+    ...(group !== null ? pick(targetKey({ kind: "row", row: group })) : {}),
     ...(row !== null ? pick(targetKey({ kind: "row", row })) : {}),
     ...(row !== null && col !== null ? pick(targetKey({ kind: "cell", row, col })) : {}),
   };
+}
+
+/** The blank space after a row: its own, else its group's. */
+export function rowGapMm(layout: ReportLayout, row: string, group: string | null = null): number | undefined {
+  return layout.rowGapsMm[row] ?? (group !== null ? layout.rowGapsMm[group] : undefined);
 }
 
 // ------------------------------------------------------------------ editing
@@ -770,7 +833,11 @@ const FLEX_ALIGN: Record<Alignment, string> = { left: "flex-start", center: "cen
  * A heading part: its text properties go to everything inside it too, because
  * the form's own rules size and colour the pieces of a heading one by one.
  */
-function partRules(selector: string, style: CellStyle): string[] {
+function partRules(root: string, partId: string, style: CellStyle, part?: ReportPart): string[] {
+  const attribute = `[data-part=${cssString(partId)}]`;
+  const selector = `${root} ${attribute}`;
+  /** The part when it is this kind of element, e.g. `#r table[data-part="x"]`. */
+  const as = (tag: string): string => `${root} ${tag}${attribute}`;
   const rules: string[] = [];
   const all = `${selector}, ${selector} *`;
   const inherited = declarations({ ...style, fill: undefined });
@@ -780,13 +847,16 @@ function partRules(selector: string, style: CellStyle): string[] {
   }
   if (style.align) rules.push(`${selector} { justify-content: ${FLEX_ALIGN[style.align]}; }`);
   if (style.widthMm !== undefined) {
-    // A piece of a heading row takes exactly this width; the others share the rest.
-    rules.push(`${selector} { flex: 0 0 auto; width: ${style.widthMm}mm; }`);
+    // A piece of a heading row takes exactly this width; the others share the
+    // rest. A heading on its own line is centred at it.
+    const centred = part?.block ? " margin-left: auto; margin-right: auto; box-sizing: border-box;" : "";
+    rules.push(`${selector} { flex: 0 0 auto; width: ${style.widthMm}mm;${centred} }`);
   }
   if (style.heightMm !== undefined) {
-    // A block grows to the height; a heading table grows each of its rows.
-    rules.push(`${selector}:not(table) { min-height: ${style.heightMm}mm; }`);
-    rules.push(`table${selector} td { height: ${style.heightMm}mm; }`);
+    // A block grows to the height; a heading table grows each of its rows, and
+    // a row or cell of one grows itself.
+    rules.push(`${selector}:not(table):not(tr):not(td) { min-height: ${style.heightMm}mm; }`);
+    rules.push(`${as("table")} td, ${as("tr")} > td, ${as("td")} { height: ${style.heightMm}mm; }`);
   }
   return rules;
 }
@@ -852,6 +922,9 @@ export function layoutCss(report: PrintableReportId, layout: ReportLayout, root:
   }
 
   const order = { part: 0, col: 1, row: 2, cell: 3 } as const;
+  // A row group before a single row, so the row's own choice wins.
+  const groupFirst = (target: LayoutTarget): number =>
+    target.kind === "row" && !isGroupKey(target.row) ? 1 : 0;
   // REPORT_PARTS lists a heading before the pieces inside it, and its rules
   // reach those pieces too: in that order a piece's own choice comes later and wins.
   const partOrder = (target: LayoutTarget): number =>
@@ -859,23 +932,31 @@ export function layoutCss(report: PrintableReportId, layout: ReportLayout, root:
   const targets = Object.entries(layout.styles)
     .map(([key, style]) => ({ target: parseTargetKey(key), style }))
     .filter((entry): entry is { target: LayoutTarget; style: CellStyle } => entry.target !== null)
-    .sort((a, b) => order[a.target.kind] - order[b.target.kind] || partOrder(a.target) - partOrder(b.target));
+    .sort(
+      (a, b) =>
+        order[a.target.kind] - order[b.target.kind] ||
+        partOrder(a.target) - partOrder(b.target) ||
+        groupFirst(a.target) - groupFirst(b.target),
+    );
 
   for (const { target, style } of targets) {
     if (target.kind === "part") {
-      rules.push(...partRules(`${root} [data-part=${cssString(target.part)}]`, style));
+      const part = REPORT_PARTS[report].find((each) => each.id === target.part);
+      rules.push(...partRules(root, target.part, style, part));
       continue;
     }
     const body = declarations(style);
+    const rowSelector = (row: string): string =>
+      isGroupKey(row) ? `tr[data-row-group=${cssString(row)}]` : `tr[data-row=${cssString(row)}]`;
     if (target.kind === "row" && style.heightMm !== undefined) {
-      rules.push(`${table} tr[data-row=${cssString(target.row)}] > td { height: ${style.heightMm}mm; }`);
+      rules.push(`${table} ${rowSelector(target.row)} > td { height: ${style.heightMm}mm; }`);
     }
     if (body.length === 0) continue;
     const selector =
       target.kind === "col"
         ? `${table} :is(td, th)[data-col=${cssString(target.col)}]`
         : target.kind === "row"
-          ? `${table} tr[data-row=${cssString(target.row)}] > :is(td, th)`
+          ? `${table} ${rowSelector(target.row)} > :is(td, th)`
           : `${table} tr[data-row=${cssString(target.row)}] > :is(td, th)[data-col=${cssString(target.col)}]`;
     rules.push(`${selector} { ${body.join("; ")}; }`);
     // A total printed in <strong> follows its cell's choice of weight.

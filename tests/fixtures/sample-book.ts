@@ -130,6 +130,9 @@ export function sampleBook(): YearBook {
 
     cheques,
 
+    // The sample year has none.
+    bankCharges: [],
+
     reconciliation: {
       chequesIssuedNotCashedPaise: rupeesToPaise(
         data.year_end_bank_reconciliation.cheques_issued_not_cashed,

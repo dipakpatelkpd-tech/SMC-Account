@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import type { CSSProperties, JSX } from "react";
 import type { RojmelBlock, RojmelLine, RojmelPage as RojmelPageData } from "../../engine/rojmel.js";
-import { ROW_KEYS } from "../../shared/report-layout.js";
+import { ROW_GROUPS, ROW_KEYS, targetKey } from "../../shared/report-layout.js";
 import { isGrantCredit, rojmelBlockRows } from "../../shared/rojmel-rows.js";
 import { GapRow, LayoutColGroup, useReportLayout } from "./layout-context.js";
 import type { SchoolDto } from "../../shared/api.js";
@@ -102,21 +102,36 @@ export function RojmelSheet({
 
 function Block({ block }: { block: RojmelBlock }): JSX.Element {
   const footer = (which: "spent" | "closing" | "grand"): string => ROW_KEYS.rojmelFooter(block.id, which);
+  // A row the school gave a height keeps it; the others grow to fill the sheet
+  // (PrintRoot, spreadBlocks).
+  const layout = useReportLayout()?.layout;
+  const heightSet = (row: string, group: string): boolean =>
+    layout !== undefined &&
+    (layout.rowHeightMm !== undefined ||
+      layout.styles[targetKey({ kind: "row", row })]?.heightMm !== undefined ||
+      layout.styles[targetKey({ kind: "row", row: group })]?.heightMm !== undefined);
 
   return (
     <>
-      {rojmelBlockRows(block).map((row) => (
+      {rojmelBlockRows(block).map((row, index) => (
         <Fragment key={row.key}>
-          <tr data-row={row.key}>
+          <tr
+            data-row={row.key}
+            data-row-group={ROW_GROUPS.rojmelRow(index)}
+            data-fixed-height={heightSet(row.key, ROW_GROUPS.rojmelRow(index)) ? "" : undefined}
+          >
             <Half side="r" line={row.left} />
             <Half side="p" line={row.right} />
           </tr>
-          <GapRow rowKey={row.key} />
+          <GapRow rowKey={row.key} group={ROW_GROUPS.rojmelRow(index)} />
         </Fragment>
       ))}
 
       {/* શ્રી ખર્ચખાતે - what left the block, per column. */}
-      <tr className="footer-row spent" data-row={footer("spent")}>
+      <tr className="footer-row spent" data-row={footer("spent")}
+        data-row-group={ROW_GROUPS.rojmelFooter("spent")}
+        data-fixed-height={heightSet(footer("spent"), ROW_GROUPS.rojmelFooter("spent")) ? "" : undefined}
+      >
         <Blank side="r" />
         <td data-col="p.detail" className="gutter label">શ્રી ખર્ચખાતે</td>
         <td data-col="p.ref" />
@@ -126,10 +141,13 @@ function Block({ block }: { block: RojmelBlock }): JSX.Element {
         <td data-col="p.bank" className="figure">{formatAmount(block.spentBankPaise)}</td>
         <td data-col="p.total" className="figure">{formatAmount(block.spentTotalPaise)}</td>
       </tr>
-      <GapRow rowKey={footer("spent")} />
+      <GapRow rowKey={footer("spent")} group={ROW_GROUPS.rojmelFooter("spent")} />
 
       {/* શ્રી બંધ સિલક - the left half carries the receipt totals. */}
-      <tr className="footer-row closing" data-row={footer("closing")}>
+      <tr className="footer-row closing" data-row={footer("closing")}
+        data-row-group={ROW_GROUPS.rojmelFooter("closing")}
+        data-fixed-height={heightSet(footer("closing"), ROW_GROUPS.rojmelFooter("closing")) ? "" : undefined}
+      >
         <td data-col="r.date" />
         <td data-col="r.detail" />
         <td data-col="r.ref" />
@@ -147,10 +165,13 @@ function Block({ block }: { block: RojmelBlock }): JSX.Element {
         <td data-col="p.bank" className="figure">{formatAmount(block.closingBankPaise)}</td>
         <td data-col="p.total" className="figure">{formatAmount(block.closingTotalPaise)}</td>
       </tr>
-      <GapRow rowKey={footer("closing")} />
+      <GapRow rowKey={footer("closing")} group={ROW_GROUPS.rojmelFooter("closing")} />
 
       {/* શ્રી કુલ - must equal the receipt totals on the left. */}
-      <tr className="footer-row grand" data-row={footer("grand")}>
+      <tr className="footer-row grand" data-row={footer("grand")}
+        data-row-group={ROW_GROUPS.rojmelFooter("grand")}
+        data-fixed-height={heightSet(footer("grand"), ROW_GROUPS.rojmelFooter("grand")) ? "" : undefined}
+      >
         <Blank side="r" />
         <td data-col="p.detail" className="gutter label">શ્રી કુલ</td>
         <td data-col="p.ref" />
@@ -168,7 +189,7 @@ function Block({ block }: { block: RojmelBlock }): JSX.Element {
           )}
         </td>
       </tr>
-      <GapRow rowKey={footer("grand")} />
+      <GapRow rowKey={footer("grand")} group={ROW_GROUPS.rojmelFooter("grand")} />
 
       <tr className="block-gap">
         <td colSpan={15} />

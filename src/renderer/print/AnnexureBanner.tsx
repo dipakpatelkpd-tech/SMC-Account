@@ -27,34 +27,36 @@ export function AnnexureBanner({
   return (
     <table className="banner" data-part="banner">
       <tbody>
-        <tr>
+        <tr data-part="bannerProgramme">
           <td colSpan={4} className="banner-title">
             {line1}
           </td>
         </tr>
-        <tr>
+        <tr data-part="bannerProgramme">
           <td colSpan={4}>{line2}</td>
         </tr>
-        <tr>
+        <tr data-part="bannerNumber">
           <td colSpan={4}>પરિશિષ્ટ –: {numberGu}</td>
         </tr>
-        <tr>
+        <tr data-part="bannerYear">
           <td colSpan={4}>વર્ષ –: {yearLabel}</td>
         </tr>
-        <tr>
+        <tr data-part="bannerDetails">
           <td className="label">શાળાનું નામ –:</td>
-          <td className="value">{school.nameGu}</td>
+          <td className="value" data-part="bannerSchool">
+            {school.nameGu}
+          </td>
           <td className="label">ડાયસ કોડ–:</td>
           {/* An identifier, not a quantity - Latin digits, as on the original. */}
           <td className="value">{school.diseCode}</td>
         </tr>
-        <tr>
+        <tr data-part="bannerDetails">
           <td className="label">કલસ્ટર –:</td>
           <td className="value">{school.clusterGu}</td>
           <td className="label">તાલુકો–:</td>
           <td className="value">{school.talukaGu}</td>
         </tr>
-        <tr>
+        <tr data-part="bannerDetails">
           <td className="label">{bankShortName(school.bankNameGu)} ખાતા નંબર –:</td>
           <td className="value" colSpan={3}>
             {school.bankAccountNo}

@@ -64,8 +64,10 @@ import {
   columnWidths,
   PT_PER_MM,
   REPORT_DEFAULTS,
+  ROW_GROUPS,
   ROW_KEYS,
   billRowKeys,
+  rowGapMm,
   emptyLayout,
   fontFamily,
   ledgerRowKeys,
@@ -126,6 +128,8 @@ interface Column {
 interface Row {
   cells: Cell[];
   key?: string | null;
+  /** The same row in every block (ROW_GROUPS), for a report made of blocks. */
+  group?: string | null;
   side?: "r" | "p";
 }
 
@@ -231,15 +235,15 @@ function sheet(
   header.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
 
   // Where each keyed row landed, for the styles below.
-  const placed: { excelRow: number; key: string | null; side: "r" | "p" | undefined }[] = [
-    { excelRow: 2, key: ROW_KEYS.head, side: "r" },
+  const placed: { excelRow: number; key: string | null; group: string | null; side: "r" | "p" | undefined }[] = [
+    { excelRow: 2, key: ROW_KEYS.head, group: null, side: "r" },
   ];
   for (const entry of rows) {
     const row: Row = Array.isArray(entry) ? { cells: entry } : entry;
     const added = worksheet.addRow(row.cells);
-    placed.push({ excelRow: added.number, key: row.key ?? null, side: row.side });
-    // The space a school asked for after this row: an empty row that tall.
-    const gap = row.key ? layout.rowGapsMm[row.key] : undefined;
+    placed.push({ excelRow: added.number, key: row.key ?? null, group: row.group ?? null, side: row.side });
+    // The space a school asked for after this row (or its group): an empty row that tall.
+    const gap = row.key ? rowGapMm(layout, row.key, row.group ?? null) : undefined;
     if (gap) worksheet.addRow([]).height = Math.round(gap * PT_PER_MM * 10) / 10;
   }
 
@@ -295,15 +299,15 @@ function sheet(
     // Highlights, bold, fonts, sizes and alignment the school chose, cell by
     // cell: the report's alignment, then the column's style, the row's, the cell's.
     const styled = Object.keys(layout.styles).length > 0 || layout.align !== undefined;
-    for (const { excelRow, key, side } of styled ? placed : []) {
+    for (const { excelRow, key, group, side } of styled ? placed : []) {
       const row = worksheet.getRow(excelRow);
-      const rowHeight = key ? layout.styles[targetKey({ kind: "row", row: key })]?.heightMm : undefined;
+      const rowHeight = key ? heightOfRow(layout, key, group) : undefined;
       if (rowHeight !== undefined) row.height = Math.round(rowHeight * PT_PER_MM * 10) / 10;
       columns.forEach((column, index) => {
         const id = layoutIdOf(column, side);
         const style: CellStyle = {
           ...(layout.align ? { align: layout.align } : {}),
-          ...(id === null && key === null ? {} : styleAt(layout, key, id)),
+          ...(id === null && key === null ? {} : styleAt(layout, key, id, group)),
         };
         if (Object.keys(style).length > 0) apply(row.getCell(index + 1), style);
       });
@@ -390,7 +394,7 @@ function rojmelSheet(
     worksheet.getColumn(index + 1).width = Math.round((widths[id] ?? 5) * 19) / 10;
   });
 
-  const keyed: { row: ExcelJS.Row; key: string }[] = [];
+  const keyed: { row: ExcelJS.Row; key: string; group?: string }[] = [];
   const cell = (row: ExcelJS.Row, id: string): ExcelJS.Cell => row.getCell(colOf.get(id)!);
   const money = (target: ExcelJS.Cell, paise: number | null): void => {
     target.value = paise === null ? null : rupees(paise);
@@ -481,7 +485,7 @@ function rojmelSheet(
       target.fill = fill;
       target.font = target === label ? bold : latinBold;
     }
-    keyed.push({ row, key: ROW_KEYS.rojmelFooter(block.id, which) });
+    keyed.push({ row, key: ROW_KEYS.rojmelFooter(block.id, which), group: ROW_GROUPS.rojmelFooter(which) });
   };
 
   for (const page of rojmel.pages) {
@@ -517,15 +521,15 @@ function rojmelSheet(
     keyed.push({ row: head, key: ROW_KEYS.head });
 
     for (const block of page.blocks) {
-      for (const tableRow of rojmelBlockRows(block)) {
+      for (const [index, tableRow] of rojmelBlockRows(block).entries()) {
         const row = worksheet.addRow([]);
         // The first row holds the date, which may be a range on three lines.
         row.height = tableRow.left?.dateText.includes("TO") ? 44 : 21;
         ruled(row);
         half(row, "r", tableRow.left);
         half(row, "p", tableRow.right);
-        keyed.push({ row, key: tableRow.key });
-        const gap = layout.rowGapsMm[tableRow.key];
+        keyed.push({ row, key: tableRow.key, group: ROW_GROUPS.rojmelRow(index) });
+        const gap = rowGapMm(layout, tableRow.key, ROW_GROUPS.rojmelRow(index));
         if (gap) worksheet.addRow([]).height = Math.round(gap * PT_PER_MM * 10) / 10;
       }
       footer(block, "spent", "શ્રી ખર્ચખાતે", [block.spentCashPaise, block.spentBankPaise, block.spentTotalPaise]);
@@ -556,20 +560,28 @@ function rojmelSheet(
 
   // The school's own layout: highlights, bold, fonts, sizes, alignment.
   const titleStyle = layout.styles[targetKey({ kind: "part", part: EXCEL_TITLE_PART.rojmel })];
-  for (const { row, key } of keyed) {
+  for (const { row, key, group = null } of keyed) {
     if (key === "") {
       if (titleStyle) applyStyle(row.getCell(1), titleStyle, excelSize);
       continue;
     }
-    const rowHeight = layout.styles[targetKey({ kind: "row", row: key })]?.heightMm;
+    const rowHeight = heightOfRow(layout, key, group);
     if (rowHeight !== undefined) row.height = Math.round(rowHeight * PT_PER_MM * 10) / 10;
     for (const [id] of ROJMEL_HEADINGS) {
-      const style = styleAt(layout, key, id);
+      const style = styleAt(layout, key, id, group);
       if (Object.keys(style).length > 0) applyStyle(cell(row, id), style, excelSize);
     }
   }
 
   printSetup(worksheet, resolvePage("rojmel", layout.page));
+}
+
+/** A row's height as the school set it: for the row itself, else for its group. */
+function heightOfRow(layout: ReportLayout, key: string, group: string | null): number | undefined {
+  return (
+    layout.styles[targetKey({ kind: "row", row: key })]?.heightMm ??
+    (group !== null ? layout.styles[targetKey({ kind: "row", row: group })]?.heightMm : undefined)
+  );
 }
 
 /** One cell as a school's layout has it. Blank (NO_FILL) is Excel's default. */
@@ -615,6 +627,7 @@ function ledgerSheets(
     const keys = ledgerRowKeys(ledger.headCode, ledger.rows);
     const rows: Row[] = ledger.rows.map((row, index) => ({
       key: keys[index]!,
+      group: ROW_GROUPS.ledgerRow(index),
       cells: [
         date(row.date),
         row.rojmelPage,
@@ -628,6 +641,7 @@ function ledgerSheets(
 
     rows.push({
       key: ROW_KEYS.ledgerClosing(ledger.headCode),
+      group: ROW_GROUPS.ledgerClosing,
       cells: [
         "",
         null,
@@ -803,6 +817,7 @@ function voucherSheet(
     voucher.lines.forEach((line, index) => {
       rows.push({
         key: keys[index]!,
+        group: ROW_GROUPS.voucherLine(index),
         cells: [
           voucher.voucherNo,
           voucher.chequeNo,
@@ -820,6 +835,7 @@ function voucherSheet(
     });
     rows.push({
       key: ROW_KEYS.voucherTotal(voucher.voucherNo),
+      group: ROW_GROUPS.voucherTotal,
       cells: [
         voucher.voucherNo,
         voucher.chequeNo,

@@ -10,7 +10,7 @@ import { formatAmount } from "../../lib/money.js";
 import { formatDate } from "../../lib/dates.js";
 import { toGujaratiDigits } from "../../lib/gujarati.js";
 import { PagedSheets } from "./PagedSheets.js";
-import { ROW_KEYS, billRowKeys } from "../../shared/report-layout.js";
+import { ROW_KEYS, billRowKeys, ROW_GROUPS } from "../../shared/report-layout.js";
 
 /**
  * The four register forms and પત્રક-D (SPEC 6.3 to 6.7).
@@ -302,6 +302,7 @@ export function VoucherPages({
           }
           rows={voucher.lines.map((line, index) => ({
             key: lineKeys(voucher)[index]!,
+            group: ROW_GROUPS.voucherLine(index),
             cells: (
               <>
                 <td data-col="serial" className="centre">{gu(String(line.serial))}</td>
@@ -315,7 +316,7 @@ export function VoucherPages({
             ),
           }))}
           lastRows={
-            <tr data-row={ROW_KEYS.voucherTotal(voucher.voucherNo)}>
+            <tr data-row={ROW_KEYS.voucherTotal(voucher.voucherNo)} data-row-group={ROW_GROUPS.voucherTotal}>
               <td data-col="serial" colSpan={5} className="centre">
                 <strong>કુલ</strong>
               </td>
