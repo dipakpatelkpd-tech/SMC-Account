@@ -28,20 +28,45 @@ import type { PrintableReportId } from "./api.js";
 // ------------------------------------------------------------------- fonts
 
 /**
- * The fonts a report can use. All are bundled with the app (SIL Open Font
- * License, via @fontsource) rather than taken from the PC, for the reason the
- * default one is: a PC without the font would fall back to another with other
- * widths, and the forms are paged by the width of their text.
+ * The fonts a report can use - all Unicode Gujarati, so conjuncts shape
+ * correctly in the preview, the PDF and the print (CLAUDE.md). The legacy
+ * typing fonts (LMG-Arun, Terafont, Shree-Guj and the like) are not here: they
+ * draw Gujarati letters in place of Latin ones, and the books hold real
+ * Gujarati text.
+ *
+ * Bundled with the app (SIL Open Font License, via @fontsource) rather than
+ * taken from the PC, for the reason the default one is: a PC without the font
+ * would fall back to another with other widths, and the forms are paged by the
+ * width of their text. The two `system` faces are Windows' own Gujarati fonts,
+ * on every Windows 10 and 11 PC but not bundled.
+ *
+ * `recommended`: the five that read best on a printed register, in the PDF
+ * and in Excel - plain text faces with a full set of conjuncts and clear
+ * digits. The others are display faces, best for a title or a heading.
+ * The editor shows the five first, the rest below them as a gallery.
  */
 export const LAYOUT_FONTS = [
-  { id: "noto-sans", family: "Noto Sans Gujarati", label: "Noto Sans Gujarati" },
-  { id: "noto-serif", family: "Noto Serif Gujarati", label: "Noto Serif Gujarati" },
-  { id: "hind-vadodara", family: "Hind Vadodara", label: "Hind Vadodara" },
-  { id: "mukta-vaani", family: "Mukta Vaani", label: "Mukta Vaani" },
-  { id: "anek", family: "Anek Gujarati", label: "Anek Gujarati" },
+  { id: "noto-sans", family: "Noto Sans Gujarati", label: "Noto Sans Gujarati", recommended: true },
+  { id: "hind-vadodara", family: "Hind Vadodara", label: "Hind Vadodara", recommended: true },
+  { id: "noto-serif", family: "Noto Serif Gujarati", label: "Noto Serif Gujarati", recommended: true },
+  { id: "mukta-vaani", family: "Mukta Vaani", label: "Mukta Vaani", recommended: true },
+  { id: "anek", family: "Anek Gujarati", label: "Anek Gujarati", recommended: true },
   { id: "baloo-bhai", family: "Baloo Bhai 2", label: "Baloo Bhai 2" },
   { id: "rasa", family: "Rasa", label: "Rasa" },
-] as const;
+  { id: "mogra", family: "Mogra", label: "Mogra" },
+  { id: "farsan", family: "Farsan", label: "Farsan" },
+  { id: "kumar-one", family: "Kumar One", label: "Kumar One" },
+  { id: "kumar-one-outline", family: "Kumar One Outline", label: "Kumar One Outline" },
+  { id: "shrikhand", family: "Shrikhand", label: "Shrikhand" },
+  { id: "shruti", family: "Shruti", label: "Shruti (Windows)", system: true },
+  { id: "nirmala", family: "Nirmala UI", label: "Nirmala UI (Windows)", system: true },
+] as const satisfies readonly {
+  id: string;
+  family: string;
+  label: string;
+  recommended?: boolean;
+  system?: boolean;
+}[];
 
 export type LayoutFontId = (typeof LAYOUT_FONTS)[number]["id"];
 const FONT_IDS = LAYOUT_FONTS.map((font) => font.id) as [LayoutFontId, ...LayoutFontId[]];

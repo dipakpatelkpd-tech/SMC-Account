@@ -953,6 +953,11 @@ function Field({ label, children }: { label: string; children: ReactNode }): JSX
   );
 }
 
+/**
+ * Fonts as a gallery of tiles, each drawn in its own face, the way Excel shows
+ * its styles: "as the form has it", then the five recommended faces, then the
+ * others (display faces for titles, and Windows' own two).
+ */
 function FontSelect({
   value,
   defaultLabel,
@@ -962,19 +967,52 @@ function FontSelect({
   defaultLabel: string;
   onChange: (font: LayoutFontId | undefined) => void;
 }): JSX.Element {
-  return (
-    <select
-      value={value ?? ""}
-      onChange={(event) => onChange((event.target.value || undefined) as LayoutFontId | undefined)}
+  const t = useStrings();
+  const [open, setOpen] = useState(false);
+  const chosen = LAYOUT_FONTS.find((font) => font.id === value);
+  const tile = (font: (typeof LAYOUT_FONTS)[number]): JSX.Element => (
+    <button
+      key={font.id}
+      type="button"
+      className={`font-tile${value === font.id ? " chosen" : ""}`}
+      style={{ fontFamily: `"${font.family}"` }}
+      title={font.label}
+      onClick={() => onChange(font.id)}
     >
-      <option value="">{defaultLabel}</option>
-      {LAYOUT_FONTS.map((font) => (
-        // Each name is shown in its own face, so the choice can be seen.
-        <option key={font.id} value={font.id} style={{ fontFamily: `"${font.family}"` }}>
-          {font.label} – ગુજરાતી
-        </option>
-      ))}
-    </select>
+      <span className="font-tile-sample">શાળા ૧૨૩૪.૦૦</span>
+      <span className="font-tile-name">{font.label}</span>
+    </button>
+  );
+  const others = LAYOUT_FONTS.filter((font) => !("recommended" in font));
+  return (
+    <div className="font-gallery">
+      <div className="font-gallery-now">
+        <span style={chosen ? { fontFamily: `"${chosen.family}"` } : undefined}>
+          {chosen ? chosen.label : defaultLabel}
+        </span>
+        <button type="button" className="ghost small" onClick={() => setOpen(!open)}>
+          {open ? t.fontGalleryClose : t.fontGalleryOpen}
+        </button>
+      </div>
+      <div className="font-tiles">
+        <button
+          type="button"
+          className={`font-tile${value === undefined ? " chosen" : ""}`}
+          onClick={() => onChange(undefined)}
+        >
+          <span className="font-tile-sample">↺</span>
+          <span className="font-tile-name">{defaultLabel}</span>
+        </button>
+        {LAYOUT_FONTS.filter((font) => "recommended" in font).map(tile)}
+      </div>
+      {open && (
+        <>
+          <span className="layout-hint">{t.fontGalleryOthers}</span>
+          <div className="font-tiles">{others.map(tile)}</div>
+          <span className="layout-hint">{t.fontGalleryNote}</span>
+        </>
+      )}
+    </div>
   );
 }
 

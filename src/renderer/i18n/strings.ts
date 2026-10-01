@@ -275,6 +275,10 @@ export interface Strings {
   layoutPlain: string;
   layoutRojmelNote: string;
   layoutTextColour: string;
+  fontGalleryOpen: string;
+  fontGalleryClose: string;
+  fontGalleryOthers: string;
+  fontGalleryNote: string;
   layoutGroupNote: string;
   layoutLineColour: string;
   layoutColourDefault: string;
@@ -786,6 +790,11 @@ export const gu: Strings = {
   layoutCellsOverflow: (count) =>
     `${count} ખાનાંમાં લખાણ કોલમ કરતાં પહોળું છે અને બાજુના ખાનામાં જાય છે. તે કોલમ પહોળી કરો.`,
   layoutTextColour: "અક્ષરનો રંગ",
+  fontGalleryOpen: "બીજા ફોન્ટ ▾",
+  fontGalleryClose: "ઓછા ફોન્ટ ▴",
+  fontGalleryOthers: "બીજા ફોન્ટ — મથાળા માટે સારા:",
+  fontGalleryNote:
+    "ઉપરના પાંચ ફોન્ટ ભલામણ કરેલ છે: PDF, પ્રિન્ટ અને Excel માં સ્પષ્ટ. Excel ફાઈલમાં ફોન્ટ ત્યારે જ દેખાય જ્યારે તે કમ્પ્યુટરમાં ઇન્સ્ટોલ હોય; Shruti અને Nirmala UI દરેક Windows માં હોય છે.",
   layoutGroupNote: "આખી લાઈનનો ફેરફાર (ઊંચાઈ, રંગ, અક્ષર, પછીની જગ્યા) દરેક બ્લોક અને દરેક પાનાની આ જ લાઈનમાં લાગશે.",
   layoutLineColour: "લાઈનનો રંગ (ખાનાંની કિનારી)",
   layoutColourDefault: "મૂળ પ્રમાણે (કાળો)",
@@ -1308,6 +1317,11 @@ export const en: Strings = {
   layoutCellsOverflow: (count) =>
     `${count} ${count === 1 ? "cell holds" : "cells hold"} text wider than its column, running into the next cell. Widen that column.`,
   layoutTextColour: "Text colour",
+  fontGalleryOpen: "More fonts ▾",
+  fontGalleryClose: "Fewer fonts ▴",
+  fontGalleryOthers: "More fonts — best for titles:",
+  fontGalleryNote:
+    "The five above are recommended: clear in the PDF, the print and Excel. An Excel file shows a font only when it is installed on that PC; Shruti and Nirmala UI are on every Windows PC.",
   layoutGroupNote: "A change to the whole row (height, colour, font, space after) applies to this same row in every block, on every page.",
   layoutLineColour: "Line colour (cell borders)",
   layoutColourDefault: "Default (black)",
