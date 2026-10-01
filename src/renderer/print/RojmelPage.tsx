@@ -3,7 +3,7 @@ import type { CSSProperties, JSX } from "react";
 import type { RojmelBlock, RojmelLine, RojmelPage as RojmelPageData } from "../../engine/rojmel.js";
 import { ROW_GROUPS, ROW_KEYS, targetKey } from "../../shared/report-layout.js";
 import { isGrantCredit, rojmelBlockRows } from "../../shared/rojmel-rows.js";
-import { GapRow, LayoutColGroup, useReportLayout } from "./layout-context.js";
+import { GapRow, LayoutColGroup, useReportLayout, Text } from "./layout-context.js";
 import type { SchoolDto } from "../../shared/api.js";
 import { formatAmount } from "../../lib/money.js";
 
@@ -53,15 +53,15 @@ export function RojmelSheet({
         style={receiptHalf > 0 ? ({ "--receipt-half": `${receiptHalf}%` } as CSSProperties) : undefined}
       >
         <div className="band-left" data-part="bandLeft">
-          <span>આવક</span>
-          <span>( Cash Book )</span>
+          <span><Text id="rojmel.bandIn">આવક</Text></span>
+          <span><Text id="rojmel.bandCashBook">( Cash Book )</Text></span>
         </div>
         <div className="band-right" data-part="bandRight">
-          <span>( કેશ બુક )</span>
-          <span>જાવક</span>
+          <span><Text id="rojmel.bandCashBookGu">( કેશ બુક )</Text></span>
+          <span><Text id="rojmel.bandOut">જાવક</Text></span>
         </div>
         <div className="band-page" data-part="bandPage">
-          પાના.નંબર <span className="page-no">{page.pageNo}</span>
+          <Text id="rojmel.pageNo">પાના.નંબર</Text> <span className="page-no">{page.pageNo}</span>
         </div>
       </div>
 
@@ -70,22 +70,22 @@ export function RojmelSheet({
         <LayoutColGroup />
         <thead>
           <tr data-row={ROW_KEYS.head}>
-            <th data-col="r.date" className="col-date">તારીખ</th>
-            <th data-col="r.detail" className="col-detail">આવકની વિગત</th>
-            <th data-col="r.ref" className="col-ref">પહોંચ નંબર અને તારીખ</th>
-            <th data-col="r.cheque" className="col-ref">ચેક નં તારીખ ડી.ડી.નં તારીખ</th>
-            <th data-col="r.class" className="col-class">વર્ગીકરણ રજી.નો પાન નં</th>
-            <th data-col="r.cash" className="col-money">રોકડ</th>
-            <th data-col="r.bank" className="col-money">બેન્ક</th>
-            <th data-col="r.total" className="col-money">કુલ રકમ</th>
+            <th data-col="r.date" className="col-date"><Text id="col:r.date">તારીખ</Text></th>
+            <th data-col="r.detail" className="col-detail"><Text id="col:r.detail">આવકની વિગત</Text></th>
+            <th data-col="r.ref" className="col-ref"><Text id="col:r.ref">પહોંચ નંબર અને તારીખ</Text></th>
+            <th data-col="r.cheque" className="col-ref"><Text id="col:r.cheque">ચેક નં તારીખ ડી.ડી.નં તારીખ</Text></th>
+            <th data-col="r.class" className="col-class"><Text id="col:r.class">વર્ગીકરણ રજી.નો પાન નં</Text></th>
+            <th data-col="r.cash" className="col-money"><Text id="col:r.cash">રોકડ</Text></th>
+            <th data-col="r.bank" className="col-money"><Text id="col:r.bank">બેન્ક</Text></th>
+            <th data-col="r.total" className="col-money"><Text id="col:r.total">કુલ રકમ</Text></th>
 
-            <th data-col="p.detail" className="col-detail gutter">જાવક ની વિગત</th>
-            <th data-col="p.ref" className="col-ref">વાઉચર નંબર અને તારીખ</th>
-            <th data-col="p.cheque" className="col-ref">ચેક નં તારીખ</th>
-            <th data-col="p.class" className="col-class">વર્ગીકરણ રજી.નો પાન નં</th>
-            <th data-col="p.cash" className="col-money">રોકડ</th>
-            <th data-col="p.bank" className="col-money">બેન્ક</th>
-            <th data-col="p.total" className="col-money">કુલ રકમ</th>
+            <th data-col="p.detail" className="col-detail gutter"><Text id="col:p.detail">જાવક ની વિગત</Text></th>
+            <th data-col="p.ref" className="col-ref"><Text id="col:p.ref">વાઉચર નંબર અને તારીખ</Text></th>
+            <th data-col="p.cheque" className="col-ref"><Text id="col:p.cheque">ચેક નં તારીખ</Text></th>
+            <th data-col="p.class" className="col-class"><Text id="col:p.class">વર્ગીકરણ રજી.નો પાન નં</Text></th>
+            <th data-col="p.cash" className="col-money"><Text id="col:p.cash">રોકડ</Text></th>
+            <th data-col="p.bank" className="col-money"><Text id="col:p.bank">બેન્ક</Text></th>
+            <th data-col="p.total" className="col-money"><Text id="col:p.total">કુલ રકમ</Text></th>
           </tr>
         </thead>
         <tbody>
@@ -133,7 +133,7 @@ function Block({ block }: { block: RojmelBlock }): JSX.Element {
         data-fixed-height={heightSet(footer("spent"), ROW_GROUPS.rojmelFooter("spent")) ? "" : undefined}
       >
         <Blank side="r" />
-        <td data-col="p.detail" className="gutter label">શ્રી ખર્ચખાતે</td>
+        <td data-col="p.detail" className="gutter label"><Text id="rojmel.spent">શ્રી ખર્ચખાતે</Text></td>
         <td data-col="p.ref" />
         <td data-col="p.cheque" />
         <td data-col="p.class" />
@@ -157,7 +157,7 @@ function Block({ block }: { block: RojmelBlock }): JSX.Element {
         <td data-col="r.bank" className="figure">{formatAmount(block.receiptTotalBankPaise)}</td>
         <td data-col="r.total" className="figure">{formatAmount(block.receiptTotalTotalPaise)}</td>
 
-        <td data-col="p.detail" className="gutter label">શ્રી બંધ સિલક</td>
+        <td data-col="p.detail" className="gutter label"><Text id="rojmel.closing">શ્રી બંધ સિલક</Text></td>
         <td data-col="p.ref" />
         <td data-col="p.cheque" />
         <td data-col="p.class" />
@@ -173,7 +173,7 @@ function Block({ block }: { block: RojmelBlock }): JSX.Element {
         data-fixed-height={heightSet(footer("grand"), ROW_GROUPS.rojmelFooter("grand")) ? "" : undefined}
       >
         <Blank side="r" />
-        <td data-col="p.detail" className="gutter label">શ્રી કુલ</td>
+        <td data-col="p.detail" className="gutter label"><Text id="rojmel.grand">શ્રી કુલ</Text></td>
         <td data-col="p.ref" />
         <td data-col="p.cheque" />
         <td data-col="p.class" />

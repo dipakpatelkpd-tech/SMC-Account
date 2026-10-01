@@ -6,7 +6,7 @@ import { formatAmount } from "../../lib/money.js";
 import { formatDate } from "../../lib/dates.js";
 import { toGujaratiDigits } from "../../lib/gujarati.js";
 import { PrintLayoutGate } from "./PagedSheets.js";
-import { GapRow, LayoutColGroup, layoutFontsReady, useReportLayout } from "./layout-context.js";
+import { GapRow, LayoutColGroup, layoutFontsReady, useReportLayout, Text } from "./layout-context.js";
 import { ROW_GROUPS, ROW_KEYS, ledgerRowKeys } from "../../shared/report-layout.js";
 import { arrangeLedgers } from "../../shared/ledger-layout.js";
 
@@ -155,23 +155,29 @@ function Account({ account, year }: { account: Ledger; year: FinancialYearDto })
   return (
     <div className="khatavahi-account">
       <div className="account-head">
-        <div className="account-kind" data-part="accountKind">સામાન્ય ( જનરલ ) ખાતાવહી</div>
+        <div className="account-kind" data-part="accountKind">
+          <Text id="khatavahi.kind">સામાન્ય ( જનરલ ) ખાતાવહી</Text>
+        </div>
         <div className="account-meta" data-part="accountMeta">
-          <span>ખાતાનું નામ –: {account.nameGu}</span>
-          <span>વર્ષ –: {yearLabel}</span>
+          <span>
+            <Text id="khatavahi.account">ખાતાનું નામ –:</Text> {account.nameGu}
+          </span>
+          <span>
+            <Text id="khatavahi.year">વર્ષ –:</Text> {yearLabel}
+          </span>
         </div>
       </div>
       <table className="form khatavahi" data-layout="">
         <LayoutColGroup />
         <thead>
           <tr data-row="head">
-            <th data-col="date">તારીખ</th>
-            <th data-col="page">રોજમેળ પાનું</th>
-            <th data-col="detail">વિગત</th>
-            <th data-col="credit">જમા</th>
-            <th data-col="debit">ઉધાર</th>
-            <th data-col="creditBalance">જમા બાકી</th>
-            <th data-col="debitBalance">ઉધાર બાકી</th>
+            <th data-col="date"><Text id="col:date">તારીખ</Text></th>
+            <th data-col="page"><Text id="col:page">રોજમેળ પાનું</Text></th>
+            <th data-col="detail"><Text id="col:detail">વિગત</Text></th>
+            <th data-col="credit"><Text id="col:credit">જમા</Text></th>
+            <th data-col="debit"><Text id="col:debit">ઉધાર</Text></th>
+            <th data-col="creditBalance"><Text id="col:creditBalance">જમા બાકી</Text></th>
+            <th data-col="debitBalance"><Text id="col:debitBalance">ઉધાર બાકી</Text></th>
           </tr>
         </thead>
         <tbody>
@@ -214,7 +220,7 @@ function Account({ account, year }: { account: Ledger; year: FinancialYearDto })
             <td data-col="date" className="centre">{date(year.endDate)}</td>
             <td data-col="page" className="centre">{lastPage === null ? "" : gu(String(lastPage))}</td>
             <td data-col="detail" className="detail centre">
-              <strong>બંધ સિલક</strong>
+              <strong><Text id="khatavahi.closing">બંધ સિલક</Text></strong>
             </td>
             <td data-col="credit" className="figure">{money(account.totalCreditPaise)}</td>
             <td data-col="debit" className="figure">{money(account.totalDebitPaise)}</td>

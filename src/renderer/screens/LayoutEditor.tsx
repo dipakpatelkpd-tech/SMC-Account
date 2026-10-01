@@ -100,7 +100,16 @@ interface CellRef {
   col: string;
 }
 
-type Selection =
+/** Words of the form under the click, which the school may reword (print/layout-context, Text). */
+interface TextRef {
+  id: string;
+  /** The form's own wording. */
+  fallback: string;
+  /** The {names} the text may use. */
+  vars: string[];
+}
+
+type Selection = (
   | {
       kind: "cell";
       /** The cell clicked first: the one the name box and the sizes describe. */
@@ -121,7 +130,21 @@ type Selection =
       widthMm: number;
       /** The heading it sits in, e.g. the whole band for the આવક box. */
       parent: string | null;
-    };
+    }
+) & { text?: TextRef | null };
+
+/** The editable words at a click: the Text span clicked, or the only one in the clicked box. */
+function textAt(element: Element | null, box: Element | null): TextRef | null {
+  const span =
+    element?.closest<HTMLElement>("[data-text]") ??
+    (box && box.querySelectorAll("[data-text]").length === 1 ? box.querySelector<HTMLElement>("[data-text]") : null);
+  if (!span) return null;
+  return {
+    id: span.dataset["text"] ?? "",
+    fallback: span.dataset["textDefault"] ?? "",
+    vars: (span.dataset["textVars"] ?? "").split(",").filter((name) => name !== ""),
+  };
+}
 
 /** A size measured on a zoomed sheet, in the sheet's own pixels. */
 function unzoomed(element: Element, px: number): number {
@@ -576,6 +599,7 @@ export function LayoutEditor({
       }
     }
     if (!next) return;
+    next = { ...next, text: textAt(element, cell ?? element?.closest?.("[data-part]") ?? null) };
     setSelection(next);
     // The format painter puts what it picked up on what is clicked, then stops.
     if (painter && draft) {
@@ -926,6 +950,17 @@ export function LayoutEditor({
         </div>
       </Group>
 
+      {selection?.text && (
+        <Group label={t.excelGroupText}>
+          <TextEditor
+            key={selection.text.id}
+            text={selection.text}
+            value={draft.texts?.[selection.text.id]}
+            onChange={(value) => change(withText(draft, selection.text!.id, value))}
+          />
+        </Group>
+      )}
+
       <Group label={t.layoutApplyTo}>
         <div className="ribbon-rows">
           {(
@@ -1191,6 +1226,57 @@ export function LayoutEditor({
         {check.cells > 0 && <span className="warn">{t.layoutCellsOverflow(check.cells)}</span>}
         <span className="excel-statusbar-hint">{report === "rojmel" ? t.layoutRojmelNote : t.layoutExcelNote}</span>
         <span className="excel-statusbar-zoom">{viewZoom}%</span>
+      </div>
+    </div>
+  );
+}
+
+/** A text reworded; empty or `undefined` puts the form's own wording back. */
+function withText(layout: ReportLayout, id: string, value: string | undefined): ReportLayout {
+  const texts = { ...(layout.texts ?? {}) };
+  if (value === undefined || value.trim() === "") delete texts[id];
+  else texts[id] = value;
+  return { ...layout, texts };
+}
+
+/** The words of a heading or label, editable; {names} in them are filled with the figures. */
+function TextEditor({
+  text,
+  value,
+  onChange,
+}: {
+  text: TextRef;
+  value: string | undefined;
+  onChange: (value: string | undefined) => void;
+}): JSX.Element {
+  const t = useStrings();
+  const [draft, setDraft] = useState(value ?? text.fallback);
+  useEffect(() => setDraft(value ?? text.fallback), [value, text.fallback]);
+  const commit = (): void => {
+    if (draft === (value ?? text.fallback)) return;
+    onChange(draft === text.fallback ? undefined : draft);
+  };
+  return (
+    <div className="ribbon-rows text-editor">
+      <textarea
+        value={draft}
+        rows={text.fallback.length > 40 ? 3 : 1}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            commit();
+          }
+        }}
+      />
+      <div className="ribbon-row">
+        <button type="button" className="ribbon-button" disabled={value === undefined} onClick={() => onChange(undefined)}>
+          ↺ {t.excelTextReset}
+        </button>
+        {text.vars.length > 0 && (
+          <span className="ribbon-hint">{t.excelTextVars(text.vars.map((name) => `{${name}}`).join(" "))}</span>
+        )}
       </div>
     </div>
   );

@@ -276,6 +276,9 @@ export interface Strings {
   layoutRojmelNote: string;
   layoutTextColour: string;
   excelTabHome: string;
+  excelGroupText: string;
+  excelTextReset: string;
+  excelTextVars: (names: string) => string;
   excelTabPage: string;
   excelTabView: string;
   excelGroupClipboard: string;
@@ -847,6 +850,9 @@ export const gu: Strings = {
     `${count} ખાનાંમાં લખાણ કોલમ કરતાં પહોળું છે અને બાજુના ખાનામાં જાય છે. તે કોલમ પહોળી કરો.`,
   layoutTextColour: "અક્ષરનો રંગ",
   excelTabHome: "હોમ",
+  excelGroupText: "લખાણ",
+  excelTextReset: "મૂળ લખાણ",
+  excelTextVars: (names) => `${names} ની જગ્યાએ આંકડો આપોઆપ આવશે — તેને રહેવા દો.`,
   excelTabPage: "પેજ લેઆઉટ",
   excelTabView: "જુઓ",
   excelGroupClipboard: "ફેરફાર",
@@ -1431,6 +1437,9 @@ export const en: Strings = {
     `${count} ${count === 1 ? "cell holds" : "cells hold"} text wider than its column, running into the next cell. Widen that column.`,
   layoutTextColour: "Text colour",
   excelTabHome: "Home",
+  excelGroupText: "Text",
+  excelTextReset: "Original text",
+  excelTextVars: (names) => `${names} is filled in with the figure — keep it in the text.`,
   excelTabPage: "Page Layout",
   excelTabView: "View",
   excelGroupClipboard: "Edit",

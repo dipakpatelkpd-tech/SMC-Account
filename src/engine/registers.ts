@@ -176,6 +176,13 @@ export interface Voucher {
   chequeNo: number | null;
   chequeDate: string | null;
   payeeGu: string | null;
+  /**
+   * What the cheque register says the cheque paid for (its બિલની વિગત) - the
+   * voucher prints it as its ઉધાર બજેટ હેડ.
+   */
+  purposeGu: string | null;
+  /** How the cheque paid: a reimbursement's voucher says the head teacher took the money back. */
+  chequeType: BookCheque["type"] | null;
   lines: VoucherLine[];
   totalPaise: Paise;
   /**
@@ -208,6 +215,8 @@ export function vouchers(book: YearBook): Voucher[] {
       chequeNo: cheque?.chequeNo ?? null,
       chequeDate: cheque?.chequeDate ?? null,
       payeeGu: cheque?.payeeGu ?? null,
+      purposeGu: cheque?.purposeGu ?? null,
+      chequeType: cheque?.type ?? null,
       lines: bills.map((bill, index) => ({
         serial: index + 1,
         billNo: bill.billNo,

@@ -478,7 +478,41 @@ table.form.register td.figure {
   text-align: center;
   font-weight: 700;
   font-size: var(--report-font);
-  margin-bottom: 3mm;
+  margin-bottom: 2mm;
+  border: 0.7pt solid #000;
+  padding: 1mm;
+}
+
+/* "વાઉચર" on a band under the programme, as the client's vouchers print it. */
+.voucher-head .voucher-title {
+  width: 60%;
+  margin: 0 auto 3mm;
+  padding: 1mm 0;
+  text-align: center;
+  font-weight: 700;
+  font-size: calc(var(--report-font) * 1.3);
+  letter-spacing: 0.5mm;
+  color: #fff;
+  background: #7fb3d5;
+  clip-path: polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%);
+}
+
+table.form.voucher-meta td.budget-head {
+  text-align: left;
+}
+
+table.form.voucher-meta td.budget-head > span:first-child {
+  font-weight: 700;
+}
+
+/* The sentence under the bills: who paid them and by which cheque. */
+.voucher-note {
+  margin-top: 3mm;
+  padding: 2mm 3mm;
+  background: #eef2ea;
+  font-size: var(--report-font);
+  line-height: 1.6;
+  text-indent: 8mm;
 }
 
 table.form.voucher-meta,
