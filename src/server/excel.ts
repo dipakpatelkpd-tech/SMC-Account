@@ -74,6 +74,8 @@ import {
   styleAt,
   targetKey,
   widthScale,
+  BORDER_SIDES,
+  type BorderStyle,
   type CellStyle,
   type ReportLayout,
   type ResolvedPage,
@@ -589,32 +591,65 @@ function applyStyle(cell: ExcelJS.Cell, style: CellStyle, excelSize: (pt: number
   if (style.fill && style.fill !== NO_FILL) {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: argb(style.fill) } };
   }
-  if (style.bold !== undefined || style.font || style.sizePt !== undefined || style.colour) {
+  if (
+    style.bold !== undefined ||
+    style.italic !== undefined ||
+    style.underline !== undefined ||
+    style.font ||
+    style.sizePt !== undefined ||
+    style.colour
+  ) {
     cell.font = {
       ...cell.font,
       ...(style.font ? { name: fontFamily(style.font) } : {}),
       ...(style.sizePt !== undefined ? { size: excelSize(style.sizePt) } : {}),
       ...(style.bold !== undefined ? { bold: style.bold } : {}),
+      ...(style.italic !== undefined ? { italic: style.italic } : {}),
+      ...(style.underline !== undefined ? { underline: style.underline } : {}),
       ...(style.colour ? { color: { argb: argb(style.colour) } } : {}),
     };
   }
-  if (style.align) cell.alignment = { ...cell.alignment, horizontal: style.align };
-  if (style.lineColour) {
-    // Keep each edge's own weight (the rojmel's heavy middle rule), in the new colour.
-    const colour = { argb: argb(style.lineColour) };
-    const edge = (side: Partial<ExcelJS.Border> | undefined): Partial<ExcelJS.Border> => ({
-      style: side?.style ?? "thin",
-      color: colour,
-    });
-    const border = cell.border ?? {};
-    cell.border = {
-      top: edge(border.top),
-      left: edge(border.left),
-      bottom: edge(border.bottom),
-      right: edge(border.right),
+  if (style.align || style.vAlign || style.wrap !== undefined) {
+    cell.alignment = {
+      ...cell.alignment,
+      ...(style.align ? { horizontal: style.align } : {}),
+      ...(style.vAlign ? { vertical: style.vAlign } : {}),
+      // Wrapping and shrinking to fit cannot both be on.
+      ...(style.wrap !== undefined ? { wrapText: style.wrap, shrinkToFit: !style.wrap } : {}),
     };
   }
+  if (style.lineColour || style.borders) {
+    // Each edge: the school's own line for it, else the cell's line in the
+    // line colour, keeping its weight (the rojmel's heavy middle rule).
+    const border = cell.border ?? {};
+    const lineColour = style.lineColour ? { argb: argb(style.lineColour) } : undefined;
+    const next: Partial<ExcelJS.Borders> = {};
+    for (const side of BORDER_SIDES) {
+      const edge = style.borders?.[side];
+      const current = border[side];
+      if (edge?.style === "none") continue;
+      if (edge) {
+        const colour = edge.colour ? { argb: argb(edge.colour) } : (lineColour ?? current?.color);
+        next[side] = { style: EXCEL_BORDER[edge.style], ...(colour ? { color: colour } : {}) };
+      } else if (current) {
+        next[side] = { ...current, ...(lineColour ? { color: lineColour } : {}) };
+      } else if (lineColour) {
+        next[side] = { style: "thin", color: lineColour };
+      }
+    }
+    cell.border = next;
+  }
 }
+
+/** Excel's own names for the line styles the editor offers. */
+const EXCEL_BORDER: Record<Exclude<BorderStyle, "none">, ExcelJS.BorderStyle> = {
+  thin: "thin",
+  medium: "medium",
+  thick: "thick",
+  dashed: "dashed",
+  dotted: "dotted",
+  double: "double",
+};
 
 function ledgerSheets(
   workbook: ExcelJS.Workbook,

@@ -96,6 +96,30 @@ const bounded = <T extends z.ZodTypeAny>(key: z.ZodString, value: T) =>
     .refine((record) => Object.keys(record).length <= MAX_ENTRIES, "too many entries")
     .default({});
 
+export const V_ALIGNMENTS = ["top", "middle", "bottom"] as const;
+export type VerticalAlignment = (typeof V_ALIGNMENTS)[number];
+
+/**
+ * The line styles Excel offers for a border, and how each prints. "none" takes
+ * the line away altogether - even where the form, or the cell beside, draws one.
+ */
+export const BORDER_STYLES = ["thin", "medium", "thick", "dashed", "dotted", "double", "none"] as const;
+export type BorderStyle = (typeof BORDER_STYLES)[number];
+
+export const BORDER_CSS: Record<BorderStyle, string> = {
+  thin: "0.7pt solid",
+  medium: "1.4pt solid",
+  thick: "2.2pt solid",
+  dashed: "0.9pt dashed",
+  dotted: "1pt dotted",
+  double: "2.4pt double",
+  none: "hidden",
+};
+
+const borderEdge = z
+  .object({ style: z.enum(BORDER_STYLES), colour: hexColour.optional() })
+  .strict();
+
 export const cellStyleSchema = z
   .object({
     /** Highlight colour, "#rrggbb" - or NO_FILL for blank. */
@@ -113,10 +137,27 @@ export const cellStyleSchema = z
     colour: hexColour.optional(),
     /** Colour of the ruled lines round the cell (or heading), "#rrggbb". */
     lineColour: hexColour.optional(),
+    italic: z.boolean().optional(),
+    underline: z.boolean().optional(),
+    /** Where the text sits between the top and the bottom of its cell. */
+    vAlign: z.enum(V_ALIGNMENTS).optional(),
+    /** true: the text wraps onto more lines; false: it stays on one. */
+    wrap: z.boolean().optional(),
+    /** Space inside the cell, left and right / above and below. */
+    paddingXMm: z.number().min(0).max(15).optional(),
+    paddingYMm: z.number().min(0).max(15).optional(),
+    /** Excel's borders: each edge its own line style and colour. */
+    borders: z
+      .object({ top: borderEdge.optional(), right: borderEdge.optional(), bottom: borderEdge.optional(), left: borderEdge.optional() })
+      .strict()
+      .optional(),
   })
   .strict();
 
 export type CellStyle = z.infer<typeof cellStyleSchema>;
+export type BorderEdge = z.infer<typeof borderEdge>;
+export type BorderSide = "top" | "right" | "bottom" | "left";
+export const BORDER_SIDES: readonly BorderSide[] = ["top", "right", "bottom", "left"];
 
 // -------------------------------------------------------------- page setup
 
@@ -840,16 +881,44 @@ export function fontStack(id: LayoutFontId | undefined): string {
   return [cssString(primary), ...rest.filter((entry) => entry !== cssString(primary))].join(", ");
 }
 
-function declarations(style: CellStyle): string[] {
+/** What a cell's text looks like: carried into everything inside a heading. */
+function textDeclarations(style: CellStyle): string[] {
   const out: string[] = [];
-  if (style.fill) out.push(`background: ${style.fill === NO_FILL ? "transparent" : style.fill}`);
   if (style.bold !== undefined) out.push(`font-weight: ${style.bold ? 700 : 400}`);
+  if (style.italic !== undefined) out.push(`font-style: ${style.italic ? "italic" : "normal"}`);
+  if (style.underline !== undefined) out.push(`text-decoration: ${style.underline ? "underline" : "none"}`);
   if (style.font) out.push(`font-family: ${fontStack(style.font)}`);
   if (style.sizePt !== undefined) out.push(`font-size: ${style.sizePt}pt`);
   if (style.align) out.push(`text-align: ${style.align}`);
   if (style.colour) out.push(`color: ${style.colour}`);
   if (style.lineColour) out.push(`border-color: ${style.lineColour}`);
+  if (style.wrap !== undefined) out.push(`white-space: ${style.wrap ? "normal" : "nowrap"}`);
   return out;
+}
+
+/** The box itself: its padding, vertical alignment and borders - never its contents'. */
+function boxDeclarations(style: CellStyle): string[] {
+  const out: string[] = [];
+  if (style.vAlign) out.push(`vertical-align: ${style.vAlign}`);
+  if (style.paddingXMm !== undefined) {
+    out.push(`padding-left: ${style.paddingXMm}mm`, `padding-right: ${style.paddingXMm}mm`);
+  }
+  if (style.paddingYMm !== undefined) {
+    out.push(`padding-top: ${style.paddingYMm}mm`, `padding-bottom: ${style.paddingYMm}mm`);
+  }
+  for (const side of BORDER_SIDES) {
+    const edge = style.borders?.[side];
+    if (!edge) continue;
+    if (edge.style === "none") out.push(`border-${side}: hidden`);
+    else out.push(`border-${side}: ${BORDER_CSS[edge.style]} ${edge.colour ?? style.lineColour ?? "#000"}`);
+  }
+  return out;
+}
+
+function declarations(style: CellStyle): string[] {
+  const out: string[] = [];
+  if (style.fill) out.push(`background: ${style.fill === NO_FILL ? "transparent" : style.fill}`);
+  return [...out, ...textDeclarations(style), ...boxDeclarations(style)];
 }
 
 const FLEX_ALIGN: Record<Alignment, string> = { left: "flex-start", center: "center", right: "flex-end" };
@@ -865,8 +934,10 @@ function partRules(root: string, partId: string, style: CellStyle, part?: Report
   const as = (tag: string): string => `${root} ${tag}${attribute}`;
   const rules: string[] = [];
   const all = `${selector}, ${selector} *`;
-  const inherited = declarations({ ...style, fill: undefined });
+  const inherited = textDeclarations(style);
   if (inherited.length > 0) rules.push(`${all} { ${inherited.join("; ")}; }`);
+  const box = boxDeclarations(style);
+  if (box.length > 0) rules.push(`${selector} { ${box.join("; ")}; }`);
   if (style.fill) {
     rules.push(`${all} { background: ${style.fill === NO_FILL ? "transparent" : style.fill}; }`);
   }
@@ -935,7 +1006,8 @@ export function layoutCss(report: PrintableReportId, layout: ReportLayout, root:
     padding.push(`padding-left: ${layout.paddingXMm}mm`, `padding-right: ${layout.paddingXMm}mm`);
   }
   if (padding.length > 0) {
-    rules.push(`${table} > * > tr:not(.layout-gap):not(.block-gap) > :is(td, th) { ${padding.join("; ")}; }`);
+    // :where keeps this weaker than a column's, a row's or a cell's own padding.
+    rules.push(`${table} :where(tr:not(.layout-gap):not(.block-gap)) > :is(td, th) { ${padding.join("; ")}; }`);
   }
   if (layout.rowHeightMm !== undefined) {
     rules.push(

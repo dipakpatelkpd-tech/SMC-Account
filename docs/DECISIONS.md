@@ -553,6 +553,28 @@ against the row's place in its block (`ROW_GROUPS`: row n of every rojmel block,
 of every ledger account, of every voucher; each footer), so it applies to that
 row in every block, in print and in Excel. A single cell is still that cell.
 
+## The Excel-style layout editor (October 2026)
+
+At the client's request "ગોઠવણી બદલો" opens over the whole window shaped like
+Excel: tabs (Home, Page Layout, Whole report, View), a ribbon, a name box, the
+report as the sheet, a status bar. Only what a printed register needs is there
+- no formulas, charts or data editing; every figure is still computed.
+
+What a cell, row (group), column or heading can now carry, in the preview, the
+PDF, the print and Excel alike: italic, underline, vertical alignment, wrap or
+one line, inner spacing, and Excel's borders edge by edge (thin, medium, thick,
+dashed, dotted, double, or none - "none" is `border-style: hidden`, so it takes
+the line away even where the form or the next cell draws one). A heading's
+border and padding stay on the heading; its text settings reach what is inside.
+Shift+click selects a range, Ctrl+click adds cells; "Outside borders" draws only
+the range's rim. Excel has no cell padding, so inner spacing is print-only.
+
+Every colour choice uses one palette (`shared/excel-palette.ts`,
+`components/ColourPalette.tsx`): Excel's ten theme colours with five shades each,
+lightest to darkest, computed as Excel computes its tints and shades in HSL;
+the standard colours; recent ones; and "More colours…" for any colour by square,
+hue strip, hex or RGB.
+
 ## Still open with the client
 
 0. **Report sizes.** Confirm with the client that the rojmel at its own
