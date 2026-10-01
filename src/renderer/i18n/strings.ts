@@ -276,6 +276,9 @@ export interface Strings {
   layoutRojmelNote: string;
   layoutTextColour: string;
   excelTabHome: string;
+  excelGroupText: string;
+  excelTextReset: string;
+  excelTextVars: (names: string) => string;
   excelTabPage: string;
   excelTabView: string;
   excelGroupClipboard: string;
@@ -847,6 +850,9 @@ export const gu: Strings = {
     `${count} ખાનાંમાં લખાણ કોલમ કરતાં પહોળું છે અને બાજુના ખાનામાં જાય છે. તે કોલમ પહોળી કરો.`,
   layoutTextColour: "અક્ષરનો રંગ",
   excelTabHome: "હોમ",
+  excelGroupText: "લખાણ",
+  excelTextReset: "મૂળ લખાણ",
+  excelTextVars: (names) => `${names} ની જગ્યાએ આંકડો આપોઆપ આવશે — તેને રહેવા દો.`,
   excelTabPage: "પેજ લેઆઉટ",
   excelTabView: "જુઓ",
   excelGroupClipboard: "ફેરફાર",
@@ -871,7 +877,7 @@ export const gu: Strings = {
   excelPaddingX: "↔ અંદરની જગ્યા",
   excelPaddingY: "↕ અંદરની જગ્યા",
   excelCellsHint: "પહોળાઈ અને ઊંચાઈ માટે ખાનું કે મથાળું પસંદ કરો.",
-  excelRowHeightHint: "લાઈનની ઊંચાઈ માટે 'લાગુ કરો' માં 'આખી લાઈન' પસંદ કરો.",
+  excelRowHeightHint: "ઊંચાઈ આખી લાઈનને લાગે છે — દરેક બ્લોક અને પાનામાં. ખાલી રાખો તો લાઈન પાનું ભરવા જાતે મોટી થાય.",
   excelScopeRow: "આખી લાઈન (દરેક બ્લોકમાં)",
   excelWholeReport: "આખું પત્રક",
   excelCellsSelected: (count) => `${count} ખાનાં પસંદ`,
@@ -1431,6 +1437,9 @@ export const en: Strings = {
     `${count} ${count === 1 ? "cell holds" : "cells hold"} text wider than its column, running into the next cell. Widen that column.`,
   layoutTextColour: "Text colour",
   excelTabHome: "Home",
+  excelGroupText: "Text",
+  excelTextReset: "Original text",
+  excelTextVars: (names) => `${names} is filled in with the figure — keep it in the text.`,
   excelTabPage: "Page Layout",
   excelTabView: "View",
   excelGroupClipboard: "Edit",
@@ -1455,7 +1464,7 @@ export const en: Strings = {
   excelPaddingX: "↔ Inner space",
   excelPaddingY: "↕ Inner space",
   excelCellsHint: "Select a cell or a heading for widths and heights.",
-  excelRowHeightHint: "For a row's height choose 'Whole row' under 'Apply to'.",
+  excelRowHeightHint: "The height is the whole row's — in every block and on every page. Leave it empty and the row grows by itself to fill the page.",
   excelScopeRow: "Whole row (every block)",
   excelWholeReport: "Whole report",
   excelCellsSelected: (count) => `${count} cells selected`,

@@ -126,6 +126,16 @@ describe("વાઉચર - voucher print", () => {
     expect(voucher.chequeNo).toBe(103);
   });
 
+  it("carries the cheque register's બિલની વિગત as its budget head, and how the cheque paid", () => {
+    const register = chequeRegister(book);
+    for (const voucher of all) {
+      if (voucher.chequeNo === null) continue;
+      const row = register.find((each) => each.chequeNo === voucher.chequeNo)!;
+      expect(voucher.purposeGu, `voucher ${voucher.voucherNo}`).toBe(row.purposeGu);
+    }
+    expect(all.find((candidate) => candidate.voucherNo === 1)!.chequeType).toBe("REIMBURSEMENT");
+  });
+
   it("notices when a voucher does not match its cheque", () => {
     // Drop a bill from voucher 3 and the voucher must stop balancing.
     const broken = {

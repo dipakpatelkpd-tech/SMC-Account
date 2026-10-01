@@ -27,6 +27,7 @@ import {
   parseTargetKey,
   reportLayoutSchema,
   resolvePage,
+  textOf,
   setColumnWidth,
   styleAt,
   tableWidthMm,
@@ -330,6 +331,25 @@ describe("paper", () => {
     const layout = setColumnWidth("khatavahi", emptyLayout(), "detail", 49.5);
     expect(widthScale("khatavahi", layout, ["detail"])).toBeCloseTo(1.5, 3);
     expect(widthScale("khatavahi", layout, [])).toBe(1);
+  });
+});
+
+describe("the form's words", () => {
+  it("are the form's own until a school rewords them, and fill in their figures", () => {
+    const layout = { ...emptyLayout(), texts: { "voucher.title": "પેમેન્ટ વાઉચર", blank: "  " } };
+    expect(textOf(layout, "voucher.title", "વાઉચર")).toBe("પેમેન્ટ વાઉચર");
+    expect(textOf(layout, "col:amount", "રકમ")).toBe("રકમ");
+    // An emptied text falls back to the form's.
+    expect(textOf(layout, "blank", "કુલ")).toBe("કુલ");
+    expect(textOf(undefined, "x", "ચેક {ચેક નંબર} થી રૂ. {રકમ}", { "ચેક નંબર": "૧૦૩", "રકમ": "૧૦૫૦૦" })).toBe(
+      "ચેક ૧૦૩ થી રૂ. ૧૦૫૦૦",
+    );
+    // A name it does not know is left as typed.
+    expect(textOf(undefined, "x", "{બીજું}", {})).toBe("{બીજું}");
+    expect(isEmptyLayout(layout)).toBe(false);
+    expect(reportLayoutSchema.safeParse(layout).success).toBe(true);
+    // A layout saved before texts existed still reads, with none.
+    expect(reportLayoutSchema.parse({ version: 1 }).texts).toEqual({});
   });
 });
 

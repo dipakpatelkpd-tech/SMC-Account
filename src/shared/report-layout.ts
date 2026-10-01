@@ -234,13 +234,19 @@ export const reportLayoutSchema = z
     rowGapsMm: bounded(z.string().min(1).max(300), z.number().min(0).max(80)),
     /** Target key (`targetKey`) -> how that column, row or cell looks. */
     styles: bounded(z.string().min(1).max(400), cellStyleSchema),
+    /**
+     * The form's own words a school has reworded: a column heading, a label, a
+     * title, the voucher's closing sentence - by text id (EditableText). A
+     * figure is never a text: only the words around the figures can change.
+     */
+    texts: bounded(z.string().min(1).max(100), z.string().max(1000)),
   })
   .strict();
 
 export type ReportLayout = z.infer<typeof reportLayoutSchema>;
 
 export function emptyLayout(): ReportLayout {
-  return { version: 1, widths: {}, rowGapsMm: {}, styles: {} };
+  return { version: 1, widths: {}, rowGapsMm: {}, styles: {}, texts: {} };
 }
 
 /** True when the layout changes nothing - the form prints its default. */
@@ -258,7 +264,8 @@ export function isEmptyLayout(layout: ReportLayout): boolean {
     (layout.page === undefined || Object.keys(layout.page).length === 0) &&
     Object.keys(layout.widths).length === 0 &&
     Object.keys(layout.rowGapsMm).length === 0 &&
-    Object.keys(layout.styles).length === 0
+    Object.keys(layout.styles).length === 0 &&
+    Object.keys(layout.texts ?? {}).length === 0
   );
 }
 
@@ -448,7 +455,9 @@ export const REPORT_PARTS: Record<PrintableReportId, ReportPart[]> = {
   billRegister: [heading("title", "મથાળું")],
   vouchers: [
     heading("programme", "મથાળું (યોજના)"),
+    heading("voucherTitle", "વાઉચર પટ્ટી"),
     heading("meta", "વાઉચરની વિગત"),
+    heading("closingNote", "નીચેનું વાક્ય"),
     heading("signatures", "સહી"),
   ],
   patrakD: [heading("title", "મથાળું"), heading("meta", "શાળાની વિગત")],
@@ -665,6 +674,24 @@ export const ROW_GROUPS = {
   voucherLine: (index: number): string => `group:voucher:${index}`,
   voucherTotal: "group:voucher:total",
 } as const;
+
+/**
+ * A form's words as the school has them: its own wording for this text id, or
+ * the form's. `{name}` in a text is filled from `vars` - the voucher's closing
+ * sentence carries {ચેક નંબર} and {રકમ} - so a reworded sentence still prints
+ * the right figures.
+ */
+export function textOf(
+  layout: ReportLayout | undefined,
+  id: string,
+  fallback: string,
+  vars: Record<string, string> = {},
+): string {
+  // A layout saved before texts existed has none.
+  const own = layout?.texts?.[id];
+  const template = own?.trim() ? own : fallback;
+  return template.replace(/\{([^{}]+)\}/g, (whole, name: string) => vars[name] ?? whole);
+}
 
 export function isGroupKey(row: string): boolean {
   return row.startsWith(ROW_GROUPS.prefix);
@@ -1011,7 +1038,8 @@ export function layoutCss(report: PrintableReportId, layout: ReportLayout, root:
   }
   if (layout.rowHeightMm !== undefined) {
     rules.push(
-      `${table} > tbody > tr:not(.layout-gap):not(.block-gap) > td { height: ${layout.rowHeightMm}mm; }`,
+      // :where keeps this weaker than a row's (or its group's) own height.
+      `${table} > tbody > :where(tr:not(.layout-gap):not(.block-gap)) > td { height: ${layout.rowHeightMm}mm; }`,
     );
   }
   if (layout.align) {

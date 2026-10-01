@@ -1,4 +1,5 @@
 import type { JSX } from "react";
+import { Text } from "./layout-context.js";
 import type {
   BillRegisterRow,
   ChequeRegisterRow,
@@ -72,18 +73,18 @@ export function ChequeRegisterPages({
       tableClassName="form register"
       thead={
         <tr data-row="head">
-          <th data-col="serial">અ.નં</th>
-          <th data-col="chequeNo">ચેક નો ક્રમાંક</th>
-          <th data-col="chequeDate">ચેકની તારીખ</th>
-          <th data-col="voucherNo">વા.નં</th>
-          <th data-col="billRange">બિલ નંબર</th>
-          <th data-col="amount">રકમ</th>
-          <th data-col="payee">જેના તરફેણમાં ચેક લખ્યો તેનું નામ તથા કઈ બાબતે ચેક લખ્યો તે</th>
-          <th data-col="chequeAmount">ચેકની રકમ</th>
-          <th data-col="purpose">બિલની વિગત</th>
-          <th data-col="signature">મુ.શિ.ની સહી બી.આર.સી, સીઆર.સી ની સહી</th>
-          <th data-col="cashedDate">ચેક વટાવ્યાં તારીખ</th>
-          <th data-col="remarks">શેરો</th>
+          <th data-col="serial"><Text id="col:serial">અ.નં</Text></th>
+          <th data-col="chequeNo"><Text id="col:chequeNo">ચેક નો ક્રમાંક</Text></th>
+          <th data-col="chequeDate"><Text id="col:chequeDate">ચેકની તારીખ</Text></th>
+          <th data-col="voucherNo"><Text id="col:voucherNo">વા.નં</Text></th>
+          <th data-col="billRange"><Text id="col:billRange">બિલ નંબર</Text></th>
+          <th data-col="amount"><Text id="col:amount">રકમ</Text></th>
+          <th data-col="payee"><Text id="col:payee">જેના તરફેણમાં ચેક લખ્યો તેનું નામ તથા કઈ બાબતે ચેક લખ્યો તે</Text></th>
+          <th data-col="chequeAmount"><Text id="col:chequeAmount">ચેકની રકમ</Text></th>
+          <th data-col="purpose"><Text id="col:purpose">બિલની વિગત</Text></th>
+          <th data-col="signature"><Text id="col:signature">મુ.શિ.ની સહી બી.આર.સી, સીઆર.સી ની સહી</Text></th>
+          <th data-col="cashedDate"><Text id="col:cashedDate">ચેક વટાવ્યાં તારીખ</Text></th>
+          <th data-col="remarks"><Text id="col:remarks">શેરો</Text></th>
         </tr>
       }
       rows={rows.map((row) => ({
@@ -137,18 +138,18 @@ export function BillRegisterPages({
       tableClassName="form register"
       thead={
         <tr data-row="head">
-          <th data-col="serial">અ.નં</th>
-          <th data-col="voucherNo">વાઉચર નંબર</th>
-          <th data-col="billNo">બીલ નંબર</th>
-          <th data-col="billDate">બીલની તારીખ</th>
-          <th data-col="description">બીલ વિગત</th>
-          <th data-col="vendor">બીલ કોના તરફથી મળેલ છે</th>
-          <th data-col="amount">બીલની રકમ</th>
-          <th data-col="deduction">કપાત</th>
-          <th data-col="net">ચુકવવાની થતી ચોખ્ખી રકમ</th>
-          <th data-col="signature">મંજુર કરનારની સહી</th>
-          <th data-col="remarks">રીમાર્કસ</th>
-          <th data-col="quantity">જથ્થો</th>
+          <th data-col="serial"><Text id="col:serial">અ.નં</Text></th>
+          <th data-col="voucherNo"><Text id="col:voucherNo">વાઉચર નંબર</Text></th>
+          <th data-col="billNo"><Text id="col:billNo">બીલ નંબર</Text></th>
+          <th data-col="billDate"><Text id="col:billDate">બીલની તારીખ</Text></th>
+          <th data-col="description"><Text id="col:description">બીલ વિગત</Text></th>
+          <th data-col="vendor"><Text id="col:vendor">બીલ કોના તરફથી મળેલ છે</Text></th>
+          <th data-col="amount"><Text id="col:amount">બીલની રકમ</Text></th>
+          <th data-col="deduction"><Text id="col:deduction">કપાત</Text></th>
+          <th data-col="net"><Text id="col:net">ચુકવવાની થતી ચોખ્ખી રકમ</Text></th>
+          <th data-col="signature"><Text id="col:signature">મંજુર કરનારની સહી</Text></th>
+          <th data-col="remarks"><Text id="col:remarks">રીમાર્કસ</Text></th>
+          <th data-col="quantity"><Text id="col:quantity">જથ્થો</Text></th>
         </tr>
       }
       rows={rows.map((row, index) => ({
@@ -192,19 +193,19 @@ export function GrantRegisterPages({
       tableClassName="form register"
       thead={
         <tr data-row="head">
-          <th data-col="from">કોના તરફથી મળી</th>
-          <th data-col="ddDate">ડીડી/ચેક નંબર તારીખ</th>
-          <th data-col="amount">રકમ</th>
-          <th data-col="purpose">કયા કામે મળ્યો</th>
-          <th data-col="order">ગ્રાન્ટ ફાળવણી આદેશ નંબર તારીખ</th>
-          <th data-col="instrument">ચેક/ડ્રાફ્ટ નંબર તારીખ બેંકનું નામ</th>
-          <th data-col="bank">બેંકનું નામ</th>
-          <th data-col="deposited">જમા કર્યા તારીખ</th>
-          <th data-col="credited">જમા થયા તારીખ</th>
-          <th data-col="allottedTo">કોને ફાળવેલ</th>
-          <th data-col="spent">ખર્ચેલ રકમ</th>
-          <th data-col="saving">બચત રહેલ ગ્રાન્ટ</th>
-          <th data-col="remarks">રીમાર્કસ</th>
+          <th data-col="from"><Text id="col:from">કોના તરફથી મળી</Text></th>
+          <th data-col="ddDate"><Text id="col:ddDate">ડીડી/ચેક નંબર તારીખ</Text></th>
+          <th data-col="amount"><Text id="col:amount">રકમ</Text></th>
+          <th data-col="purpose"><Text id="col:purpose">કયા કામે મળ્યો</Text></th>
+          <th data-col="order"><Text id="col:order">ગ્રાન્ટ ફાળવણી આદેશ નંબર તારીખ</Text></th>
+          <th data-col="instrument"><Text id="col:instrument">ચેક/ડ્રાફ્ટ નંબર તારીખ બેંકનું નામ</Text></th>
+          <th data-col="bank"><Text id="col:bank">બેંકનું નામ</Text></th>
+          <th data-col="deposited"><Text id="col:deposited">જમા કર્યા તારીખ</Text></th>
+          <th data-col="credited"><Text id="col:credited">જમા થયા તારીખ</Text></th>
+          <th data-col="allottedTo"><Text id="col:allottedTo">કોને ફાળવેલ</Text></th>
+          <th data-col="spent"><Text id="col:spent">ખર્ચેલ રકમ</Text></th>
+          <th data-col="saving"><Text id="col:saving">બચત રહેલ ગ્રાન્ટ</Text></th>
+          <th data-col="remarks"><Text id="col:remarks">રીમાર્કસ</Text></th>
         </tr>
       }
       rows={rows.map((row) => ({
@@ -261,28 +262,35 @@ export function VoucherPages({
           landscape={false}
           head={() => (
             <div className="voucher-head">
-              <div className="programme" data-part="programme">સર્વ શિક્ષા અભિયાન મિશન {school.districtGu}</div>
+              <div className="programme" data-part="programme">
+                <Text id="voucher.programme" vars={{ "જિલ્લો": school.districtGu }}>
+                  {"સર્વ શિક્ષા અભિયાન મિશન {જિલ્લો}"}
+                </Text>
+              </div>
+              <div className="voucher-title" data-part="voucherTitle">
+                <Text id="voucher.title">વાઉચર</Text>
+              </div>
               <table className="form voucher-meta" data-part="meta">
                 <tbody>
                   <tr>
-                    <td className="label">શાળાનું નામ</td>
+                    <td className="label"><Text id="voucher.school">શાળાનું નામ –:</Text></td>
                     <td>{school.nameGu}</td>
-                    <td className="label">વાઉચર નંબર</td>
+                    <td className="label"><Text id="voucher.number">વાઉચર નંબર –:</Text></td>
                     <td className="centre">{gu(String(voucher.voucherNo))}</td>
                   </tr>
                   <tr>
-                    <td className="label">આચાર્યશ્રીનું નામ</td>
+                    <td className="label"><Text id="voucher.principal">આચાર્યશ્રીનું નામ –:</Text></td>
                     <td>{school.memberSecretaryGu}</td>
-                    <td className="label">તારીખ</td>
+                    <td className="label"><Text id="voucher.date">તારીખ –:</Text></td>
                     <td className="centre">{voucher.chequeDate ? date(voucher.chequeDate) : ""}</td>
                   </tr>
                   <tr>
-                    <td className="label">કુલ રકમ</td>
-                    <td className="figure">{money(voucher.totalPaise)}</td>
-                    <td className="label">ચેક નંબર</td>
-                    <td className="centre">
-                      {voucher.chequeNo === null ? "" : gu(String(voucher.chequeNo))}
+                    {/* The cheque register's બિલની વિગત for this cheque. */}
+                    <td colSpan={2} className="budget-head">
+                      <Text id="voucher.budgetHead">ઉધાર બજેટ હેડ –:</Text> {voucher.purposeGu ?? ""}
                     </td>
+                    <td className="label"><Text id="voucher.total">કુલ રકમ</Text></td>
+                    <td className="figure">{money(voucher.totalPaise)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -291,13 +299,13 @@ export function VoucherPages({
           tableClassName="form"
           thead={
             <tr data-row="head">
-              <th data-col="serial">ક્રમ</th>
-              <th data-col="billNo">બિલ નંબર</th>
-              <th data-col="billDate">તારીખ</th>
-              <th data-col="description">બીલ વિગત</th>
-              <th data-col="vendor">બીલ કોના તરફથી મળેલ છે</th>
-              <th data-col="amount">બિલની રકમ</th>
-              <th data-col="remarks">રિમાર્ક્સ</th>
+              <th data-col="serial"><Text id="col:serial">ક્રમ</Text></th>
+              <th data-col="billNo"><Text id="col:billNo">બિલ નંબર</Text></th>
+              <th data-col="billDate"><Text id="col:billDate">તારીખ</Text></th>
+              <th data-col="description"><Text id="col:description">બીલ વિગત</Text></th>
+              <th data-col="vendor"><Text id="col:vendor">બીલ કોના તરફથી મળેલ છે</Text></th>
+              <th data-col="amount"><Text id="col:amount">બિલની રકમ</Text></th>
+              <th data-col="remarks"><Text id="col:remarks">રિમાર્ક્સ</Text></th>
             </tr>
           }
           rows={voucher.lines.map((line, index) => ({
@@ -327,15 +335,48 @@ export function VoucherPages({
             </tr>
           }
           foot={
-            <div className="signatures" data-part="signatures">
-              <div>સભ્ય સચિવ</div>
-              <div>અધ્યક્ષશ્રી</div>
-            </div>
+            <>
+              <VoucherNote voucher={voucher} />
+              <div className="signatures" data-part="signatures">
+                <div><Text id="voucher.signSecretary">સભ્ય સચિવ</Text></div>
+                <div><Text id="voucher.signChair">અધ્યક્ષશ્રી</Text></div>
+              </div>
+            </>
           }
         />
       ))}
     </>
   );
+}
+
+/**
+ * The sentence under a voucher's bills, as the client's vouchers carry it: a
+ * reimbursement says the head teacher paid the bills and took the money back
+ * by cheque; a direct payment says the cheque paid them. The school can
+ * reword it; {ચેક નંબર} and {રકમ} are filled in.
+ */
+function VoucherNote({ voucher }: { voucher: Voucher }): JSX.Element | null {
+  if (voucher.chequeNo === null) return null;
+  const vars = { "ચેક નંબર": gu(String(voucher.chequeNo)), "રકમ": rupeesGu(voucher.totalPaise) };
+  return (
+    <div className="voucher-note" data-part="closingNote">
+      {voucher.chequeType === "REIMBURSEMENT" ? (
+        <Text id="voucher.noteReimbursement" vars={vars}>
+          {"ઉપરોક્ત બિલ મુજબનો ખર્ચ મુખ્ય શિક્ષક દ્વારા પદરનો કરવામાં આવેલ હતો તે મુ.શિ દ્વારા ચેકનંબર –: {ચેક નંબર} થી રૂ. {રકમ} પરત લીધા."}
+        </Text>
+      ) : (
+        <Text id="voucher.noteDirect" vars={vars}>
+          {"ઉપરોક્ત બિલ મુજબનો ખર્ચ ચેકનંબર –: {ચેક નંબર} થી રૂ. {રકમ} ચૂકવેલ છે."}
+        </Text>
+      )}
+    </div>
+  );
+}
+
+/** "૧૦૫૦૦", or "૧૦૫૦૦.૫૦" when there are paise - as the sentence writes a sum. */
+function rupeesGu(paise: number): string {
+  const text = formatAmount(paise);
+  return gu(text.endsWith(".00") ? text.slice(0, -3) : text);
 }
 
 // ---------------------------------------------------------------- પત્રક-D
@@ -396,15 +437,13 @@ export function PatrakDPages({
       tableClassName="form register"
       thead={
         <tr data-row="head">
-          <th data-col="serial">અ.નં</th>
-          <th data-col="chequeDate">ચેકની તારીખ</th>
-          <th data-col="chequeNo">ચેક નંબર</th>
-          <th data-col="payee">
-            કોના ખાતામાં નાણાં ટ્રાન્સફર કર્યા તેનું નામ (પદર ખર્ચ કર્યો હોય તો અહીં નામ લખવું)
-          </th>
-          <th data-col="parties">બીલ દુકાનદાર, પાર્ટીનું નામ</th>
-          <th data-col="head">ગ્રાન્ટનો હેડ</th>
-          <th data-col="amount">બીલની રકમ</th>
+          <th data-col="serial"><Text id="col:serial">અ.નં</Text></th>
+          <th data-col="chequeDate"><Text id="col:chequeDate">ચેકની તારીખ</Text></th>
+          <th data-col="chequeNo"><Text id="col:chequeNo">ચેક નંબર</Text></th>
+          <th data-col="payee"><Text id="col:payee">કોના ખાતામાં નાણાં ટ્રાન્સફર કર્યા તેનું નામ (પદર ખર્ચ કર્યો હોય તો અહીં નામ લખવું)</Text></th>
+          <th data-col="parties"><Text id="col:parties">બીલ દુકાનદાર, પાર્ટીનું નામ</Text></th>
+          <th data-col="head"><Text id="col:head">ગ્રાન્ટનો હેડ</Text></th>
+          <th data-col="amount"><Text id="col:amount">બીલની રકમ</Text></th>
         </tr>
       }
       rows={rows.map((row) => ({

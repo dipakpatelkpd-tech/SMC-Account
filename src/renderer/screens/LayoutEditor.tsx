@@ -100,7 +100,16 @@ interface CellRef {
   col: string;
 }
 
-type Selection =
+/** Words of the form under the click, which the school may reword (print/layout-context, Text). */
+interface TextRef {
+  id: string;
+  /** The form's own wording. */
+  fallback: string;
+  /** The {names} the text may use. */
+  vars: string[];
+}
+
+type Selection = (
   | {
       kind: "cell";
       /** The cell clicked first: the one the name box and the sizes describe. */
@@ -121,7 +130,21 @@ type Selection =
       widthMm: number;
       /** The heading it sits in, e.g. the whole band for the આવક box. */
       parent: string | null;
-    };
+    }
+) & { text?: TextRef | null };
+
+/** The editable words at a click: the Text span clicked, or the only one in the clicked box. */
+function textAt(element: Element | null, box: Element | null): TextRef | null {
+  const span =
+    element?.closest<HTMLElement>("[data-text]") ??
+    (box && box.querySelectorAll("[data-text]").length === 1 ? box.querySelector<HTMLElement>("[data-text]") : null);
+  if (!span) return null;
+  return {
+    id: span.dataset["text"] ?? "",
+    fallback: span.dataset["textDefault"] ?? "",
+    vars: (span.dataset["textVars"] ?? "").split(",").filter((name) => name !== ""),
+  };
+}
 
 /** A size measured on a zoomed sheet, in the sheet's own pixels. */
 function unzoomed(element: Element, px: number): number {
@@ -576,6 +599,7 @@ export function LayoutEditor({
       }
     }
     if (!next) return;
+    next = { ...next, text: textAt(element, cell ?? element?.closest?.("[data-part]") ?? null) };
     setSelection(next);
     // The format painter puts what it picked up on what is clicked, then stops.
     if (painter && draft) {
@@ -677,7 +701,26 @@ export function LayoutEditor({
   const defaults = REPORT_DEFAULTS[report];
   const column = cellSelection ? columns.find((each) => each.id === cellSelection.anchor.col) : undefined;
   const part = selection?.kind === "part" ? REPORT_PARTS[report].find((each) => each.id === selection.part) : undefined;
-  const heightAllowed = targets.length > 0 && targets.every((target) => target.kind === "row" || target.kind === "part");
+  // A row's height, as Excel has it: whatever is selected in a row - one cell
+  // or a range - sets the height of its whole row, and that row in every block.
+  const heightTargets: LayoutTarget[] =
+    selection?.kind === "part"
+      ? [{ kind: "part", part: selection.part }]
+      : cellSelection
+        ? [
+            ...new Set(
+              cellSelection.cells
+                .map((cell) => cell.group ?? cell.row)
+                .filter((row): row is string => row !== null && row !== "head"),
+            ),
+          ].map((row): LayoutTarget => ({ kind: "row", row }))
+        : [];
+  const heightNow = heightTargets[0] ? draft.styles[targetKey(heightTargets[0])]?.heightMm : undefined;
+  const setHeight = (heightMm: number | undefined): void => {
+    let next = draft;
+    for (const target of heightTargets) next = withStyle(next, target, { heightMm });
+    change(next);
+  };
   const gapKey = cellSelection ? (cellSelection.anchor.group ?? cellSelection.anchor.row) : null;
   const needsSelection = reportMode ? t.excelNeedsSelection : undefined;
 
@@ -877,17 +920,17 @@ export function LayoutEditor({
               onChange={(widthMm) => apply({ widthMm })}
             />
           )}
-          {heightAllowed && (
+          {heightTargets.length > 0 && (
             <MiniStepper
               label={`${t.layoutThisRowHeight} (${t.mm})`}
-              value={own.heightMm}
+              value={heightNow}
               placeholder={
                 selection?.kind === "part" ? selection.heightMm : (cellSelection?.anchor.rowMm ?? undefined)
               }
               step={0.5}
               min={2}
               max={80}
-              onChange={(heightMm) => apply({ heightMm })}
+              onChange={setHeight}
             />
           )}
           {cellSelection?.anchor.gapAllowed && gapKey !== null && (
@@ -901,11 +944,22 @@ export function LayoutEditor({
             />
           )}
           {!cellSelection && !part && <span className="ribbon-hint">{t.excelCellsHint}</span>}
-          {cellSelection && effectiveScope !== "row" && (
+          {heightTargets.length > 0 && cellSelection?.anchor.group && (
             <span className="ribbon-hint">{t.excelRowHeightHint}</span>
           )}
         </div>
       </Group>
+
+      {selection?.text && (
+        <Group label={t.excelGroupText}>
+          <TextEditor
+            key={selection.text.id}
+            text={selection.text}
+            value={draft.texts?.[selection.text.id]}
+            onChange={(value) => change(withText(draft, selection.text!.id, value))}
+          />
+        </Group>
+      )}
 
       <Group label={t.layoutApplyTo}>
         <div className="ribbon-rows">
@@ -1172,6 +1226,57 @@ export function LayoutEditor({
         {check.cells > 0 && <span className="warn">{t.layoutCellsOverflow(check.cells)}</span>}
         <span className="excel-statusbar-hint">{report === "rojmel" ? t.layoutRojmelNote : t.layoutExcelNote}</span>
         <span className="excel-statusbar-zoom">{viewZoom}%</span>
+      </div>
+    </div>
+  );
+}
+
+/** A text reworded; empty or `undefined` puts the form's own wording back. */
+function withText(layout: ReportLayout, id: string, value: string | undefined): ReportLayout {
+  const texts = { ...(layout.texts ?? {}) };
+  if (value === undefined || value.trim() === "") delete texts[id];
+  else texts[id] = value;
+  return { ...layout, texts };
+}
+
+/** The words of a heading or label, editable; {names} in them are filled with the figures. */
+function TextEditor({
+  text,
+  value,
+  onChange,
+}: {
+  text: TextRef;
+  value: string | undefined;
+  onChange: (value: string | undefined) => void;
+}): JSX.Element {
+  const t = useStrings();
+  const [draft, setDraft] = useState(value ?? text.fallback);
+  useEffect(() => setDraft(value ?? text.fallback), [value, text.fallback]);
+  const commit = (): void => {
+    if (draft === (value ?? text.fallback)) return;
+    onChange(draft === text.fallback ? undefined : draft);
+  };
+  return (
+    <div className="ribbon-rows text-editor">
+      <textarea
+        value={draft}
+        rows={text.fallback.length > 40 ? 3 : 1}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            commit();
+          }
+        }}
+      />
+      <div className="ribbon-row">
+        <button type="button" className="ribbon-button" disabled={value === undefined} onClick={() => onChange(undefined)}>
+          ↺ {t.excelTextReset}
+        </button>
+        {text.vars.length > 0 && (
+          <span className="ribbon-hint">{t.excelTextVars(text.vars.map((name) => `{${name}}`).join(" "))}</span>
+        )}
       </div>
     </div>
   );

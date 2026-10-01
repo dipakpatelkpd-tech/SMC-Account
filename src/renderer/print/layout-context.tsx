@@ -5,6 +5,7 @@ import {
   REPORT_COLUMNS,
   fontsUsed,
   rowGapMm,
+  textOf,
   type ReportLayout,
 } from "../../shared/report-layout.js";
 
@@ -77,4 +78,28 @@ export async function layoutFontsReady(layout: ReportLayout | undefined): Promis
     ),
   );
   await document.fonts.ready;
+}
+
+/**
+ * Words of the form a school may reword in the layout editor - a heading, a
+ * label, a title. The span carries its id, its default and the {names} it may
+ * use, so the editor can offer the text for editing when it is clicked.
+ */
+export function Text({
+  id,
+  children,
+  vars,
+}: {
+  id: string;
+  /** The form's own wording. */
+  children: string;
+  /** Figures the text may name as {key}. */
+  vars?: Record<string, string>;
+}): JSX.Element {
+  const value = useReportLayout();
+  return (
+    <span data-text={id} data-text-default={children} data-text-vars={vars ? Object.keys(vars).join(",") : undefined}>
+      {textOf(value?.layout, id, children, vars)}
+    </span>
+  );
 }

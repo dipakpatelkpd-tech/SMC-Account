@@ -1,4 +1,5 @@
 import type { JSX } from "react";
+import { Text } from "./layout-context.js";
 import type { Annexure10 } from "../../engine/types.js";
 import type { SchoolDto, FinancialYearDto } from "../../shared/api.js";
 import { formatAmount } from "../../lib/money.js";
@@ -53,14 +54,14 @@ export function Annexure10Page({
       tableClassName="form annexure10"
       thead={
         <tr data-row="head">
-          <th data-col="serial">ક્રમ</th>
-          <th data-col="head">વિગત</th>
-          <th data-col="opening">શરૂની સિલક</th>
-          <th data-col="received">વર્ષ દરમ્યાન મળેલ ગ્રાન્ટ</th>
-          <th data-col="total">કુલ</th>
-          <th data-col="spent">ખર્ચ</th>
-          <th data-col="returned">પરત કરેલ ગ્રાન્ટ</th>
-          <th data-col="totalOut">કુલ ખર્ચ</th>
+          <th data-col="serial"><Text id="col:serial">ક્રમ</Text></th>
+          <th data-col="head"><Text id="col:head">વિગત</Text></th>
+          <th data-col="opening"><Text id="col:opening">શરૂની સિલક</Text></th>
+          <th data-col="received"><Text id="col:received">વર્ષ દરમ્યાન મળેલ ગ્રાન્ટ</Text></th>
+          <th data-col="total"><Text id="col:total">કુલ</Text></th>
+          <th data-col="spent"><Text id="col:spent">ખર્ચ</Text></th>
+          <th data-col="returned"><Text id="col:returned">પરત કરેલ ગ્રાન્ટ</Text></th>
+          <th data-col="totalOut"><Text id="col:totalOut">કુલ ખર્ચ</Text></th>
           <th data-col="closing">
             <span style={{ whiteSpace: "nowrap" }}>{closingDateLabel}</span> ની બંધ સિલક
           </th>

@@ -68,6 +68,7 @@ import {
   ROW_KEYS,
   billRowKeys,
   rowGapMm,
+  textOf,
   emptyLayout,
   fontFamily,
   ledgerRowKeys,
@@ -232,7 +233,10 @@ function sheet(
   titleRow.alignment = { horizontal: "center", vertical: "middle" };
   worksheet.mergeCells(1, 1, 1, Math.max(1, columns.length));
 
-  const header = worksheet.addRow(columns.map((column) => column.header));
+  // A heading the school reworded in the layout editor reads the same here.
+  const header = worksheet.addRow(
+    columns.map((column) => (column.layout && layout.texts?.[`col:${column.layout}`]?.trim()) || column.header),
+  );
   header.font = headFont;
   header.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
 
@@ -509,11 +513,22 @@ function rojmelSheet(
       target.fill = { type: "pattern", pattern: "solid", fgColor: { argb: argbFill } };
       target.border = ruling;
     };
-    bandCell(1, colOf.get("r.total")!, "આવક            ( Cash Book )", "FFEEF2EA");
-    bandCell(colOf.get("p.detail")!, colOf.get("p.cash")!, "( કેશ બુક )            જાવક", "FFEEF2EA");
-    bandCell(colOf.get("p.bank")!, last, `પાના.નંબર   ${page.pageNo}`, "FFF6EEF2");
+    const word = (id: string, fallback: string): string => textOf(layout, id, fallback);
+    bandCell(
+      1,
+      colOf.get("r.total")!,
+      `${word("rojmel.bandIn", "આવક")}            ${word("rojmel.bandCashBook", "( Cash Book )")}`,
+      "FFEEF2EA",
+    );
+    bandCell(
+      colOf.get("p.detail")!,
+      colOf.get("p.cash")!,
+      `${word("rojmel.bandCashBookGu", "( કેશ બુક )")}            ${word("rojmel.bandOut", "જાવક")}`,
+      "FFEEF2EA",
+    );
+    bandCell(colOf.get("p.bank")!, last, `${word("rojmel.pageNo", "પાના.નંબર")}   ${page.pageNo}`, "FFF6EEF2");
 
-    const head = worksheet.addRow(ROJMEL_HEADINGS.map(([, heading]) => heading));
+    const head = worksheet.addRow(ROJMEL_HEADINGS.map(([id, heading]) => layout.texts?.[`col:${id}`]?.trim() || heading));
     head.height = 80;
     ruled(head);
     head.eachCell((target) => {
@@ -534,15 +549,15 @@ function rojmelSheet(
         const gap = rowGapMm(layout, tableRow.key, ROW_GROUPS.rojmelRow(index));
         if (gap) worksheet.addRow([]).height = Math.round(gap * PT_PER_MM * 10) / 10;
       }
-      footer(block, "spent", "શ્રી ખર્ચખાતે", [block.spentCashPaise, block.spentBankPaise, block.spentTotalPaise]);
+      footer(block, "spent", textOf(layout, "rojmel.spent", "શ્રી ખર્ચખાતે"), [block.spentCashPaise, block.spentBankPaise, block.spentTotalPaise]);
       footer(
         block,
         "closing",
-        "શ્રી બંધ સિલક",
+        textOf(layout, "rojmel.closing", "શ્રી બંધ સિલક"),
         [block.closingCashPaise, block.closingBankPaise, block.closingTotalPaise],
         [block.receiptTotalCashPaise, block.receiptTotalBankPaise, block.receiptTotalTotalPaise],
       );
-      footer(block, "grand", "શ્રી કુલ", [
+      footer(block, "grand", textOf(layout, "rojmel.grand", "શ્રી કુલ"), [
         block.spentCashPaise + block.closingCashPaise,
         block.spentBankPaise + block.closingBankPaise,
         block.spentCashPaise + block.closingCashPaise + block.spentBankPaise + block.closingBankPaise,

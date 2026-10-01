@@ -2518,3 +2518,13 @@ tr.clickable {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* The ribbon's text box: a heading's or a label's words. */
+.text-editor textarea {
+  width: 300px;
+  min-height: 26px;
+  padding: 3px 6px;
+  font-family: var(--gujarati);
+  font-size: 13px;
+  resize: vertical;
+}
